@@ -8,10 +8,14 @@
     // the user's last input on validation failure; otherwise we pick
     // sensible defaults that match the most common officer flow.
     $channelIds = collect($channels ?? [])->pluck('id');
-    $oldChannelId = (string) old('channel_id', $defaultChannel ?? '');
+    $firstChannelId = (string) ($channels[0]['id'] ?? '');
+    $oldChannelId = (string) old('channel_id', $defaultChannel ?? $firstChannelId);
     $channelMode = old('_channel_mode',
         $oldChannelId !== '' && ! $channelIds->contains($oldChannelId) ? 'other' : 'preset'
     );
+    // The dropdown's safe fallback when the user clicks "Back to list":
+    // the configured default if it's a known preset, otherwise the first.
+    $presetFallback = $channelIds->contains($defaultChannel ?? '') ? $defaultChannel : $firstChannelId;
     $durationMode = old('duration_mode', 'duration');
 @endphp
 <div class="max-w-2xl mx-auto">
@@ -30,8 +34,9 @@
     <form method="POST" action="{{ route('events.store') }}"
           x-data="{
               channelMode: '{{ $channelMode }}',
-              channelPreset: '{{ $channelMode === 'preset' ? $oldChannelId : '' }}',
+              channelPreset: '{{ $channelMode === 'preset' ? $oldChannelId : $presetFallback }}',
               channelOther: '{{ $channelMode === 'other' ? $oldChannelId : '' }}',
+              presetFallback: '{{ $presetFallback }}',
               durationMode: '{{ $durationMode }}',
           }"
           class="space-y-4 bg-panel border border-line rounded-lg p-6">
@@ -117,16 +122,19 @@
             </select>
         </div>
 
-        {{-- Channel: dropdown of known channels with an "Other..." escape
-             hatch for one-off ids. The hidden input is what actually gets
-             submitted; Alpine populates it from whichever path the user
-             picked. --}}
+        {{-- Channel: a dropdown of known channels and a paste-an-ID
+             text input share the same name="channel_id". Whichever isn't
+             currently active is :disabled, and disabled fields aren't
+             submitted - so the server only ever sees one value. Avoids
+             a hidden-input bridge whose Alpine :value didn't reliably
+             populate on initial mount. --}}
         <div>
             <label class="block text-xs uppercase tracking-wider text-muted mb-1">Channel</label>
 
             <div x-show="channelMode === 'preset'" x-cloak>
-                <select x-model="channelPreset"
-                        @change="channelMode = $event.target.value === '__other__' ? 'other' : 'preset'"
+                <select name="channel_id" x-model="channelPreset"
+                        :disabled="channelMode !== 'preset'"
+                        @change="if ($event.target.value === '__other__') { channelMode = 'other'; channelPreset = ''; }"
                         class="w-full bg-bg border border-line rounded px-3 py-2 text-sm focus:outline-none focus:border-accent">
                     @foreach ($channels as $ch)
                         <option value="{{ $ch['id'] }}">{{ $ch['label'] }}</option>
@@ -136,22 +144,22 @@
             </div>
 
             <div x-show="channelMode === 'other'" x-cloak class="flex gap-2">
-                <input type="text" inputmode="numeric" x-model="channelOther"
+                <input type="text" inputmode="numeric" name="channel_id"
+                       x-model="channelOther"
+                       :disabled="channelMode !== 'other'"
                        placeholder="Paste Discord channel ID"
                        class="flex-1 bg-bg border border-line rounded px-3 py-2 text-sm focus:outline-none focus:border-accent">
-                <button type="button" @click="channelMode = 'preset'; channelOther = ''"
+                <button type="button"
+                        @click="channelMode = 'preset'; channelOther = ''; channelPreset = presetFallback"
                         class="px-3 py-2 text-xs text-muted hover:text-ink border border-line rounded">
                     &larr; Back to list
                 </button>
             </div>
 
-            {{-- The actual submitted value: whichever of preset/other is
-                 currently active. Hidden so server-side validation runs
-                 on the regex-checked snowflake. --}}
-            <input type="hidden" name="channel_id"
-                   :value="channelMode === 'preset' ? channelPreset : channelOther">
-            {{-- Mirror the mode for old() repopulation on validation
-                 failure. The controller doesn't care about this field. --}}
+            {{-- Mirror the current mode on a hidden field so a validation
+                 failure can re-render with the right input visible. The
+                 controller doesn't validate this; the @php block at the
+                 top of the file reads it via old() to seed Alpine. --}}
             <input type="hidden" name="_channel_mode" :value="channelMode">
 
             <p class="text-xs text-muted mt-1">
