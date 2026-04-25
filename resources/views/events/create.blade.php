@@ -6,7 +6,7 @@
 <div class="max-w-2xl mx-auto">
     <h1 class="text-xl font-semibold mb-6">New event</h1>
 
-    @if ($errors->any())
+    @if (isset($errors) && $errors->any())
         <div class="mb-4 p-3 rounded bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm">
             <ul class="list-disc list-inside">
                 @foreach ($errors->all() as $err)

@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\AltGroup;
+use App\Models\AttendanceStat;
 use App\Models\LogEvent;
 use App\Models\Member;
 use App\Models\MemberAction;
 use App\Models\MemberEvent;
+use App\Models\RaidEvent;
 use App\Models\Snapshot;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -39,7 +41,46 @@ class DashboardController extends Controller
             'anniversaries' => $this->anniversaries($guildKey),
             'rankDistribution' => $this->rankDistribution($guildKey),
             'churn' => $this->churn($guildKey),
+            'upcomingEvents' => $this->upcomingEvents(),
+            'attendance' => $this->attendance($guildKey),
         ]);
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, RaidEvent>
+     */
+    private function upcomingEvents(): \Illuminate\Support\Collection
+    {
+        return RaidEvent::query()
+            ->upcoming()
+            ->withCount('signups')
+            ->limit(10)
+            ->get();
+    }
+
+    /**
+     * @return array{captured_at: ?\Carbon\CarbonInterface, rows: \Illuminate\Support\Collection}
+     */
+    private function attendance(string $guildKey): array
+    {
+        $latestCapture = AttendanceStat::query()
+            ->where('guild_key', $guildKey)
+            ->latest('captured_at')
+            ->value('captured_at');
+
+        if (! $latestCapture) {
+            return ['captured_at' => null, 'rows' => collect()];
+        }
+
+        return [
+            'captured_at' => $latestCapture,
+            'rows' => AttendanceStat::query()
+                ->where('guild_key', $guildKey)
+                ->where('captured_at', $latestCapture)
+                ->orderByDesc('attendance_pct')
+                ->limit(50)
+                ->get(),
+        ];
     }
 
     private function rosterHealth(string $guildKey, int $inactiveDays): array

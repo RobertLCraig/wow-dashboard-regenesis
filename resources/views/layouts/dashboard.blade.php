@@ -54,7 +54,7 @@
             <nav class="hidden md:flex items-center gap-4 text-sm text-muted">
                 <a href="{{ route('dashboard') }}" class="hover:text-ink">Dashboard</a>
                 <span class="text-line">|</span>
-                <span class="text-line">Events (soon)</span>
+                <a href="{{ route('events.index') }}" class="hover:text-ink">Events</a>
                 <span class="text-line">|</span>
                 <span class="text-line">Roster (soon)</span>
             </nav>
