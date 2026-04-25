@@ -50,6 +50,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Channel dropdown options
+    |--------------------------------------------------------------------------
+    |
+    | Pre-populated channel choices shown in the event creator's channel
+    | selector. Officers can still paste an arbitrary channel ID via the
+    | "Other..." option, so this list doesn't need to be exhaustive -
+    | just the ones used most often.
+    */
+    'channels' => [
+        ['id' => '1430231966686511124', 'label' => '📅 social-events'],
+        ['id' => '1247281653777301714', 'label' => '✍ heroic-raid-signup'],
+        ['id' => '1423413329954603039', 'label' => '✍ mythic-raid-signup'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Templates to offer in the dropdown
     |--------------------------------------------------------------------------
     |

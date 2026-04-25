@@ -11,7 +11,15 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // RaidHelperClient and WowauditClient have string constructor
+        // params (api keys) the container can't auto-resolve. Bind both
+        // to their fromConfig() factories so type-hinted method
+        // injection in controllers / commands "just works", and tests
+        // that override config() before resolving get the right values.
+        $this->app->scoped(\App\Services\RaidHelper\RaidHelperClient::class,
+            fn () => \App\Services\RaidHelper\RaidHelperClient::fromConfig());
+        $this->app->scoped(\App\Services\Wowaudit\WowauditClient::class,
+            fn () => \App\Services\Wowaudit\WowauditClient::fromConfig());
     }
 
     public function boot(): void

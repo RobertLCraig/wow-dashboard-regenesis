@@ -34,6 +34,7 @@ class EventController extends Controller
 
         return view('events.create', [
             'templates' => config('raidhelper.templates'),
+            'channels' => config('raidhelper.channels', []),
             'defaultChannel' => config('raidhelper.default_channel_id'),
             'leaderId' => auth()->user()?->discord_id,
         ]);
@@ -47,14 +48,41 @@ class EventController extends Controller
             'title' => ['required', 'string', 'max:200'],
             'description' => ['nullable', 'string', 'max:5000'],
             'starts_at' => ['required', 'date'],
-            'duration_minutes' => ['required', 'integer', 'min:15', 'max:600'],
+            // Three valid duration modes:
+            //   duration  -> required duration_minutes, ends_at must be empty
+            //   end_time  -> required ends_at after starts_at, duration_minutes empty
+            //   default   -> both empty, Raid-Helper applies its server default
+            'duration_mode' => ['required', 'in:duration,end_time,default'],
+            'duration_minutes' => ['nullable', 'required_if:duration_mode,duration', 'integer', 'min:15', 'max:1440'],
+            'ends_at' => ['nullable', 'required_if:duration_mode,end_time', 'date', 'after:starts_at'],
             'template_id' => ['required', 'string'],
-            'channel_id' => ['required', 'string'],
+            // Channel can come from the dropdown OR a pasted ID via the
+            // "Other..." path, hence the looser validation here.
+            'channel_id' => ['required', 'string', 'regex:/^\d{15,25}$/'],
             'leader_id' => ['required', 'string'],
             'mentions' => ['nullable', 'string', 'max:200'],
+        ], [
+            'channel_id.regex' => 'Channel ID must be the numeric Discord snowflake (15-25 digits).',
+            'ends_at.after' => 'End time must be after the start time.',
         ]);
 
         $startsAt = CarbonImmutable::parse($validated['starts_at'], config('raidhelper.timezone'));
+
+        // Compute the duration that goes to Raid-Helper. The API only
+        // accepts advancedSettings.duration (in minutes); end_time mode
+        // converts to the equivalent duration server-side.
+        $durationMinutes = match ($validated['duration_mode']) {
+            'duration' => (int) $validated['duration_minutes'],
+            'end_time' => (int) round(
+                (CarbonImmutable::parse($validated['ends_at'], config('raidhelper.timezone'))->getTimestamp() - $startsAt->getTimestamp()) / 60
+            ),
+            default => null,
+        };
+
+        $advancedSettings = [];
+        if ($durationMinutes !== null) {
+            $advancedSettings['duration'] = (string) $durationMinutes;
+        }
 
         $payload = [
             'leaderId' => $validated['leader_id'],
@@ -63,10 +91,10 @@ class EventController extends Controller
             'time' => $startsAt->format('H:i'),
             'title' => $validated['title'],
             'description' => $validated['description'] ?? '',
-            'advancedSettings' => [
-                'duration' => (string) $validated['duration_minutes'],
-            ],
         ];
+        if (! empty($advancedSettings)) {
+            $payload['advancedSettings'] = $advancedSettings;
+        }
 
         $resp = $client->createEvent($validated['channel_id'], $payload);
 
@@ -123,8 +151,6 @@ class EventController extends Controller
 
     private function signedIcsToken(RaidEvent $event): string
     {
-        // Token derives from the event UID + ics_sequence so editing the
-        // event invalidates old links automatically.
         return hash_hmac('sha256', $event->ics_uid . '|' . $event->ics_sequence, config('app.key'));
     }
 
