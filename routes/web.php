@@ -17,5 +17,5 @@ Route::post('/logout', [DiscordController::class, 'logout'])->middleware('auth')
 // auth + OfficerOnly so a removed Discord role takes effect within the
 // configured cache TTL without requiring a re-login.
 Route::middleware(['auth', OfficerOnly::class])->group(function () {
-    Route::view('/dashboard', 'dashboard.index')->name('dashboard');
+    Route::get('/dashboard', [\App\Http\Controllers\Dashboard\DashboardController::class, 'index'])->name('dashboard');
 });
