@@ -18,4 +18,5 @@ Route::post('/logout', [DiscordController::class, 'logout'])->middleware('auth')
 // configured cache TTL without requiring a re-login.
 Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\Dashboard\DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/dashboard/members/{member}/actions', [\App\Http\Controllers\Dashboard\MemberActionController::class, 'store'])->name('dashboard.member.actions.store');
 });

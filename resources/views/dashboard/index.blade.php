@@ -5,9 +5,27 @@
 @section('content')
     @include('dashboard.widgets.roster-health', ['health' => $health])
 
+    <div class="mt-6">
+        @include('dashboard.widgets.action-queue', ['actionQueue' => $actionQueue])
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        @include('dashboard.widgets.anniversaries', ['anniversaries' => $anniversaries])
         @include('dashboard.widgets.recently-inactive', ['inactive' => $inactive])
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        @include('dashboard.widgets.alt-groups', ['altGroups' => $altGroups])
         @include('dashboard.widgets.log-timeline', ['timeline' => $timeline])
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        @include('dashboard.widgets.bans', ['bans' => $bans])
+        @include('dashboard.widgets.rank-distribution', ['rankDistribution' => $rankDistribution])
+    </div>
+
+    <div class="mt-6">
+        @include('dashboard.widgets.churn', ['churn' => $churn])
     </div>
 
     @if (! $lastSnapshot)

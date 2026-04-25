@@ -3,21 +3,20 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Models\AltGroup;
 use App\Models\LogEvent;
 use App\Models\Member;
+use App\Models\MemberAction;
 use App\Models\MemberEvent;
 use App\Models\Snapshot;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
- * Top-level dashboard. Gathers the data for the v1 widgets:
- *   - Roster Health Summary (stats row)
- *   - Recently Inactive (table)
- *   - Recent Log Timeline (activity feed)
- *
- * Each widget returns plain arrays / Eloquent collections; the Blade
- * partials handle presentation. No queries inside views.
+ * Top-level dashboard. Gathers the data for every v1 widget in one
+ * controller; views are pure presentation.
  */
 class DashboardController extends Controller
 {
@@ -34,20 +33,15 @@ class DashboardController extends Controller
             'health' => $this->rosterHealth($guildKey, $inactiveDays),
             'inactive' => $this->recentlyInactive($guildKey, $inactiveDays),
             'timeline' => $this->recentLogTimeline($guildKey),
+            'actionQueue' => $this->actionQueue($guildKey),
+            'altGroups' => $this->altGroups($guildKey),
+            'bans' => $this->bans($guildKey),
+            'anniversaries' => $this->anniversaries($guildKey),
+            'rankDistribution' => $this->rankDistribution($guildKey),
+            'churn' => $this->churn($guildKey),
         ]);
     }
 
-    /**
-     * @return array{
-     *   active: int,
-     *   delta_7d: int,
-     *   retention_30d_pct: ?float,
-     *   avg_level: ?float,
-     *   avg_days_since_online: ?float,
-     *   inactive_count: int,
-     *   total_known: int,
-     * }
-     */
     private function rosterHealth(string $guildKey, int $inactiveDays): array
     {
         $now = CarbonImmutable::now();
@@ -56,9 +50,6 @@ class DashboardController extends Controller
 
         $active = Member::active()->forGuild($guildKey)->count();
 
-        // Net change in active count over the last 7 days. Joiners count
-        // positively, leavers/kicks/bans negatively. Returns are also
-        // joiners. Anniversaries / inactivity transitions don't count.
         $joiners = MemberEvent::query()
             ->whereHas('member', fn ($q) => $q->forGuild($guildKey))
             ->whereIn('type', [MemberEvent::TYPE_JOINED, MemberEvent::TYPE_RETURNED])
@@ -70,9 +61,6 @@ class DashboardController extends Controller
             ->where('occurred_at', '>=', $sevenDaysAgo)
             ->count();
 
-        // Retention: active members with last_online_at within the
-        // inactive window. Crude but matches what officers actually look
-        // at in GRM ("how many of our roster is still showing up").
         $activeRecent = Member::active()->forGuild($guildKey)
             ->where('last_online_at', '>=', $inactiveCutoff)
             ->count();
@@ -83,9 +71,6 @@ class DashboardController extends Controller
             ->avg('level');
         $avgLevel = $avgLevel !== null ? round((float) $avgLevel, 1) : null;
 
-        // Average days since last seen. Online players (last_online_at
-        // ~= captured_at) pull this toward 0; long-dormant alts push it
-        // up. Used for the sparkline-headline number.
         $avgDays = null;
         $rows = Member::active()->forGuild($guildKey)
             ->whereNotNull('last_online_at')
@@ -109,9 +94,6 @@ class DashboardController extends Controller
         ];
     }
 
-    /**
-     * @return \Illuminate\Support\Collection<int, Member>
-     */
     private function recentlyInactive(string $guildKey, int $inactiveDays): \Illuminate\Support\Collection
     {
         $cutoff = CarbonImmutable::now()->subDays($inactiveDays);
@@ -124,9 +106,6 @@ class DashboardController extends Controller
             ->get();
     }
 
-    /**
-     * @return \Illuminate\Support\Collection<int, LogEvent>
-     */
     private function recentLogTimeline(string $guildKey): \Illuminate\Support\Collection
     {
         return LogEvent::query()
@@ -134,5 +113,130 @@ class DashboardController extends Controller
             ->orderBy('occurred_at', 'desc')
             ->limit(50)
             ->get();
+    }
+
+    /**
+     * Action queue: members GRM has flagged for promote/demote/kick that
+     * an officer hasn't already accepted or dismissed.
+     */
+    private function actionQueue(string $guildKey): array
+    {
+        $reviewedIds = MemberAction::query()
+            ->whereIn('decision', [MemberAction::DECISION_ACCEPTED, MemberAction::DECISION_DISMISSED])
+            ->orWhere(function (Builder $q) {
+                $q->where('decision', MemberAction::DECISION_SNOOZED)
+                  ->where('snooze_until', '>', now());
+            })
+            ->pluck('action_type', 'member_id');
+
+        $base = fn (Builder $q) => $q->forGuild($guildKey)->orderBy('name');
+
+        $filterReviewed = function ($collection, string $type) use ($reviewedIds) {
+            return $collection->reject(function ($member) use ($reviewedIds, $type) {
+                return ($reviewedIds[$member->id] ?? null) === $type;
+            })->values();
+        };
+
+        return [
+            'promote' => $filterReviewed(
+                $base(Member::query()->where('recommend_promote', true)->active())->get(),
+                MemberAction::TYPE_PROMOTE,
+            ),
+            'demote' => $filterReviewed(
+                $base(Member::query()->where('recommend_demote', true)->active())->get(),
+                MemberAction::TYPE_DEMOTE,
+            ),
+            'kick' => $filterReviewed(
+                $base(Member::query()->where('recommend_kick', true)->active())->get(),
+                MemberAction::TYPE_KICK,
+            ),
+        ];
+    }
+
+    private function altGroups(string $guildKey): \Illuminate\Support\Collection
+    {
+        return AltGroup::query()
+            ->where('guild_key', $guildKey)
+            ->with(['members' => fn ($q) => $q->orderByDesc('alt_group_members.is_main')->orderBy('name')])
+            ->get()
+            ->sortBy(fn ($g) => mb_strtolower($g->members->first()?->name ?? ''))
+            ->values();
+    }
+
+    private function bans(string $guildKey): \Illuminate\Support\Collection
+    {
+        return Member::query()
+            ->forGuild($guildKey)
+            ->where('status', Member::STATUS_BANNED)
+            ->orderByDesc('banned_at')
+            ->get();
+    }
+
+    private function anniversaries(string $guildKey): \Illuminate\Support\Collection
+    {
+        $weekStart = CarbonImmutable::now()->startOfWeek();
+        $weekEnd = $weekStart->endOfWeek();
+
+        return MemberEvent::query()
+            ->where('type', MemberEvent::TYPE_ANNIVERSARY)
+            ->whereBetween('occurred_at', [$weekStart, $weekEnd])
+            ->whereHas('member', fn ($q) => $q->forGuild($guildKey))
+            ->with('member')
+            ->orderBy('occurred_at')
+            ->get();
+    }
+
+    /**
+     * @return array<int,array{rank:string,count:int,index:?int}>
+     */
+    private function rankDistribution(string $guildKey): array
+    {
+        return Member::active()
+            ->forGuild($guildKey)
+            ->select('rank_name', 'rank_index', DB::raw('count(*) as c'))
+            ->groupBy('rank_name', 'rank_index')
+            ->orderBy('rank_index')
+            ->get()
+            ->map(fn ($row) => [
+                'rank' => $row->rank_name ?? '(none)',
+                'count' => (int) $row->c,
+                'index' => $row->rank_index,
+            ])
+            ->all();
+    }
+
+    /**
+     * Weekly joiner / leaver counts over the last 12 weeks for the
+     * churn chart. Returns rows in chronological order so Chart.js
+     * can render them as-is.
+     *
+     * @return array{labels:list<string>, joiners:list<int>, leavers:list<int>}
+     */
+    private function churn(string $guildKey): array
+    {
+        $weeks = 12;
+        $start = CarbonImmutable::now()->startOfWeek()->subWeeks($weeks - 1);
+        $labels = [];
+        $joiners = [];
+        $leavers = [];
+
+        for ($i = 0; $i < $weeks; $i++) {
+            $weekStart = $start->addWeeks($i);
+            $weekEnd = $weekStart->endOfWeek();
+            $labels[] = $weekStart->format('d M');
+
+            $joiners[] = MemberEvent::query()
+                ->whereHas('member', fn ($q) => $q->forGuild($guildKey))
+                ->whereIn('type', [MemberEvent::TYPE_JOINED, MemberEvent::TYPE_RETURNED])
+                ->whereBetween('occurred_at', [$weekStart, $weekEnd])
+                ->count();
+            $leavers[] = MemberEvent::query()
+                ->whereHas('member', fn ($q) => $q->forGuild($guildKey))
+                ->whereIn('type', [MemberEvent::TYPE_LEFT, MemberEvent::TYPE_KICKED, MemberEvent::TYPE_BANNED])
+                ->whereBetween('occurred_at', [$weekStart, $weekEnd])
+                ->count();
+        }
+
+        return ['labels' => $labels, 'joiners' => $joiners, 'leavers' => $leavers];
     }
 }
