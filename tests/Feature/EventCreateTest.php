@@ -73,7 +73,7 @@ function basePayload(array $overrides = []): array
 }
 
 it('creates an event in duration mode and sends advancedSettings.duration', function () {
-    Http::fake(['raid-helper.dev/*' => Http::response(fakeRaidHelperEvent(), 200)]);
+    Http::fake(['raid-helper.xyz/*' => Http::response(fakeRaidHelperEvent(), 200)]);
 
     $this->actingAs(officer())
         ->post(route('events.store'), basePayload(['duration_mode' => 'duration', 'duration_minutes' => 240]))
@@ -87,7 +87,7 @@ it('creates an event in duration mode and sends advancedSettings.duration', func
 });
 
 it('creates an event in end_time mode and converts to duration minutes', function () {
-    Http::fake(['raid-helper.dev/*' => Http::response(fakeRaidHelperEvent(), 200)]);
+    Http::fake(['raid-helper.xyz/*' => Http::response(fakeRaidHelperEvent(), 200)]);
 
     $start = now()->addDay()->setTime(20, 0);
     $end = $start->copy()->addHours(3)->addMinutes(30); // 210 min
@@ -105,7 +105,7 @@ it('creates an event in end_time mode and converts to duration minutes', functio
 });
 
 it('creates an event in default mode without sending duration at all', function () {
-    Http::fake(['raid-helper.dev/*' => Http::response(fakeRaidHelperEvent(), 200)]);
+    Http::fake(['raid-helper.xyz/*' => Http::response(fakeRaidHelperEvent(), 200)]);
 
     $this->actingAs(officer())
         ->post(route('events.store'), basePayload([
@@ -156,7 +156,7 @@ it('rejects a channel id that is not a numeric snowflake', function () {
 });
 
 it('accepts a pasted channel id outside the preset list', function () {
-    Http::fake(['raid-helper.dev/*' => Http::response(fakeRaidHelperEvent(), 200)]);
+    Http::fake(['raid-helper.xyz/*' => Http::response(fakeRaidHelperEvent(), 200)]);
 
     $this->actingAs(officer())
         ->post(route('events.store'), basePayload(['channel_id' => '999888777666555444']))
@@ -167,7 +167,7 @@ it('accepts a pasted channel id outside the preset list', function () {
 
 it('humanises a Raid-Helper 404 with a channel-access hint', function () {
     Http::fake([
-        'raid-helper.dev/*' => Http::response([
+        'raid-helper.xyz/*' => Http::response([
             'title' => 'Endpoint POST /api/v2/servers/X/channels/Y/event not found',
             'status' => 404,
         ], 404),
@@ -186,7 +186,7 @@ it('humanises a Raid-Helper 404 with a channel-access hint', function () {
 
 it('humanises a Raid-Helper non-404 error using the title field', function () {
     Http::fake([
-        'raid-helper.dev/*' => Http::response([
+        'raid-helper.xyz/*' => Http::response([
             'title' => 'Invalid template id',
             'status' => 422,
         ], 422),

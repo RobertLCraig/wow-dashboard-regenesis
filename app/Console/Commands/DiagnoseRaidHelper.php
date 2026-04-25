@@ -22,7 +22,8 @@ use Illuminate\Console\Command;
 class DiagnoseRaidHelper extends Command
 {
     protected $signature = 'raidhelper:diagnose
-        {--channel= : Channel ID to probe with a real create+delete}';
+        {--channel= : Channel ID to probe with a real create+delete}
+        {--leader= : Discord user ID to set as event leader (required if --channel)}';
 
     protected $description = 'Run read-only Raid-Helper API probes to diagnose 4xx errors';
 
@@ -40,20 +41,27 @@ class DiagnoseRaidHelper extends Command
             return self::FAILURE;
         }
 
-        $this->probe('GET /api/v3/servers/{server}/events?Page=1',
+        $this->probe('GET /api/v4/servers/{server}/events?Page=1',
             fn () => $client->listEvents(page: 1));
 
-        $this->probe('GET /api/v3/servers/{server}/scheduledevents',
+        $this->probe('GET /api/v4/servers/{server}/scheduledevents',
             fn () => $client->listScheduledEvents());
 
-        $this->probe('GET /api/v2/servers/{server}/attendance',
+        $this->probe('GET /api/v4/servers/{server}/attendance',
             fn () => $client->attendance());
 
         if ($channelId = $this->option('channel')) {
+            $leaderId = (string) ($this->option('leader') ?? '');
+            if ($leaderId === '') {
+                $this->newLine();
+                $this->error('--channel requires --leader=<discord_user_id> (the API rejects fake leader IDs).');
+                return self::FAILURE;
+            }
+
             $this->newLine();
-            $this->line("Attempting a create+immediate-delete on channel {$channelId}...");
+            $this->line("Attempting a create+immediate-delete on channel {$channelId} as leader {$leaderId}...");
             $resp = $client->createEvent($channelId, [
-                'leaderId' => '0',
+                'leaderId' => $leaderId,
                 'templateId' => '2',
                 'date' => now()->addYears(10)->format('d-m-Y'),
                 'time' => '23:59',
@@ -61,13 +69,13 @@ class DiagnoseRaidHelper extends Command
                 'description' => 'Created by raidhelper:diagnose. Will auto-delete immediately.',
             ]);
             $status = $resp->status();
-            $this->renderProbeLine('POST /api/v2/servers/{server}/channels/' . $channelId . '/event', $status, $resp->body());
+            $this->renderProbeLine('POST /api/v4/servers/{server}/channels/' . $channelId . '/event', $status, $resp->body());
 
             if ($resp->successful() && $resp->json('event.id')) {
                 $eventId = $resp->json('event.id');
                 $this->line("  -> created event {$eventId}, deleting...");
                 $del = $client->deleteEvent($eventId);
-                $this->renderProbeLine("DELETE /api/v2/events/{$eventId}", $del->status(), $del->body());
+                $this->renderProbeLine("DELETE /api/v4/events/{$eventId}", $del->status(), $del->body());
             }
         }
 

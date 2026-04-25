@@ -10,7 +10,13 @@ use Illuminate\Support\Facades\Http;
  * server-scope key (`/apikey` in Discord) - NOT the user-scope key
  * (`/usersettings apikey`), which only authorises GET /users/.../events.
  *
- * Endpoints documented at https://raid-helper.xyz/documentation/api.
+ * Base URL: https://raid-helper.xyz/api/v4 (NOT raid-helper.dev/api/v2
+ * as the public docs at raid-helper.xyz/documentation/api describe;
+ * the real production API is on the .xyz host at v4 - confirmed by
+ * the working curl the user shared:
+ *   curl https://raid-helper.xyz/api/v4/servers/{srv}/events
+ *        -H "Authorization: <key>"
+ * The /v2 and /v3 docs return Javalin "endpoint not found" everywhere).
  *
  * Each method returns the raw Response so callers can inspect status
  * codes when needed; convenience accessors (->json(), ->successful())
@@ -18,7 +24,7 @@ use Illuminate\Support\Facades\Http;
  */
 class RaidHelperClient
 {
-    private const BASE = 'https://raid-helper.dev/api';
+    private const BASE = 'https://raid-helper.xyz/api/v4';
 
     public function __construct(
         private readonly string $apiKey,
@@ -42,7 +48,7 @@ class RaidHelperClient
     }
 
     /**
-     * POST /api/v2/servers/{server}/channels/{channel}/event
+     * POST /api/v4/servers/{server}/channels/{channel}/event
      *
      * @param  array<string,mixed>  $payload
      */
@@ -50,11 +56,11 @@ class RaidHelperClient
     {
         return $this->request()
             ->asJson()
-            ->post(self::BASE . "/v2/servers/{$this->serverId}/channels/{$channelId}/event", $payload);
+            ->post(self::BASE . "/servers/{$this->serverId}/channels/{$channelId}/event", $payload);
     }
 
     /**
-     * PATCH /api/v2/events/{eventId}
+     * PATCH /api/v4/events/{eventId}
      *
      * @param  array<string,mixed>  $payload
      */
@@ -62,20 +68,20 @@ class RaidHelperClient
     {
         return $this->request()
             ->asJson()
-            ->patch(self::BASE . "/v2/events/{$eventId}", $payload);
+            ->patch(self::BASE . "/events/{$eventId}", $payload);
     }
 
     /**
-     * DELETE /api/v2/events/{eventId}
+     * DELETE /api/v4/events/{eventId}
      */
     public function deleteEvent(string $eventId): Response
     {
         return $this->request()
-            ->delete(self::BASE . "/v2/events/{$eventId}");
+            ->delete(self::BASE . "/events/{$eventId}");
     }
 
     /**
-     * GET /api/v2/events/{eventId}
+     * GET /api/v4/events/{eventId}
      *
      * Per the docs, this single-event GET does NOT require auth. We
      * still send the header so callers can use one client.
@@ -83,11 +89,15 @@ class RaidHelperClient
     public function getEvent(string $eventId): Response
     {
         return $this->request()
-            ->get(self::BASE . "/v2/events/{$eventId}");
+            ->get(self::BASE . "/events/{$eventId}");
     }
 
     /**
-     * GET /api/v3/servers/{server}/events?Page=N&IncludeSignUps=true
+     * GET /api/v4/servers/{server}/events?Page=N&IncludeSignUps=true
+     *
+     * Filters go through HEADERS per the documented quirk, not the
+     * query string. Response shape:
+     *   { pages, eventsOverall, eventsTransmitted, currentPage, postedEvents }
      *
      * @param  array<string,scalar|null>  $headers
      */
@@ -102,23 +112,23 @@ class RaidHelperClient
         }
         return $this->request()
             ->withHeaders($headers)
-            ->get(self::BASE . "/v3/servers/{$this->serverId}/events");
+            ->get(self::BASE . "/servers/{$this->serverId}/events");
     }
 
     /**
-     * GET /api/v3/servers/{server}/scheduledevents
+     * GET /api/v4/servers/{server}/scheduledevents
      */
     public function listScheduledEvents(): Response
     {
         return $this->request()
-            ->get(self::BASE . "/v3/servers/{$this->serverId}/scheduledevents");
+            ->get(self::BASE . "/servers/{$this->serverId}/scheduledevents");
     }
 
     /**
-     * GET /api/v2/servers/{server}/attendance
+     * GET /api/v4/servers/{server}/attendance
      *
-     * Time filters / channel filters / tag filter all go through HEADERS
-     * per the documented quirk - NOT the query string.
+     * Time filters / channel filters / tag filter go through HEADERS,
+     * NOT the query string.
      */
     public function attendance(?int $start = null, ?int $end = null, ?string $tagFilter = null, ?string $channelFilter = null): Response
     {
@@ -138,6 +148,6 @@ class RaidHelperClient
 
         return $this->request()
             ->withHeaders($headers)
-            ->get(self::BASE . "/v2/servers/{$this->serverId}/attendance");
+            ->get(self::BASE . "/servers/{$this->serverId}/attendance");
     }
 }
