@@ -32,3 +32,9 @@ yarn-error.log
 
 # NOTE: /public/build is intentionally NOT ignored. Hostinger has no node,
 # so Vite output is committed and ships via git pull. See deploy.ps1.
+
+# Pre-existing selene (Lua linter) configs from earlier work in this
+# directory. Keep on disk for whoever wrote them; not relevant to the
+# Laravel project.
+/selene.toml
+/wow.yml
