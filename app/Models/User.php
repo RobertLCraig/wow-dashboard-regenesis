@@ -72,4 +72,22 @@ class User extends Authenticatable
         }
         return $this->calendar_token;
     }
+
+    /**
+     * Holds any of the three Discord officer tiers. Used by the
+     * registered Gates in AppServiceProvider; v1 returns true for any
+     * tier, v2 may narrow per-Gate without touching call sites.
+     */
+    public function isOfficerTier(): bool
+    {
+        return in_array($this->tier, [self::TIER_GM, self::TIER_BIG6, self::TIER_OFFICER], true);
+    }
+
+    public function isAtLeast(string $tier): bool
+    {
+        $rank = [self::TIER_OFFICER => 1, self::TIER_BIG6 => 2, self::TIER_GM => 3];
+        $mine = $rank[$this->tier] ?? 0;
+        $needed = $rank[$tier] ?? 0;
+        return $mine >= $needed;
+    }
 }

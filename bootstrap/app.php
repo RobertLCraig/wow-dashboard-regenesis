@@ -12,7 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // We have no email/password login; Discord OAuth is the only way
+        // in. Redirect unauthenticated requests there instead of the
+        // Laravel default 'login' named route (which doesn't exist).
+        $middleware->redirectGuestsTo(fn () => route('auth.discord.start'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
