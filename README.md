@@ -97,10 +97,17 @@ server.
 In your Discord server (with Raid-Helper installed):
 
 ```
-/apikey                         <- gives the SERVER api key
-/webhooks set https://regenesis.enhanceify.co.uk/api/webhook/raidhelper
-/webhooks show                  <- gives the webhook key
+/apikey                                                                              <- gives the SERVER api key
+/webhooks set type:event.create url:https://regenesis.enhanceify.co.uk/api/webhook/raidhelper
+/webhooks set type:event.update url:https://regenesis.enhanceify.co.uk/api/webhook/raidhelper
+/webhooks set type:event.delete url:https://regenesis.enhanceify.co.uk/api/webhook/raidhelper
+/webhooks show                                                                       <- gives the webhook key
+/webhooks refresh-key                                                                <- rotate if it leaks
 ```
+
+`/webhooks set` takes one type per call, so run it three times to subscribe
+to all the event lifecycle pushes. `/webhooks show` confirms each line and
+prints the shared key Raid-Helper sends in the Authorization header.
 
 Drop both into `.env`:
 ```

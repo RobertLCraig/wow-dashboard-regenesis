@@ -18,9 +18,13 @@ return [
     |--------------------------------------------------------------------------
     |
     | Set Raid-Helper to push events to /api/webhook/raidhelper via
-    | /webhooks set <url> in Discord. /webhooks show reveals the
-    | corresponding key, which Raid-Helper sends in the Authorization
-    | header on every push.
+    | three Discord commands (one per event type, the bot doesn't
+    | accept "all"):
+    |   /webhooks set type:event.create url:<dashboard>/api/webhook/raidhelper
+    |   /webhooks set type:event.update url:<dashboard>/api/webhook/raidhelper
+    |   /webhooks set type:event.delete url:<dashboard>/api/webhook/raidhelper
+    | /webhooks show reveals the shared key Raid-Helper sends in the
+    | Authorization header. /webhooks refresh-key rotates it.
     */
     'webhook_key' => env('RAID_HELPER_WEBHOOK_KEY'),
 
