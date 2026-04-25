@@ -105,7 +105,7 @@ class EventController extends Controller
             ]);
             return back()
                 ->withInput()
-                ->withErrors(['raidhelper' => "Raid-Helper rejected the request ({$resp->status()}): " . mb_substr($resp->body(), 0, 200)]);
+                ->withErrors(['raidhelper' => $this->humaniseRaidHelperError($resp, $validated['channel_id'])]);
         }
 
         $body = $resp->json();
@@ -152,6 +152,31 @@ class EventController extends Controller
     private function signedIcsToken(RaidEvent $event): string
     {
         return hash_hmac('sha256', $event->ics_uid . '|' . $event->ics_sequence, config('app.key'));
+    }
+
+    /**
+     * Turn Raid-Helper's HTTP error response into something readable.
+     * Pulls the JSON `title` field when present (Javalin's standard
+     * problem-detail shape - Raid-Helper sends a JSON body like
+     * {"title": "Endpoint POST ... not found", "status": 404, ...}),
+     * and adds an extra hint for 404s, which in practice always mean
+     * "Raid-Helper can't see that channel" - either the ID is wrong
+     * or the bot isn't in it.
+     */
+    private function humaniseRaidHelperError(\Illuminate\Http\Client\Response $resp, string $channelId): string
+    {
+        $title = $resp->json('title');
+        $reason = is_string($title) && $title !== ''
+            ? $title
+            : mb_substr($resp->body(), 0, 200);
+
+        $msg = "Raid-Helper rejected the request ({$resp->status()}): {$reason}";
+
+        if ($resp->status() === 404) {
+            $msg .= " — channel {$channelId} likely isn't accessible. Check the ID is right (right-click channel in Discord with Developer Mode on -> Copy ID), and make sure the Raid-Helper bot has Send Messages + Embed Links + Add Reactions permissions in that channel.";
+        }
+
+        return $msg;
     }
 
     private function webcalUrl(): string

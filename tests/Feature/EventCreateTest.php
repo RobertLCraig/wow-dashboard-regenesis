@@ -164,3 +164,40 @@ it('accepts a pasted channel id outside the preset list', function () {
 
     Http::assertSent(fn ($r) => str_contains($r->url(), '/channels/999888777666555444/event'));
 });
+
+it('humanises a Raid-Helper 404 with a channel-access hint', function () {
+    Http::fake([
+        'raid-helper.dev/*' => Http::response([
+            'title' => 'Endpoint POST /api/v2/servers/X/channels/Y/event not found',
+            'status' => 404,
+        ], 404),
+    ]);
+
+    $this->actingAs(officer())
+        ->post(route('events.store'), basePayload(['channel_id' => '999888777666555444']))
+        ->assertRedirect();
+
+    $errors = session('errors')->get('raidhelper');
+    expect($errors[0])
+        ->toContain('Endpoint POST')
+        ->toContain('channel 999888777666555444')
+        ->toContain('Send Messages');
+});
+
+it('humanises a Raid-Helper non-404 error using the title field', function () {
+    Http::fake([
+        'raid-helper.dev/*' => Http::response([
+            'title' => 'Invalid template id',
+            'status' => 422,
+        ], 422),
+    ]);
+
+    $this->actingAs(officer())
+        ->post(route('events.store'), basePayload());
+
+    $errors = session('errors')->get('raidhelper');
+    expect($errors[0])
+        ->toContain('422')
+        ->toContain('Invalid template id')
+        ->not->toContain('Send Messages'); // 404-only hint
+});
