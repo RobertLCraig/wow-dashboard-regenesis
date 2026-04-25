@@ -13,11 +13,13 @@ Route::post('/ingest/grm', [GrmSnapshotController::class, 'store'])
     ->middleware(IngestBearerToken::class)
     ->name('ingest.grm');
 
-// Raid-Helper push webhook. Configure in Discord with:
-//   /webhooks set https://regenesis.enhanceify.co.uk/api/webhook/raidhelper
-// Same endpoint receives event.create, event.edit, and event.delete - we
-// upsert on every payload (the API contract returns success on 200, so
-// idempotent re-applies are fine).
+// Raid-Helper push webhook. Configure in Discord with three commands
+// (one per event type - the bot doesn't accept "all"):
+//   /webhooks set type:event.create url:<dashboard>/api/webhook/raidhelper
+//   /webhooks set type:event.update url:<dashboard>/api/webhook/raidhelper
+//   /webhooks set type:event.delete url:<dashboard>/api/webhook/raidhelper
+// Same endpoint receives all three - we upsert on every payload (API
+// contract returns success on 200, so idempotent re-applies are fine).
 Route::post('/webhook/raidhelper', [RaidHelperController::class, 'handle'])
     ->middleware(RaidHelperWebhookAuth::class)
     ->name('webhook.raidhelper');
