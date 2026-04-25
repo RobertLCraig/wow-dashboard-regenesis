@@ -58,9 +58,11 @@ Plan file: [`~/.claude/plans/luminous-moseying-bear.md`](C:/Users/r/.claude/plan
 | Raid-Helper webhook receiver | done |
 | Daily attendance snapshot command | done |
 | GRM SavedVariables -> JSON sync (PowerShell) | done |
+| wowaudit ilvl/vault/M+ data | done (Silver+ tier required) |
+| Great Vault Progress widget | done |
+| Mythic+ This Week widget | done |
 | Roster table page | v2 |
 | Per-tier permission Gates | v2 (flat in v1, gates in place) |
-| wowaudit ilvl/vault/M+ data | v2 (schema hooks ready) |
 
 ## First-time setup
 
@@ -116,7 +118,21 @@ RAID_HELPER_WEBHOOK_KEY=<from /webhooks show>
 RAID_HELPER_DEFAULT_CHANNEL_ID=<right-click your raid-events channel -> Copy ID>
 ```
 
-### 4. GRM ingest token + sync tool on the WoW PC
+### 4. wowaudit (optional, requires a paid tier)
+
+If you have a wowaudit Patreon (Silver+), grab your team API key from
+<https://wowaudit.com> -> Settings -> API and drop it in `.env`:
+```
+WOWAUDIT_API_KEY=<from wowaudit Settings -> API>
+```
+The hourly `wowaudit:pull` cron job populates the Great Vault progress
+and Mythic+ widgets on the dashboard. Runs as a no-op (logs "skipping")
+when the key is empty, so cron stays armed without errors. Manually:
+```sh
+php artisan wowaudit:pull
+```
+
+### 5. GRM ingest token + sync tool on the WoW PC
 
 Generate a 32-byte hex token:
 ```sh
@@ -139,7 +155,7 @@ pwsh tools\grm-sync\grm-sync.ps1 -Verbose
 schtasks /Run /TN RegenesisGrmSync
 ```
 
-### 5. First deploy
+### 6. First deploy
 ```sh
 pwsh ./deploy.ps1                    # build, push, run server-side deploy.sh
 pwsh ./deploy.ps1 -DryRun            # preview only
@@ -148,7 +164,7 @@ pwsh ./deploy.ps1 -DryRun            # preview only
 The server-side `deploy.sh` runs migrations, restarts the queue worker,
 and pings `/up`.
 
-### 6. Production cron (Hostinger)
+### 7. Production cron (Hostinger)
 Add via hPanel cron jobs:
 ```cron
 * * * * * /opt/alt/php84/usr/bin/php /home/u408983312/domains/regenesis.enhanceify.co.uk/laravel/artisan schedule:run >> /dev/null 2>&1
@@ -159,8 +175,9 @@ This drives the queue worker (jobs from `/api/ingest/grm`) and the daily
 ## Useful commands
 
 ```sh
-php artisan test                                # 40 Pest tests, ~2s
+php artisan test                                # 45 Pest tests, ~2s
 php artisan raidhelper:sync-attendance          # one-shot attendance pull
+php artisan wowaudit:pull                       # one-shot wowaudit snapshot
 php artisan tinker
   > App\Models\Member::active()->count()
   > App\Models\Snapshot::latest()->first()

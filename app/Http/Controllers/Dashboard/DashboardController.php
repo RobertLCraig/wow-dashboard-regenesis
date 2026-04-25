@@ -9,6 +9,7 @@ use App\Models\LogEvent;
 use App\Models\Member;
 use App\Models\MemberAction;
 use App\Models\MemberEvent;
+use App\Models\MemberSnapshot;
 use App\Models\RaidEvent;
 use App\Models\Snapshot;
 use Carbon\CarbonImmutable;
@@ -43,7 +44,36 @@ class DashboardController extends Controller
             'churn' => $this->churn($guildKey),
             'upcomingEvents' => $this->upcomingEvents(),
             'attendance' => $this->attendance($guildKey),
+            'wowaudit' => $this->wowauditCurrentPeriod($guildKey),
         ]);
+    }
+
+    /**
+     * Latest wowaudit snapshot for the current period: per-member ilvl,
+     * vault progress, M+ keystone. Empty when no wowaudit data has been
+     * pulled yet (WOWAUDIT_API_KEY not set, or first cron not run).
+     *
+     * @return array{captured_at: ?\Carbon\CarbonInterface, members: \Illuminate\Support\Collection}
+     */
+    private function wowauditCurrentPeriod(string $guildKey): array
+    {
+        $latest = Snapshot::query()
+            ->where('guild_key', $guildKey)
+            ->where('source', Snapshot::SOURCE_WOWAUDIT)
+            ->latest('captured_at')
+            ->first();
+
+        if (! $latest) {
+            return ['captured_at' => null, 'members' => collect()];
+        }
+
+        $rows = MemberSnapshot::query()
+            ->where('snapshot_id', $latest->id)
+            ->with('member')
+            ->get()
+            ->filter(fn ($s) => $s->member !== null && $s->member->status === Member::STATUS_ACTIVE);
+
+        return ['captured_at' => $latest->captured_at, 'members' => $rows];
     }
 
     /**

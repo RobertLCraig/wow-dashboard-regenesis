@@ -15,3 +15,12 @@ Schedule::command('raidhelper:sync-attendance')
     ->dailyAt('06:30')
     ->timezone(config('raidhelper.timezone', 'Europe/London'))
     ->onOneServer();
+
+// Hourly wowaudit pull. Cheap (one /period + one /historical_data call,
+// then per-tracked-character /historical_data/{id} for best_gear). The
+// per-character calls hit the cache after the first pull each hour.
+// Short-circuits cleanly when WOWAUDIT_API_KEY is unset.
+Schedule::command('wowaudit:pull')
+    ->hourly()
+    ->onOneServer()
+    ->withoutOverlapping();

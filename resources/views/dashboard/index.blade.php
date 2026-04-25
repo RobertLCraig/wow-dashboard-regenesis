@@ -10,6 +10,13 @@
         @include('dashboard.widgets.attendance', ['attendance' => $attendance])
     </div>
 
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+        <div class="lg:col-span-2">
+            @include('dashboard.widgets.vault-progress', ['wowaudit' => $wowaudit])
+        </div>
+        @include('dashboard.widgets.mplus-this-week', ['wowaudit' => $wowaudit])
+    </div>
+
     <div class="mt-6">
         @include('dashboard.widgets.action-queue', ['actionQueue' => $actionQueue])
     </div>
