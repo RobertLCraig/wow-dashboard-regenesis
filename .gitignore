@@ -30,6 +30,10 @@ yarn-error.log
 /storage/app/snapshots/*
 !/storage/app/snapshots/.gitkeep
 
+# Local smoke-test render artifact (dashboard.blade rendered to HTML for
+# eyeballing without spinning up a server).
+/storage/dashboard-render.html
+
 # NOTE: /public/build is intentionally NOT ignored. Hostinger has no node,
 # so Vite output is committed and ships via git pull. See deploy.ps1.
 
