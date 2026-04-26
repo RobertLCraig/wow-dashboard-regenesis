@@ -157,19 +157,20 @@
             background: rgba(0,0,0,0.15);
         }
         body.mode-high-clarity table.clarity-tabular tbody tr[data-row]:first-child { margin-top: 0.85rem; }
-        body.mode-high-clarity table.clarity-tabular tbody tr[data-card-title]::before {
-            content: attr(data-card-title);
-            display: block;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #e6e6f0;
-            margin-bottom: 0.4rem;
-            padding-bottom: 0.4rem;
-            border-bottom: 1px solid #2a2a35;
-        }
         body.mode-high-clarity table.clarity-tabular tbody td {
             padding: 0.2rem 0;
             font-size: 0.875rem;
+        }
+        /* First cell of each row acts as the card heading. Convention:
+           the consumer puts the primary identifier (Name with link) in
+           the first cell with no data-label, so it renders bold + larger
+           with no "Label:" prefix. */
+        body.mode-high-clarity table.clarity-tabular tbody tr[data-row] td:first-child {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 1px solid #2a2a35;
         }
         body.mode-high-clarity table.clarity-tabular tbody td[data-label]::before {
             content: attr(data-label) ":";

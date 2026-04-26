@@ -20,37 +20,26 @@
     Alpine sortableTable() filter still works because it operates on
     tr[data-row] regardless of how the row is laid out.
 
-    Drop-in usage:
+    The section's x-data always exposes both `search` (via sortableTable
+    when searchable=true) and `explain` (false) so consumers can drop
+    in <x-explainer-toggle /> inside the header slot and
+    <x-explainer-panel /> in the explainer slot without setting up
+    their own Alpine scope.
 
-        <x-clarity-table title="Recently inactive"
-                         :is-empty="$rows->isEmpty()"
-                         searchable
-                         search-placeholder="Search name or rank..."
-                         empty="No members inactive over 30 days.">
-            <table class="w-full text-sm clarity-tabular">
-                <thead>...</thead>
-                <tbody>
-                    @foreach ($rows as $r)
-                        <tr data-row data-card-title="{{ $r->name }}">
-                            <td data-label="Name" data-sort-key="name">...</td>
-                            ...
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </x-clarity-table>
-
-    For a custom header (e.g. with explainer toggle, tabs), pass a
-    `header` slot:
-
-        <x-slot:header>
-            <h2>...</h2>
-            <x-explainer-toggle />
-        </x-slot:header>
+    Usage shape: an x-clarity-table with the standard header
+    (title + optional search + optional explainer panel) wraps a
+    consumer-supplied <table class="...clarity-tabular"> whose rows
+    use data-row + data-label attrs. See widgets/recently-inactive
+    for a complete example.
 --}}
 
-<section class="bg-panel border border-line rounded-lg overflow-hidden"
-         @if ($searchable) x-data="sortableTable()" @endif>
+@php
+    $xData = $searchable
+        ? "{ ...sortableTable(), explain: false }"
+        : "{ explain: false }";
+@endphp
+
+<section class="bg-panel border border-line rounded-lg overflow-hidden" x-data="{{ $xData }}">
     @if ($title || $searchable || $meta || $count !== null || isset($header))
         <header class="px-4 py-3 border-b border-line flex items-center justify-between gap-3">
             @isset ($header)
@@ -69,6 +58,8 @@
             </div>
         </header>
     @endif
+
+    @isset ($explainer){{ $explainer }}@endisset
 
     @if ($isEmpty)
         <div class="p-8 text-center text-muted text-sm">{!! $empty !!}</div>

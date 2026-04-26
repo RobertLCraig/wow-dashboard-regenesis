@@ -38,7 +38,7 @@ it('renders the search input when searchable=true and not empty', function () {
     ])->render();
 
     expect($html)
-        ->toContain('x-data="sortableTable()"')
+        ->toContain('sortableTable()')
         ->toContain('x-model="search"')
         ->toContain('Search name or rank...');
 });
@@ -80,6 +80,6 @@ it('omits the search input wrapper attributes when searchable=false', function (
     ])->render();
 
     expect($html)
-        ->not->toContain('x-data="sortableTable()"')
+        ->not->toContain('sortableTable()')
         ->not->toContain('x-model="search"');
 });
