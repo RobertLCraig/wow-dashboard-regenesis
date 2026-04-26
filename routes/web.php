@@ -42,6 +42,12 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::post('/roster/kick-macro', [\App\Http\Controllers\Dashboard\RosterKickMacroController::class, 'preview'])->name('roster.kick-macro.preview');
     Route::post('/roster/kick-macro/confirm', [\App\Http\Controllers\Dashboard\RosterKickMacroController::class, 'confirm'])->name('roster.kick-macro.confirm');
 
+    // Warcraft Logs reports browser. /reports lists the recent reports;
+    // /reports/{code} expands one report into fights + per-actor parses.
+    Route::get('/reports', [\App\Http\Controllers\Dashboard\ReportsController::class, 'index'])->name('reports.index');
+    Route::get('/reports/{code}', [\App\Http\Controllers\Dashboard\ReportsController::class, 'show'])
+        ->where('code', '[A-Za-z0-9]+')->name('reports.show');
+
     Route::get('/events', [\App\Http\Controllers\Events\EventController::class, 'index'])->name('events.index');
     Route::get('/events/new', [\App\Http\Controllers\Events\EventController::class, 'create'])->name('events.create');
     Route::post('/events', [\App\Http\Controllers\Events\EventController::class, 'store'])->name('events.store');

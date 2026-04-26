@@ -62,6 +62,7 @@ class AppServiceProvider extends ServiceProvider
             'events.delete',
             'roster.view',
             'roster.kick',             // build the /gremove + alts macro
+            'reports.view',            // /reports - WCL parses + fight history
             'members.edit',
             'members.review',          // accept/dismiss action queue items
             'bans.manage',
