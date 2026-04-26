@@ -77,4 +77,9 @@ class Member extends Model
     {
         return $query->where('guild_key', $guildKey);
     }
+
+    public function scopeOnTeam(Builder $query, string $team): Builder
+    {
+        return $query->where('team', $team);
+    }
 }

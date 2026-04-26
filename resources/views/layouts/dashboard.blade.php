@@ -56,6 +56,8 @@
                 <span class="text-line">|</span>
                 <a href="{{ route('events.index') }}" class="hover:text-ink">Events</a>
                 <span class="text-line">|</span>
+                <a href="{{ route('admin.teams.index') }}" class="hover:text-ink">Team mapping</a>
+                <span class="text-line">|</span>
                 <span class="text-line">Roster (soon)</span>
             </nav>
         </div>

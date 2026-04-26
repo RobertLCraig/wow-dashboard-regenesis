@@ -7,6 +7,7 @@ use App\Models\LogEvent;
 use App\Models\Member;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
+use App\Services\Teams\TeamResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -26,7 +27,13 @@ class GrmNormalizer
     public function __construct(
         private readonly string $guildKey,
         private readonly string $timezone = 'Europe/London',
+        private readonly ?TeamResolver $teamResolver = null,
     ) {}
+
+    private function teams(): TeamResolver
+    {
+        return $this->teamResolver ?? app(TeamResolver::class);
+    }
 
     /**
      * Apply a parsed GRM payload to the DB. Returns counts for logging.
@@ -173,6 +180,7 @@ class GrmNormalizer
             'faction' => is_string($row['faction'] ?? null) ? $row['faction'] : null,
             'rank_name' => is_string($row['rankName'] ?? null) ? $row['rankName'] : null,
             'rank_index' => is_int($row['rankIndex'] ?? null) ? $row['rankIndex'] : null,
+            'team' => $this->teams()->forRank(is_string($row['rankName'] ?? null) ? $row['rankName'] : null),
             'join_date' => $joinDate?->toDateString(),
             'join_date_unknown' => (bool) ($row['joinDateUnknown'] ?? false),
             'last_online_at' => $lastOnline,

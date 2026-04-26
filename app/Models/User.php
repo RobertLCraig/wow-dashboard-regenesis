@@ -27,6 +27,7 @@ class User extends Authenticatable
         'discord_username',
         'avatar_url',
         'tier',
+        'team',
         'discord_refresh_token',
         'last_role_check_at',
         'calendar_token',

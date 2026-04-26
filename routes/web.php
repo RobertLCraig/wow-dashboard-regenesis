@@ -28,6 +28,12 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
         ->where('event', '[0-9]+')->name('events.show');
     Route::delete('/events/{event}', [\App\Http\Controllers\Events\EventController::class, 'destroy'])
         ->where('event', '[0-9]+')->name('events.destroy');
+
+    // Team mapping admin: officers configure which in-game ranks and
+    // Discord role IDs map to which raid team. Drives members.team and
+    // users.team (set on next GRM ingest / next role check respectively).
+    Route::get('/admin/teams', [\App\Http\Controllers\Admin\TeamMappingController::class, 'index'])->name('admin.teams.index');
+    Route::post('/admin/teams', [\App\Http\Controllers\Admin\TeamMappingController::class, 'update'])->name('admin.teams.update');
 });
 
 // .ics download for a single event. Signed via HMAC(ics_uid|ics_sequence)

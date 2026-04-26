@@ -3,6 +3,7 @@
 namespace App\Services\Discord;
 
 use App\Models\User;
+use App\Services\Teams\TeamResolver;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Carbon;
@@ -81,11 +82,14 @@ class RoleVerifier
         }
 
         $roles = $resp->json('roles', []);
-        $tier = $this->tierFromRoles(is_array($roles) ? $roles : []);
+        $rolesArr = is_array($roles) ? $roles : [];
+        $tier = $this->tierFromRoles($rolesArr);
+        $team = app(TeamResolver::class)->forRoleIds($rolesArr);
 
         Cache::put($cacheKey, $tier ?? '', now()->addMinutes($this->cacheTtlMinutes));
         $user->forceFill([
             'tier' => $tier,
+            'team' => $team,
             'last_role_check_at' => now(),
         ])->save();
 
