@@ -41,15 +41,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Per-request delay (milliseconds)
+    | Inter-batch delay (milliseconds)
     |--------------------------------------------------------------------------
     |
-    | Raider.IO doesn't publish a hard rate limit but the unwritten cap is
-    | ~600 requests/minute for unauthenticated traffic. Pacing one request
-    | per 100ms keeps us comfortably under that and well-behaved. Set to 0
-    | in tests to skip the sleep entirely.
+    | Sleep applied between concurrent batches (NOT between individual
+    | requests; those go in parallel via Http::pool). At concurrency=10 a
+    | 100ms inter-batch delay puts the steady-state ceiling at 100 reqs/s,
+    | well under Raider.IO's unwritten ~600/min. Set to 0 in tests.
     */
     'request_delay_ms' => (int) env('RAIDERIO_REQUEST_DELAY_MS', 100),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Concurrency for officer-triggered sync
+    |--------------------------------------------------------------------------
+    |
+    | Number of Raider.IO requests the importer fires in parallel. With ~50
+    | members and 10-concurrency the sync finishes in ~5 batches, which
+    | comfortably fits under PHP's 30s wall-clock cap on shared hosting.
+    | The scheduled artisan command uses the same value - parallel is
+    | strictly faster, never slower, on a quiet API.
+    */
+    'sync_concurrency' => (int) env('RAIDERIO_SYNC_CONCURRENCY', 10),
 
     /*
     |--------------------------------------------------------------------------

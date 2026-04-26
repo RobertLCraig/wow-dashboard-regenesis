@@ -6,7 +6,10 @@ use App\Models\Member;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\Pool;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -16,8 +19,10 @@ use Illuminate\Support\Facades\Log;
  * GRM has marked active gets queried. That fits the heroic team's looser
  * roster - you don't have to add anyone to a "team" anywhere first.
  *
- * One HTTP call per member. With ~100 members and a 100ms pace this is
- * ~10s of wall time and well under Raider.IO's unwritten ~600/min limit.
+ * Fetches are dispatched in concurrent batches via Http::pool so a
+ * 50-member roster fits comfortably under PHP's 30s wall-clock limit
+ * even on shared hosting. Default concurrency is 10 (well under RIO's
+ * unwritten ~600/min cap when a 100ms inter-batch delay is applied).
  *
  * Writes one Snapshot row (source='raiderio') and one MemberSnapshot row
  * per character that returned a 200. 404s (unknown char on RIO) are
@@ -28,8 +33,10 @@ class RaiderioSnapshotImporter
     public function __construct(
         private readonly RaiderioClient $client,
         private readonly string $guildKey,
+        /** Milliseconds to sleep between batches (NOT between requests). */
         private readonly int $requestDelayMs = 100,
         private readonly int $minLevel = 70,
+        private readonly int $concurrency = 10,
     ) {}
 
     /**
@@ -57,6 +64,9 @@ class RaiderioSnapshotImporter
         $errored = 0;
         $unknownRealms = [];
 
+        // Build the per-member fetch plan up front so the pool builder
+        // doesn't carry any logic of its own.
+        $jobs = [];
         foreach ($members as $member) {
             [$charName, $collapsedRealm] = $this->splitName($member->name);
             if ($charName === null) {
@@ -73,53 +83,77 @@ class RaiderioSnapshotImporter
             } else {
                 $slug = RealmSlug::slugify($collapsedRealm);
                 if ($collapsedRealm !== null && ! isset(((array) config('raiderio.realm_slugs', []))[$collapsedRealm]) && $slug === strtolower($collapsedRealm)) {
-                    // Track unknown realms once per run so officers know what
-                    // to add to config('raiderio.realm_slugs') without spamming
-                    // the log per-character.
                     $unknownRealms[$collapsedRealm] = true;
                 }
             }
 
-            try {
-                $resp = $this->client->profile($slug, $charName);
-            } catch (\Throwable $e) {
-                Log::warning('raiderio profile fetch failed', [
-                    'member' => $member->name, 'slug' => $slug, 'message' => $e->getMessage(),
-                ]);
-                $errored++;
-                $this->sleep();
-                continue;
+            $jobs[$member->id] = ['member' => $member, 'slug' => $slug, 'name' => $charName];
+        }
+
+        $batchSize = max(1, $this->concurrency);
+        $batches = array_chunk($jobs, $batchSize, preserve_keys: true);
+        $timeout = $this->client->timeoutSeconds();
+
+        foreach ($batches as $batchIndex => $batch) {
+            $responses = Http::pool(function (Pool $pool) use ($batch, $timeout) {
+                $reqs = [];
+                foreach ($batch as $memberId => $job) {
+                    ['url' => $url, 'query' => $query] = $this->client->profileEndpoint($job['slug'], $job['name']);
+                    $reqs[] = $pool
+                        ->as((string) $memberId)
+                        ->acceptJson()
+                        ->timeout($timeout)
+                        ->get($url, $query);
+                }
+                return $reqs;
+            });
+
+            foreach ($batch as $memberId => $job) {
+                $resp = $responses[(string) $memberId] ?? null;
+
+                if ($resp instanceof \Throwable) {
+                    Log::warning('raiderio profile fetch failed', [
+                        'member' => $job['member']->name, 'slug' => $job['slug'],
+                        'message' => $resp->getMessage(),
+                    ]);
+                    $errored++;
+                    continue;
+                }
+                if ($resp === null) {
+                    $errored++;
+                    continue;
+                }
+
+                if ($resp->status() === 404) {
+                    $missing++;
+                    continue;
+                }
+
+                if (! $resp->successful()) {
+                    Log::warning('raiderio non-2xx', [
+                        'member' => $job['member']->name, 'slug' => $job['slug'],
+                        'status' => $resp->status(), 'body' => mb_substr($resp->body(), 0, 200),
+                    ]);
+                    $errored++;
+                    continue;
+                }
+
+                $body = $resp->json();
+                if (! is_array($body)) {
+                    $errored++;
+                    continue;
+                }
+
+                $perMemberPayloads[$memberId] = $body;
+                $matched++;
             }
 
-            if ($resp->status() === 404) {
-                // Char doesn't exist on RIO (low level, recently renamed,
-                // wrong realm slug). Skipping is the right move; we'll
-                // pick them up next time if they appear.
-                $missing++;
-                $this->sleep();
-                continue;
+            // Inter-batch politeness delay. Only sleeps between batches,
+            // not after the last one - first-batch wall time on a quiet
+            // RIO is essentially the slowest single response.
+            if ($this->requestDelayMs > 0 && $batchIndex < count($batches) - 1) {
+                usleep($this->requestDelayMs * 1000);
             }
-
-            if (! $resp->successful()) {
-                Log::warning('raiderio non-2xx', [
-                    'member' => $member->name, 'slug' => $slug,
-                    'status' => $resp->status(), 'body' => mb_substr($resp->body(), 0, 200),
-                ]);
-                $errored++;
-                $this->sleep();
-                continue;
-            }
-
-            $body = $resp->json();
-            if (! is_array($body)) {
-                $errored++;
-                $this->sleep();
-                continue;
-            }
-
-            $perMemberPayloads[$member->id] = $body;
-            $matched++;
-            $this->sleep();
         }
 
         if ($unknownRealms !== []) {
@@ -204,13 +238,6 @@ class RaiderioSnapshotImporter
         }
         $realm = RealmSlug::realmFromMemberName($memberName);
         return [$charName, $realm];
-    }
-
-    private function sleep(): void
-    {
-        if ($this->requestDelayMs > 0) {
-            usleep($this->requestDelayMs * 1000);
-        }
     }
 
     /**

@@ -44,14 +44,36 @@ class RaiderioClient
      */
     public function profile(string $realmSlug, string $name, ?array $fields = null): Response
     {
-        $f = $fields ?? $this->defaultFields;
+        ['url' => $url, 'query' => $query] = $this->profileEndpoint($realmSlug, $name, $fields);
         return Http::acceptJson()
             ->timeout($this->timeoutSeconds)
-            ->get("{$this->baseUrl}/characters/profile", [
+            ->get($url, $query);
+    }
+
+    /**
+     * Pre-computed URL + query for one character. Used by the importer
+     * when dispatching many fetches through Http::pool() so the pool
+     * builder doesn't have to reach into client internals.
+     *
+     * @param  list<string>|null  $fields
+     * @return array{url: string, query: array<string, string>}
+     */
+    public function profileEndpoint(string $realmSlug, string $name, ?array $fields = null): array
+    {
+        $f = $fields ?? $this->defaultFields;
+        return [
+            'url' => "{$this->baseUrl}/characters/profile",
+            'query' => [
                 'region' => $this->region,
                 'realm' => $realmSlug,
                 'name' => $name,
                 'fields' => implode(',', $f),
-            ]);
+            ],
+        ];
+    }
+
+    public function timeoutSeconds(): int
+    {
+        return $this->timeoutSeconds;
     }
 }

@@ -6,7 +6,9 @@ use App\Models\Snapshot;
 use App\Models\TeamMapping;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\RateLimiter;
 
 uses(RefreshDatabase::class);
 
@@ -178,3 +180,84 @@ it('non-officer is 403d from the RIO sync route', function () {
     $user = User::factory()->create(['tier' => null, 'last_role_check_at' => now()]);
     $this->actingAs($user)->post('/admin/raiderio/sync')->assertStatus(403);
 });
+
+it('short-circuits when a fresh snapshot already exists (within last minute)', function () {
+    Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now()->subSeconds(20),
+        'source' => Snapshot::SOURCE_RAIDERIO,
+        'payload_hash' => 'stale-hash',
+        'member_count' => 12,
+    ]);
+    Http::fake();
+    $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
+
+    $this->actingAs($user)
+        ->post('/admin/raiderio/sync')
+        ->assertRedirect('/admin/teams')
+        ->assertSessionHas('status', fn ($status) => str_contains($status, 'already fresh'));
+
+    // No HTTP calls were made because we returned the cached summary.
+    Http::assertNothingSent();
+    // No new snapshot row either.
+    expect(Snapshot::query()->where('source', Snapshot::SOURCE_RAIDERIO)->count())->toBe(1);
+});
+
+it('runs the importer when the most recent snapshot is older than the freshness window', function () {
+    Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now()->subMinutes(5),
+        'source' => Snapshot::SOURCE_RAIDERIO,
+        'payload_hash' => 'old-hash',
+        'member_count' => 12,
+    ]);
+    makeTeamMember('Sheday-Silvermoon', TeamMapping::TEAM_HEROIC);
+
+    config([
+        'raiderio.base_url' => 'https://raider.io.test/api/v1',
+        'raiderio.request_delay_ms' => 0,
+    ]);
+    Http::fake([
+        '*' => Http::response([
+            'name' => 'Sheday', 'realm' => 'Silvermoon',
+            'gear' => ['item_level_equipped' => 642.0],
+            'raid_progression' => [],
+            'mythic_plus_scores_by_season' => [['scores' => ['all' => 800.0]]],
+            'mythic_plus_weekly_highest_level_runs' => [],
+        ], 200),
+    ]);
+
+    $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
+
+    $this->actingAs($user)
+        ->post('/admin/raiderio/sync')
+        ->assertRedirect('/admin/teams')
+        ->assertSessionHas('status', fn ($s) => str_contains($s, 'sync done'));
+
+    Http::assertSentCount(1);
+    expect(Snapshot::query()->where('source', Snapshot::SOURCE_RAIDERIO)->count())->toBe(2);
+});
+
+it('rejects a concurrent press while another sync is running', function () {
+    makeTeamMember('Sheday-Silvermoon', TeamMapping::TEAM_HEROIC);
+    Http::fake();
+
+    // Pretend another worker is already inside the importer by holding
+    // the lock manually before the request runs.
+    $lock = Cache::lock('raiderio-sync:running', 60);
+    expect($lock->get())->toBeTrue();
+
+    $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
+
+    $this->actingAs($user)
+        ->post('/admin/raiderio/sync')
+        ->assertRedirect('/admin/teams')
+        ->assertSessionHas('status', fn ($s) => str_contains($s, 'already running'));
+
+    // The blocked caller didn't burn an HTTP call OR a rate-limit token.
+    Http::assertNothingSent();
+    expect(RateLimiter::attempts('raiderio-sync:user:' . $user->id))->toBe(0);
+
+    $lock->release();
+});
+

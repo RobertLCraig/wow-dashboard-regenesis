@@ -29,6 +29,7 @@ class PullRaiderioSnapshot extends Command
             guildKey: (string) config('grm.guild_key'),
             requestDelayMs: (int) config('raiderio.request_delay_ms', 100),
             minLevel: (int) ($this->option('min-level') ?? 70),
+            concurrency: (int) config('raiderio.sync_concurrency', 10),
         );
 
         try {
