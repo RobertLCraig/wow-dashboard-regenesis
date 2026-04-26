@@ -23,41 +23,97 @@
         'RECOMMEND_DEMOTE' => 'bg-rose-500/10 text-rose-200',
         'RECOMMEND_SPECIAL' => 'bg-violet-500/10 text-violet-200',
     ];
+
+    $availableTypes = $timeline
+        ->pluck('type_name')
+        ->filter()
+        ->unique()
+        ->sort()
+        ->values();
 @endphp
-<section class="bg-panel border border-line rounded-lg overflow-hidden">
-    <div x-data="{ explain: false }">
-        <header class="px-4 py-3 border-b border-line flex items-center justify-between">
-            <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
-                <span>Recent activity</span>
-                <x-explainer-toggle />
-            </h2>
-            <span class="text-xs text-muted">{{ count($timeline) }} events</span>
-        </header>
+<x-clarity-table
+    :is-empty="$timeline->isEmpty()"
+    searchable
+    search-placeholder="Search activity..."
+    :count="$timeline->count() . ' events'"
+    empty="No log entries yet."
+>
+    <x-slot:header>
+        <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+            <span>Recent activity</span>
+            <x-explainer-toggle />
+        </h2>
+    </x-slot:header>
+
+    <x-slot:filters>
+        <select x-model="filters.type"
+                class="bg-bg border border-line rounded px-2 py-1 text-xs text-ink">
+            <option value="">All types</option>
+            @foreach ($availableTypes as $t)
+                <option value="{{ $t }}">{{ $t }}</option>
+            @endforeach
+        </select>
+    </x-slot:filters>
+
+    <x-slot:explainer>
         <x-explainer-panel title="Recent activity">
             Time-ordered guild log: promotions, demotions, joins, leaves, kicks, bans,
             level ups, name changes, returns from inactivity, anniversaries, officer
             notes. Pulled from GRM SavedVariables on each sync, so it's only as fresh as
-            the last upload. Skim it at the start of an officer session to catch up on
-            what's happened between log-ins without having to scroll Discord.
+            the last upload. Sort any column, filter by type, or search the message text
+            to skim for what's happened between log-ins without scrolling Discord.
         </x-explainer-panel>
-    </div>
-    @if ($timeline->isEmpty())
-        <div class="p-8 text-center text-muted text-sm">No log entries yet.</div>
-    @else
-        <ol class="divide-y divide-line">
+    </x-slot:explainer>
+
+    <table class="w-full text-sm clarity-tabular">
+        <thead>
+            <tr class="text-left text-xs uppercase tracking-wider text-muted">
+                <th class="px-4 py-2 font-medium cursor-pointer select-none hover:text-ink whitespace-nowrap" @click="sortBy('when')">
+                    When <span class="text-muted" x-text="sortIcon('when')"></span>
+                </th>
+                <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink whitespace-nowrap" @click="sortBy('type')">
+                    Type <span class="text-muted" x-text="sortIcon('type')"></span>
+                </th>
+                <th class="px-4 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('message')">
+                    Message <span class="text-muted" x-text="sortIcon('message')"></span>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
             @foreach ($timeline as $log)
                 @php
                     $type = $log->type_name ?? 'UNKNOWN';
                     $tone = $typeColours[$type] ?? 'bg-line text-muted';
+                    $message = $log->plainMessage();
                 @endphp
-                <li class="px-4 py-2 text-sm flex items-start gap-3">
-                    <span class="text-xs uppercase px-2 py-0.5 rounded {{ $tone }} whitespace-nowrap">{{ $type }}</span>
-                    <div class="flex-1 min-w-0">
-                        <div class="text-ink truncate">{{ $log->plainMessage() }}</div>
-                        <div class="text-xs text-muted">{{ $log->occurred_at->diffForHumans() }}</div>
-                    </div>
-                </li>
+                <tr class="border-t border-line"
+                    data-row
+                    data-filter-type="{{ $type }}">
+                    <td class="px-4 py-2 text-muted whitespace-nowrap text-xs"
+                        data-label="When"
+                        data-sort-key="when"
+                        data-sort-value="{{ $log->occurred_at->timestamp }}"
+                        title="{{ $log->occurred_at->toDayDateTimeString() }}">
+                        {{ $log->occurred_at->format("j M 'y g:ia") }}
+                        <div class="text-[10px] text-muted/70">{{ $log->occurred_at->diffForHumans() }}</div>
+                    </td>
+                    <td class="px-2 py-2"
+                        data-label="Type"
+                        data-sort-key="type"
+                        data-sort-value="{{ strtolower($type) }}">
+                        <span class="text-xs uppercase px-2 py-0.5 rounded {{ $tone }} whitespace-nowrap">{{ $type }}</span>
+                    </td>
+                    <td class="px-4 py-2 text-ink"
+                        data-label="Message"
+                        data-sort-key="message"
+                        data-sort-value="{{ strtolower($message) }}">
+                        {{ $message }}
+                    </td>
+                </tr>
             @endforeach
-        </ol>
-    @endif
-</section>
+            <tr data-empty-message style="display:none">
+                <td colspan="3" class="px-4 py-4 text-center text-muted text-xs italic">No activity matches.</td>
+            </tr>
+        </tbody>
+    </table>
+</x-clarity-table>

@@ -13,21 +13,25 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>[x-cloak] { display: none !important; }</style>
-    {{-- Reusable Alpine factory for sortable + searchable tables.
+    {{-- Reusable Alpine factory for sortable + searchable + filterable tables.
          Wrap a table region with x-data="sortableTable()", mark data rows with
          data-row, give each sortable cell data-sort-key="X" and (optionally)
          data-sort-value="..." for a non-text sort key. Headers call sortBy('X')
          and render an indicator with sortIcon('X'). Bind a no-name search
-         input via x-model="search". Trailing rows that should never sort or
-         hide (e.g. "add new" rows) get data-table-trailing. --}}
+         input via x-model="search". For category filters, give rows a
+         data-filter-{key}="value" attr and bind a select with
+         x-model="filters.{key}" (empty string = no filter). Trailing rows that
+         should never sort or hide (e.g. "add new" rows) get data-table-trailing. --}}
     <script>
         function sortableTable() {
             return {
                 search: '',
+                filters: {},
                 sortKey: null,
                 sortDir: 'asc',
                 init() {
                     this.$watch('search', () => this.applyFilter());
+                    this.$watch('filters', () => this.applyFilter(), { deep: true });
                 },
                 rowText(row) {
                     const parts = [row.textContent];
@@ -41,17 +45,30 @@
                     });
                     return parts.join(' ').toLowerCase();
                 },
+                rowMatchesFilters(row) {
+                    for (const [key, val] of Object.entries(this.filters)) {
+                        if (val === '' || val == null) continue;
+                        if (row.getAttribute(`data-filter-${key}`) !== val) return false;
+                    }
+                    return true;
+                },
+                hasActiveFilter() {
+                    if (this.search.trim() !== '') return true;
+                    return Object.values(this.filters).some(v => v !== '' && v != null);
+                },
                 applyFilter() {
                     const q = this.search.trim().toLowerCase();
                     const rows = this.$root.querySelectorAll('tbody tr[data-row]');
                     let visible = 0;
                     rows.forEach(r => {
-                        const match = q === '' || this.rowText(r).includes(q);
+                        const matchSearch = q === '' || this.rowText(r).includes(q);
+                        const matchFilters = this.rowMatchesFilters(r);
+                        const match = matchSearch && matchFilters;
                         r.style.display = match ? '' : 'none';
                         if (match) visible++;
                     });
                     const empty = this.$root.querySelector('[data-empty-message]');
-                    if (empty) empty.style.display = (visible === 0 && q !== '' && rows.length > 0) ? '' : 'none';
+                    if (empty) empty.style.display = (visible === 0 && rows.length > 0 && this.hasActiveFilter()) ? '' : 'none';
                 },
                 coerce(raw) {
                     const t = (raw ?? '').toString().trim();

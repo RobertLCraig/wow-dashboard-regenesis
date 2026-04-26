@@ -40,14 +40,17 @@
 @endphp
 
 <section class="bg-panel border border-line rounded-lg overflow-hidden" x-data="{{ $xData }}">
-    @if ($title || $searchable || $meta || $count !== null || isset($header))
+    @if ($title || $searchable || $meta || $count !== null || isset($header) || isset($filters))
         <header class="px-4 py-3 border-b border-line flex items-center justify-between gap-3">
             @isset ($header)
                 {{ $header }}
             @else
                 <h2 class="text-sm font-semibold uppercase tracking-wider">{{ $title }}</h2>
             @endisset
-            <div class="flex items-center gap-3 shrink-0">
+            <div class="flex items-center gap-3 shrink-0 flex-wrap justify-end">
+                @if (isset($filters) && ! $isEmpty)
+                    {{ $filters }}
+                @endif
                 @if ($searchable && ! $isEmpty)
                     <input type="text" x-model="search"
                            placeholder="{{ $searchPlaceholder }}"

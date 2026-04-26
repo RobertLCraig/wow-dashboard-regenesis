@@ -27,11 +27,12 @@ class LogEvent extends Model
     }
 
     /**
-     * Strip WoW colour codes (|cffXXXXXX...|r) from the rendered message
-     * so the timeline widget shows readable text.
+     * Strip WoW colour codes (|cAARRGGBB...|r) from the rendered message
+     * so the timeline widget shows readable text. WoW accepts the escape
+     * in either case (|c/|r or |C/|R), so the regex is case-insensitive.
      */
     public function plainMessage(): string
     {
-        return preg_replace('/\|c[0-9a-fA-F]{8}|\|r/', '', (string) $this->message_raw) ?? '';
+        return preg_replace('/\|c[0-9a-fA-F]{8}|\|r/i', '', (string) $this->message_raw) ?? '';
     }
 }
