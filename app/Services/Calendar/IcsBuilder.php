@@ -45,13 +45,13 @@ class IcsBuilder
             'CALSCALE' => 'GREGORIAN',
             'METHOD' => 'PUBLISH',
             'X-WR-CALNAME' => 'Regenesis Raid Events',
-            'X-WR-TIMEZONE' => config('raidhelper.timezone', 'Europe/London'),
+            'X-WR-TIMEZONE' => config('raidhelper.timezone', 'Europe/Paris'),
         ]);
     }
 
     private function addEvent(VCalendar $cal, RaidEvent $event): void
     {
-        $tz = config('raidhelper.timezone', 'Europe/London');
+        $tz = config('raidhelper.timezone', 'Europe/Paris');
         $start = $event->starts_at instanceof CarbonImmutable
             ? $event->starts_at->setTimezone($tz)
             : CarbonImmutable::parse((string) $event->starts_at, 'UTC')->setTimezone($tz);

@@ -56,12 +56,23 @@
             <p class="text-xs text-muted mt-1">Markdown supported. Discord renders it in the embed.</p>
         </div>
 
+        @php
+            // Tomorrow at the configured default time, in the configured
+            // (WoW EU realm) timezone. The datetime-local input takes a
+            // no-tz string; the controller parses it back with
+            // raidhelper.timezone.
+            [$defH, $defM] = array_map('intval', explode(':', config('raidhelper.default_time_of_day', '19:30') . ':0'));
+            $startsAtDefault = now()
+                ->setTimezone(config('raidhelper.timezone'))
+                ->addDay()
+                ->setTime($defH, $defM);
+        @endphp
         <div>
             <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="starts_at">Starts at</label>
             <input id="starts_at" name="starts_at" type="datetime-local" required
-                   value="{{ old('starts_at', now()->setTimezone(config('raidhelper.timezone'))->addDay()->format('Y-m-d\TH:i')) }}"
+                   value="{{ old('starts_at', $startsAtDefault->format('Y-m-d\TH:i')) }}"
                    class="w-full bg-bg border border-line rounded px-3 py-2 text-sm focus:outline-none focus:border-accent">
-            <p class="text-xs text-muted mt-1">Server tz: {{ config('raidhelper.timezone') }}</p>
+            <p class="text-xs text-muted mt-1">Time is in <strong>{{ config('raidhelper.timezone') }}</strong> (WoW EU realm time)</p>
         </div>
 
         {{-- Three duration modes. The mode determines which of

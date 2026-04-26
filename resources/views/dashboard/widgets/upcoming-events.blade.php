@@ -14,7 +14,7 @@
                     <div class="min-w-0">
                         <a href="{{ route('events.show', $event) }}" class="text-sm hover:text-accent">{{ $event->title }}</a>
                         <div class="text-xs text-muted">
-                            {{ $event->starts_at->setTimezone(config('raidhelper.timezone'))->format('D d M H:i') }}
+                            {{ $event->starts_at->setTimezone(config('raidhelper.timezone'))->format('D d M H:i T') }}
                             <span class="text-line">|</span>
                             {{ $event->signups_count }} signed up
                         </div>

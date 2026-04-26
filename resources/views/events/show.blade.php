@@ -17,7 +17,7 @@
         <div class="text-sm text-muted">
             {{ $event->starts_at->setTimezone(config('raidhelper.timezone'))->format('l d F Y, H:i T') }}
             @if ($event->ends_at)
-                &mdash; {{ $event->ends_at->setTimezone(config('raidhelper.timezone'))->format('H:i') }}
+                &mdash; {{ $event->ends_at->setTimezone(config('raidhelper.timezone'))->format('H:i T') }}
             @endif
         </div>
         <div class="text-xs text-muted mt-1">Channel {{ $event->channel_id }} | Template {{ $event->template_id }}</div>

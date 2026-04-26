@@ -88,8 +88,22 @@ return [
     | Time zone events render in
     |--------------------------------------------------------------------------
     |
-    | Used for the .ics DTSTART;TZID=... lines and for parsing officer
-    | input on the create form. Match the guild's primary tz.
+    | Used for the .ics DTSTART;TZID=... lines, the create form's
+    | datetime-local input default, and the events list display.
+    | Defaults to Europe/Paris because WoW EU realms run on CET/CEST.
+    | Decoupled from APP_TIMEZONE so changing it doesn't affect
+    | Laravel's internal timestamps / logs.
     */
-    'timezone' => env('APP_TIMEZONE', 'Europe/London'),
+    'timezone' => env('RAIDHELPER_TIMEZONE', 'Europe/Paris'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default time of day for new events
+    |--------------------------------------------------------------------------
+    |
+    | Pre-fills the create form's datetime-local input at this time on
+    | tomorrow's date in the configured timezone. Officers can change
+    | the date and time before submitting.
+    */
+    'default_time_of_day' => env('RAIDHELPER_DEFAULT_TIME', '19:30'),
 ];
