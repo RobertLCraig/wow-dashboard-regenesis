@@ -25,6 +25,17 @@ Schedule::command('wowaudit:pull')
     ->onOneServer()
     ->withoutOverlapping();
 
+// Twice-daily Raider.IO pull covering every active member in the local
+// roster (no per-team gating, unlike wowaudit). One HTTP call per
+// member, paced to stay well under RIO's unwritten ~600/min cap.
+// Two pulls a day matches RIO's own profile refresh cadence and gives
+// the heroic team's fluid roster a snapshot before each raid window.
+Schedule::command('raiderio:pull')
+    ->twiceDaily(7, 18)
+    ->timezone(config('raidhelper.timezone', 'Europe/London'))
+    ->onOneServer()
+    ->withoutOverlapping();
+
 // Daily pull of every Raid-Helper event into the local cache. Webhooks
 // keep us in sync in real-time; this is the safety net that catches any
 // missed deliveries and any events created before the webhook was wired.

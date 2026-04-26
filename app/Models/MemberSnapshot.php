@@ -15,6 +15,8 @@ class MemberSnapshot extends Model
             'last_online_at' => 'datetime',
             'raw_json' => 'array',
             'vault_progress_json' => 'array',
+            'raid_progression_json' => 'array',
+            'mplus_score' => 'float',
             'recommend_promote' => 'boolean',
             'recommend_demote' => 'boolean',
             'recommend_kick' => 'boolean',
