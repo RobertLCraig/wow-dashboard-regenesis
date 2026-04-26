@@ -36,6 +36,12 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::get('/roster', [\App\Http\Controllers\Dashboard\RosterController::class, 'index'])->name('roster.index');
     Route::get('/roster.csv', [\App\Http\Controllers\Dashboard\RosterController::class, 'csv'])->name('roster.csv');
 
+    // Kick + alts macro generator. preview() returns the JSON the modal
+    // renders; confirm() logs MemberAction rows for the audit trail
+    // after the officer says they ran the macro in-game.
+    Route::post('/roster/kick-macro', [\App\Http\Controllers\Dashboard\RosterKickMacroController::class, 'preview'])->name('roster.kick-macro.preview');
+    Route::post('/roster/kick-macro/confirm', [\App\Http\Controllers\Dashboard\RosterKickMacroController::class, 'confirm'])->name('roster.kick-macro.confirm');
+
     Route::get('/events', [\App\Http\Controllers\Events\EventController::class, 'index'])->name('events.index');
     Route::get('/events/new', [\App\Http\Controllers\Events\EventController::class, 'create'])->name('events.create');
     Route::post('/events', [\App\Http\Controllers\Events\EventController::class, 'store'])->name('events.store');

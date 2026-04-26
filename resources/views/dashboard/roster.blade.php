@@ -86,7 +86,10 @@
                             </th>
                             <th class="px-2 py-2 font-medium">Alt of</th>
                             <th class="px-2 py-2 font-medium">Flags</th>
-                            <th class="px-4 py-2 font-medium text-right">Links</th>
+                            <th class="px-2 py-2 font-medium text-right">Links</th>
+                            @can('roster.kick')
+                                <th class="px-4 py-2 font-medium text-right">Actions</th>
+                            @endcan
                         </tr>
                     </thead>
                     <tbody>
@@ -140,17 +143,31 @@
                                         </span>
                                     @endforeach
                                 </td>
-                                <td class="px-4 py-2 text-right">
+                                <td class="px-2 py-2 text-right">
                                     <x-character-links :member="$m" />
                                 </td>
+                                @can('roster.kick')
+                                    <td class="px-4 py-2 text-right">
+                                        <button type="button"
+                                                @click="$dispatch('open-kick-macro', { ids: {{ json_encode($row['group_member_ids']) }} })"
+                                                class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border border-rose-700/50 text-rose-300 hover:bg-rose-950/30"
+                                                title="Generate /gremove macro for {{ $m->name }}{{ count($row['group_member_ids']) > 1 ? ' + ' . (count($row['group_member_ids']) - 1) . ' alts' : '' }}">
+                                            Kick{{ count($row['group_member_ids']) > 1 ? ' +' . (count($row['group_member_ids']) - 1) : '' }}
+                                        </button>
+                                    </td>
+                                @endcan
                             </tr>
                         @endforeach
                         <tr data-empty-message style="display:none">
-                            <td colspan="9" class="px-4 py-4 text-center text-muted text-xs italic">No matches.</td>
+                            <td colspan="{{ auth()->user()?->can('roster.kick') ? 10 : 9 }}" class="px-4 py-4 text-center text-muted text-xs italic">No matches.</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         @endif
     </section>
+
+    @can('roster.kick')
+        <x-kick-macro-modal />
+    @endcan
 @endsection

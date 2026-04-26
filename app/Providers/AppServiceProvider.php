@@ -61,6 +61,7 @@ class AppServiceProvider extends ServiceProvider
             'events.edit',
             'events.delete',
             'roster.view',
+            'roster.kick',             // build the /gremove + alts macro
             'members.edit',
             'members.review',          // accept/dismiss action queue items
             'bans.manage',

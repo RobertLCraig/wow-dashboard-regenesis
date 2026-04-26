@@ -92,7 +92,7 @@ class RosterController extends Controller
     }
 
     /**
-     * @return Collection<int, array{member: Member, snap: ?MemberSnapshot, main: ?Member, flags: list<string>}>
+     * @return Collection<int, array{member: Member, snap: ?MemberSnapshot, main: ?Member, flags: list<string>, group_member_ids: list<int>}>
      */
     private function rows(string $filter): Collection
     {
@@ -104,15 +104,51 @@ class RosterController extends Controller
             ->get();
 
         $snapsByMember = $this->latestRaiderioSnapshotsByMember($guildKey, $members);
+        $groupIdsByMember = $this->altGroupIdsByMember($guildKey, $members);
 
-        return $members->map(function (Member $m) use ($snapsByMember) {
+        return $members->map(function (Member $m) use ($snapsByMember, $groupIdsByMember) {
             return [
                 'member' => $m,
                 'snap' => $snapsByMember->get($m->id),
                 'main' => $m->main,
                 'flags' => $this->flagsFor($m),
+                // Full kick-and-alts cohort for this row: main + all alts
+                // in the same alt_group. Singletons just contain the row's
+                // own id. Used by the kick-macro modal as data-member-ids.
+                'group_member_ids' => $groupIdsByMember->get($m->id, [$m->id]),
             ];
         })->values();
+    }
+
+    /**
+     * For each visible member, compute the full set of member IDs that
+     * make up "kick this player and all their alts". For a row with no
+     * alt_group, that's just the row itself. For a row whose alt_group
+     * is shared, it's every active member in the same group.
+     *
+     * @param  EloquentCollection<int, Member>  $members
+     * @return Collection<int, list<int>>
+     */
+    private function altGroupIdsByMember(string $guildKey, EloquentCollection $members): Collection
+    {
+        $groupIds = $members->pluck('alt_group_id')->filter()->unique()->values();
+        if ($groupIds->isEmpty()) {
+            return collect();
+        }
+        // One query for every member in any of the visible alt groups.
+        $bucketRows = Member::query()
+            ->forGuild($guildKey)
+            ->active()
+            ->whereIn('alt_group_id', $groupIds)
+            ->get(['id', 'alt_group_id']);
+
+        $byGroup = $bucketRows->groupBy('alt_group_id')
+            ->map(fn ($group) => $group->pluck('id')->all());
+
+        return $members->mapWithKeys(function (Member $m) use ($byGroup) {
+            $ids = $m->alt_group_id ? ($byGroup->get($m->alt_group_id, []) ?: [$m->id]) : [$m->id];
+            return [$m->id => $ids];
+        });
     }
 
     private function baseQuery(string $guildKey, string $filter): Builder

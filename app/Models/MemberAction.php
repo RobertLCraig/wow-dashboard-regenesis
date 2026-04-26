@@ -11,6 +11,10 @@ class MemberAction extends Model
     public const TYPE_DEMOTE = 'demote';
     public const TYPE_KICK = 'kick';
     public const TYPE_SPECIAL = 'special';
+    // Audit-only: officer generated (and confirmed) a kick-all-alts macro.
+    // Doesn't change member status; the next GRM ingest does that once
+    // the macro actually runs in-game.
+    public const TYPE_KICK_MACRO = 'kick_macro';
 
     public const DECISION_ACCEPTED = 'accepted';
     public const DECISION_DISMISSED = 'dismissed';
