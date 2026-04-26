@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Webhook;
 
 use App\Http\Controllers\Controller;
+use App\Services\Discord\EventAnnouncer;
 use App\Services\RaidHelper\EventUpserter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ use Illuminate\Http\Request;
  */
 class RaidHelperController extends Controller
 {
-    public function handle(Request $request, EventUpserter $upserter): JsonResponse
+    public function handle(Request $request, EventUpserter $upserter, EventAnnouncer $announcer): JsonResponse
     {
         $payload = $request->json()->all();
         if (! is_array($payload) || empty($payload['id'])) {
@@ -39,6 +40,15 @@ class RaidHelperController extends Controller
         // what soft-deletes locally; the webhook just keeps the cache
         // fresh.
         $event = $upserter->upsert($payload);
+
+        // First-time-seen events trigger an outbound announce post to
+        // the configured event_announce webhook(s). wasRecentlyCreated
+        // is true only on the firstOrCreate insert; subsequent edits
+        // come back as updates and don't re-announce. No-op when no
+        // matching webhook is configured.
+        if ($event->wasRecentlyCreated) {
+            $announcer->announceNew($event);
+        }
 
         return response()->json([
             'snapshot_id' => $event->id,
