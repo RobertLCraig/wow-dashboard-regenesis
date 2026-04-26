@@ -8,6 +8,8 @@ use App\Models\MemberEvent;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
+use App\Models\WclActorParse;
+use App\Models\WclFight;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Collection;
@@ -45,6 +47,7 @@ class WeeklyDigestBuilder
             'action_queue' => $this->actionQueueCounts(),
             'team_progression' => $this->teamProgression(),
             'top_rio' => $this->topRio(5),
+            'best_parses' => $this->bestParses($weekAgo, 5),
         ];
 
         return ['markdown' => $this->renderMarkdown($data), 'data' => $data];
@@ -230,6 +233,44 @@ class WeeklyDigestBuilder
             ->values();
     }
 
+    /**
+     * Top N WCL parses (best percentile per member) since `since`.
+     * One row per member, so a single raider with three 99-parses
+     * doesn't crowd out everyone else.
+     *
+     * @return Collection<int, array{name:string, percentile:int, boss:string, difficulty:?int, report_code:?string}>
+     */
+    private function bestParses(CarbonImmutable $since, int $limit): Collection
+    {
+        $rows = WclActorParse::query()
+            ->whereNotNull('parse_percentile')
+            ->whereHas('fight', fn ($q) => $q->where('start_time', '>=', $since))
+            ->whereHas('member', fn ($q) => $q->forGuild($this->guildKey))
+            ->with(['fight:id,wcl_report_id,name,difficulty', 'fight.report:id,code,title'])
+            ->orderByDesc('parse_percentile')
+            ->orderByDesc('id')
+            ->limit($limit * 4)  // over-fetch so the per-member dedupe still gives us $limit rows
+            ->get();
+
+        $byMember = [];
+        foreach ($rows as $p) {
+            if (! isset($byMember[$p->member_id])) {
+                $byMember[$p->member_id] = $p;
+            }
+            if (count($byMember) >= $limit) break;
+        }
+
+        return collect(array_values($byMember))->map(function (WclActorParse $p) {
+            return [
+                'name' => $p->actor_name,
+                'percentile' => (int) $p->parse_percentile,
+                'boss' => $p->fight?->name ?? '?',
+                'difficulty' => $p->fight?->difficulty,
+                'report_code' => $p->fight?->report?->code,
+            ];
+        });
+    }
+
     private function latestRaiderio(): ?Snapshot
     {
         return Snapshot::query()
@@ -277,6 +318,16 @@ class WeeklyDigestBuilder
                 $score = number_format($row['score'], 0);
                 $rank = $i + 1;
                 $lines[] = "{$rank}. {$row['name']} - {$score}{$key}";
+            }
+        }
+
+        if ($d['best_parses']->isNotEmpty()) {
+            $lines[] = '';
+            $lines[] = '__Best parses this week__';
+            foreach ($d['best_parses'] as $i => $row) {
+                $diff = WclFight::difficultyLabel($row['difficulty']);
+                $rank = $i + 1;
+                $lines[] = "{$rank}. {$row['name']} - {$row['percentile']}% on {$row['boss']} ({$diff})";
             }
         }
 

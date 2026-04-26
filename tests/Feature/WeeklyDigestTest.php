@@ -137,6 +137,81 @@ it('builder produces markdown even with an empty guild', function () {
         ->toContain('0 active');
 });
 
+it('digest includes the best parses (one row per member, sorted desc) from the last 7 days', function () {
+    $now = CarbonImmutable::now();
+    $a = digestMember('Sheday-Silvermoon');
+    $b = digestMember('Bruiser-Silvermoon');
+    $c = digestMember('Healer-Silvermoon');
+
+    $report = \App\Models\WclReport::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'code' => 'rrrrrr', 'title' => 'Tuesday Heroic',
+        'start_time' => $now->subDays(2),
+        'captured_at' => $now,
+    ]);
+    $fight = \App\Models\WclFight::query()->create([
+        'wcl_report_id' => $report->id, 'fight_id' => 1,
+        'encounter_id' => 100, 'name' => 'Plexus Sentinel',
+        'difficulty' => \App\Models\WclFight::DIFFICULTY_HEROIC,
+        'kill' => true,
+        'start_time' => $now->subDays(2),
+    ]);
+    \App\Models\WclActorParse::query()->create([
+        'wcl_fight_id' => $fight->id, 'member_id' => $a->id,
+        'actor_name' => 'Sheday', 'role' => 'dps', 'parse_percentile' => 95,
+    ]);
+    \App\Models\WclActorParse::query()->create([
+        'wcl_fight_id' => $fight->id, 'member_id' => $a->id,
+        'actor_name' => 'ShedayAlt', 'role' => 'dps', 'parse_percentile' => 99,  // duplicate member
+    ]);
+    \App\Models\WclActorParse::query()->create([
+        'wcl_fight_id' => $fight->id, 'member_id' => $b->id,
+        'actor_name' => 'Bruiser', 'role' => 'dps', 'parse_percentile' => 80,
+    ]);
+    \App\Models\WclActorParse::query()->create([
+        'wcl_fight_id' => $fight->id, 'member_id' => $c->id,
+        'actor_name' => 'Healer', 'role' => 'healer', 'parse_percentile' => 60,
+    ]);
+
+    $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon', $now))->build();
+
+    expect($built['markdown'])
+        ->toContain('Best parses this week')
+        ->toContain('99% on Plexus Sentinel')
+        ->toContain('80% on Plexus Sentinel')
+        ->toContain('60% on Plexus Sentinel');
+
+    // Highest first (Sheday's higher of two parses, then Bruiser, then Healer).
+    $section = substr($built['markdown'], strpos($built['markdown'], 'Best parses this week'));
+    expect(strpos($section, '99%'))->toBeLessThan(strpos($section, '80%'));
+    expect(strpos($section, '80%'))->toBeLessThan(strpos($section, '60%'));
+});
+
+it('digest omits the parses section when nothing falls in the window', function () {
+    $now = CarbonImmutable::now();
+    $a = digestMember('Sheday-Silvermoon');
+
+    $report = \App\Models\WclReport::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'code' => 'rrrrrr', 'title' => 'Old report',
+        'start_time' => $now->subDays(20),
+        'captured_at' => $now,
+    ]);
+    $fight = \App\Models\WclFight::query()->create([
+        'wcl_report_id' => $report->id, 'fight_id' => 1,
+        'encounter_id' => 100, 'name' => 'Old boss',
+        'difficulty' => 4, 'kill' => true,
+        'start_time' => $now->subDays(20),
+    ]);
+    \App\Models\WclActorParse::query()->create([
+        'wcl_fight_id' => $fight->id, 'member_id' => $a->id,
+        'actor_name' => 'Sheday', 'role' => 'dps', 'parse_percentile' => 99,
+    ]);
+
+    $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon', $now))->build();
+    expect($built['markdown'])->not->toContain('Best parses this week');
+});
+
 // --- DiscordWebhookPoster -------------------------------------------
 
 it('poster posts the body to the webhook URL as JSON', function () {
