@@ -157,6 +157,12 @@ class GrmNormalizer
         $prof1 = $row['prof1'] ?? null;
         $prof2 = $row['prof2'] ?? null;
 
+        // GRM uses -1 as "unknown" for ints it hasn't queried yet (e.g.
+        // achievementPoints for offline alts). Our int columns are
+        // unsigned, so coerce negatives to null instead of letting MySQL
+        // reject the row with SQLSTATE 22003.
+        $uint = static fn (mixed $v): ?int => is_int($v) && $v >= 0 ? $v : null;
+
         // firstOrCreate + forceFill is cleaner than updateOrCreate here
         // because first_seen_at must only be set on insert, and there's
         // no per-insert-vs-update value form on updateOrCreate.
@@ -175,11 +181,11 @@ class GrmNormalizer
             'guid' => $row['GUID'] ?? null,
             'class' => is_string($row['class'] ?? null) ? $row['class'] : null,
             'race' => is_string($row['race'] ?? null) ? $row['race'] : null,
-            'level' => is_int($row['level'] ?? null) ? $row['level'] : null,
+            'level' => $uint($row['level'] ?? null),
             'sex' => is_string($row['sex'] ?? null) ? $row['sex'] : null,
             'faction' => is_string($row['faction'] ?? null) ? $row['faction'] : null,
             'rank_name' => is_string($row['rankName'] ?? null) ? $row['rankName'] : null,
-            'rank_index' => is_int($row['rankIndex'] ?? null) ? $row['rankIndex'] : null,
+            'rank_index' => $uint($row['rankIndex'] ?? null),
             'team' => $this->teams()->forRank(is_string($row['rankName'] ?? null) ? $row['rankName'] : null),
             'join_date' => $joinDate?->toDateString(),
             'join_date_unknown' => (bool) ($row['joinDateUnknown'] ?? false),
@@ -187,13 +193,13 @@ class GrmNormalizer
             'is_online' => (bool) ($row['isOnline'] ?? false),
             'is_mobile' => (bool) ($row['isMobile'] ?? false),
             'status' => $status,
-            'achievement_points' => is_int($row['achievementPoints'] ?? null) ? $row['achievementPoints'] : null,
-            'guild_rep' => is_int($row['guildRep'] ?? null) ? $row['guildRep'] : null,
+            'achievement_points' => $uint($row['achievementPoints'] ?? null),
+            'guild_rep' => $uint($row['guildRep'] ?? null),
             'hardcore_is_dead' => $hcDead,
-            'profession_1_id' => is_array($prof1) ? ($prof1[1] ?? null) : null,
-            'profession_1_skill' => is_array($prof1) ? ($prof1[2] ?? null) : null,
-            'profession_2_id' => is_array($prof2) ? ($prof2[1] ?? null) : null,
-            'profession_2_skill' => is_array($prof2) ? ($prof2[2] ?? null) : null,
+            'profession_1_id' => is_array($prof1) ? $uint($prof1[1] ?? null) : null,
+            'profession_1_skill' => is_array($prof1) ? $uint($prof1[2] ?? null) : null,
+            'profession_2_id' => is_array($prof2) ? $uint($prof2[1] ?? null) : null,
+            'profession_2_skill' => is_array($prof2) ? $uint($prof2[2] ?? null) : null,
             'alt_group_label' => is_string($row['altGroup'] ?? null) && $row['altGroup'] !== '' ? $row['altGroup'] : null,
             'public_note' => $publicNote,
             'officer_note' => $officerNote,
