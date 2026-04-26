@@ -24,3 +24,15 @@ Schedule::command('wowaudit:pull')
     ->hourly()
     ->onOneServer()
     ->withoutOverlapping();
+
+// Daily pull of every Raid-Helper event into the local cache. Webhooks
+// keep us in sync in real-time; this is the safety net that catches any
+// missed deliveries and any events created before the webhook was wired.
+// Officers can also trigger an on-demand pull via the dashboard button
+// (rate-limited to 1/hour). Short-circuits cleanly when
+// RAID_HELPER_API_KEY is unset.
+Schedule::command('raidhelper:sync-events')
+    ->dailyAt('06:15')
+    ->timezone(config('raidhelper.timezone', 'Europe/London'))
+    ->onOneServer()
+    ->withoutOverlapping();

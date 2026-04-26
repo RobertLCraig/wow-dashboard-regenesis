@@ -184,6 +184,41 @@ it('humanises a Raid-Helper 404 with a channel-access hint', function () {
         ->toContain('Send Messages');
 });
 
+it('sync pulls every page and upserts each event', function () {
+    Http::fake([
+        'raid-helper.xyz/api/v4/servers/*/events' => Http::sequence()
+            ->push(['pages' => 2, 'currentPage' => 1, 'eventsOverall' => 3, 'eventsTransmitted' => 2,
+                'postedEvents' => [
+                    ['id' => 'e1', 'title' => 'A', 'channelId' => '1', 'leaderId' => '1', 'startTime' => time() + 100, 'endTime' => time() + 200, 'closeTime' => time() + 200, 'templateId' => '2'],
+                    ['id' => 'e2', 'title' => 'B', 'channelId' => '1', 'leaderId' => '1', 'startTime' => time() + 100, 'endTime' => time() + 200, 'closeTime' => time() + 200, 'templateId' => '2'],
+                ]], 200)
+            ->push(['pages' => 2, 'currentPage' => 2, 'eventsOverall' => 3, 'eventsTransmitted' => 1,
+                'postedEvents' => [
+                    ['id' => 'e3', 'title' => 'C', 'channelId' => '1', 'leaderId' => '1', 'startTime' => time() + 100, 'endTime' => time() + 200, 'closeTime' => time() + 200, 'templateId' => '2'],
+                ]], 200),
+    ]);
+
+    $this->actingAs(officer())
+        ->post(route('events.sync'))
+        ->assertRedirect()
+        ->assertSessionHas('status', 'Synced 3 events from Raid-Helper.');
+
+    expect(\App\Models\RaidEvent::count())->toBe(3);
+    expect(\App\Models\RaidEvent::pluck('raidhelper_event_id')->all())->toEqualCanonicalizing(['e1', 'e2', 'e3']);
+});
+
+it('sync is rate-limited to one call per hour per user', function () {
+    Http::fake([
+        'raid-helper.xyz/*' => Http::response(['pages' => 1, 'postedEvents' => []], 200),
+    ]);
+    $user = officer();
+
+    $this->actingAs($user)->post(route('events.sync'))->assertRedirect();
+    $this->actingAs($user)->post(route('events.sync'))
+        ->assertRedirect()
+        ->assertSessionHasErrors('raidhelper');
+});
+
 it('humanises a Raid-Helper non-404 error using the title field', function () {
     Http::fake([
         'raid-helper.xyz/*' => Http::response([

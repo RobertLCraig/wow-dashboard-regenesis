@@ -23,6 +23,7 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::get('/events', [\App\Http\Controllers\Events\EventController::class, 'index'])->name('events.index');
     Route::get('/events/new', [\App\Http\Controllers\Events\EventController::class, 'create'])->name('events.create');
     Route::post('/events', [\App\Http\Controllers\Events\EventController::class, 'store'])->name('events.store');
+    Route::post('/events/sync', [\App\Http\Controllers\Events\EventController::class, 'sync'])->name('events.sync');
     Route::get('/events/{event}', [\App\Http\Controllers\Events\EventController::class, 'show'])
         ->where('event', '[0-9]+')->name('events.show');
     Route::delete('/events/{event}', [\App\Http\Controllers\Events\EventController::class, 'destroy'])

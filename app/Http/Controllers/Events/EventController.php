@@ -10,6 +10,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\View\View;
 
 class EventController extends Controller
@@ -119,6 +120,58 @@ class EventController extends Controller
         return redirect()
             ->route('events.show', $event)
             ->with('status', 'Event posted to Discord.');
+    }
+
+    /**
+     * On-demand backfill: pulls every event from Raid-Helper and upserts
+     * locally. Same logic as the daily scheduled command, just triggered
+     * by an officer button on /events when they don't want to wait for
+     * the next cron tick.
+     *
+     * Rate-limited to 1/hour per officer so a button-mash doesn't hammer
+     * Raid-Helper's API. The webhook keeps the cache in real-time sync
+     * regardless, so this is rarely needed.
+     */
+    public function sync(RaidHelperClient $client, EventUpserter $upserter): RedirectResponse
+    {
+        abort_unless(auth()->user()?->can('events.create'), 403);
+
+        $key = 'events-sync:user:' . auth()->id();
+        if (RateLimiter::tooManyAttempts($key, maxAttempts: 1)) {
+            $minutes = (int) ceil(RateLimiter::availableIn($key) / 60);
+            return redirect()
+                ->route('events.index')
+                ->withErrors(['raidhelper' => "Manual sync is limited to once per hour. Try again in {$minutes} minute" . ($minutes === 1 ? '' : 's') . '.']);
+        }
+        RateLimiter::hit($key, decaySeconds: 3600);
+
+        $page = 1;
+        $upserted = 0;
+        $totalPages = 1;
+
+        do {
+            $resp = $client->listEvents(page: $page, includeSignUps: true);
+            if (! $resp->successful()) {
+                return redirect()
+                    ->route('events.index')
+                    ->withErrors(['raidhelper' => "Sync failed on page {$page}: HTTP {$resp->status()}."]);
+            }
+            $body = $resp->json();
+            $events = is_array($body['postedEvents'] ?? null) ? $body['postedEvents'] : [];
+            $totalPages = (int) ($body['pages'] ?? 1);
+
+            foreach ($events as $event) {
+                if (is_array($event)) {
+                    $upserter->upsert($event);
+                    $upserted++;
+                }
+            }
+            $page++;
+        } while ($page <= $totalPages);
+
+        return redirect()
+            ->route('events.index')
+            ->with('status', "Synced {$upserted} events from Raid-Helper.");
     }
 
     public function show(RaidEvent $event): View

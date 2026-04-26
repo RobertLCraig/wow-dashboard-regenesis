@@ -39,8 +39,12 @@ class EventUpserter
         $endsAt = isset($payload['endTime']) && is_int($payload['endTime'])
             ? CarbonImmutable::createFromTimestampUTC($payload['endTime'])
             : null;
-        $closingAt = isset($payload['closingTime']) && is_int($payload['closingTime'])
-            ? CarbonImmutable::createFromTimestampUTC($payload['closingTime'])
+        // v4 list endpoint sends `closeTime`; the v2/v3 docs (and webhooks
+        // historically) used `closingTime`. Accept either so the upserter
+        // works for both webhook payloads and bulk-list backfills.
+        $closingTimestamp = $payload['closingTime'] ?? $payload['closeTime'] ?? null;
+        $closingAt = is_int($closingTimestamp)
+            ? CarbonImmutable::createFromTimestampUTC($closingTimestamp)
             : null;
 
         return DB::transaction(function () use ($payload, $eventId, $serverId, $channelId, $startsAt, $endsAt, $closingAt) {
@@ -105,7 +109,13 @@ class EventUpserter
             }
             $event->save();
 
-            $this->syncSignups($event, $payload['signUps'] ?? []);
+            // Only touch signups when the payload explicitly carries the
+            // array. The v4 list endpoint without IncludeSignUps=true
+            // omits it entirely - we shouldn't wipe cached signups just
+            // because a lighter response didn't include them.
+            if (array_key_exists('signUps', $payload) && is_array($payload['signUps'])) {
+                $this->syncSignups($event, $payload['signUps']);
+            }
 
             return $event;
         });

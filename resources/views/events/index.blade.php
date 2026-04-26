@@ -5,11 +5,29 @@
 @section('content')
 <div class="flex items-center justify-between mb-6">
     <h1 class="text-xl font-semibold">Events</h1>
-    <a href="{{ route('events.create') }}" class="px-4 py-2 rounded bg-accent text-white text-sm font-medium hover:bg-accent/80">+ New event</a>
+    <div class="flex items-center gap-2">
+        {{-- On-demand pull from Raid-Helper. Backfills events that
+             pre-date the webhook setup, and recovers from any missed
+             webhook deliveries. The scheduler also runs this once per
+             day; this button is rate-limited to 1/hour per officer. --}}
+        <form method="POST" action="{{ route('events.sync') }}">@csrf
+            <button type="submit" title="Pull every event from Raid-Helper into the local cache. Rate-limited to once per hour. The daily scheduler runs this anyway, so manual triggers are rarely needed."
+                    class="px-3 py-2 rounded border border-line text-sm text-muted hover:text-ink hover:border-muted">
+                ⟳ Sync from Raid-Helper
+            </button>
+        </form>
+        <a href="{{ route('events.create') }}" class="px-4 py-2 rounded bg-accent text-white text-sm font-medium hover:bg-accent/80">+ New event</a>
+    </div>
 </div>
 
 @if (session('status'))
     <div class="mb-4 p-3 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm">{{ session('status') }}</div>
+@endif
+
+@if (isset($errors) && $errors->any())
+    <div class="mb-4 p-3 rounded bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm">
+        @foreach ($errors->all() as $err)<div>{{ $err }}</div>@endforeach
+    </div>
 @endif
 
 <section class="bg-panel border border-line rounded-lg overflow-hidden">
