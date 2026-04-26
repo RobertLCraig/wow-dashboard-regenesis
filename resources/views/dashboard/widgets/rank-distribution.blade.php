@@ -15,7 +15,7 @@
             members.
         </x-explainer-panel>
     </div>
-    <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+    <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-center clarity-keep-grid">
         <div>
             <canvas id="rank-chart" width="220" height="220"></canvas>
         </div>

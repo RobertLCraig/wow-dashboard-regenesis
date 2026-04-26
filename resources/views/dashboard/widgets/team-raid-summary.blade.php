@@ -12,7 +12,7 @@
 @endphp
 
 <section class="bg-panel border border-line rounded-lg p-5">
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm clarity-keep-grid">
         <div>
             <div class="text-xs uppercase tracking-wider text-muted">Members</div>
             <div class="text-2xl font-semibold mt-0.5">{{ $raidSummary['count'] }}</div>

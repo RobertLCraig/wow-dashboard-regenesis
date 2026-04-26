@@ -57,7 +57,7 @@
             and re-run the GRM sync.
         </div>
     @else
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 clarity-keep-grid">
             @foreach ($teamProgression['teams'] as $team => $stats)
                 <div class="rounded-md border {{ $tone($team) }} p-4">
                     <div class="flex items-baseline justify-between">
@@ -74,7 +74,7 @@
                         @endif
                     </div>
 
-                    <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+                    <div class="mt-3 grid grid-cols-2 gap-2 text-sm clarity-keep-grid">
                         <div>
                             <div class="text-xs uppercase tracking-wider text-muted">Best progression</div>
                             <div class="font-mono mt-0.5">
