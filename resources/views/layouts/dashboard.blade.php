@@ -116,14 +116,13 @@
         };
     </script>
     {{-- High-clarity display mode (per-user pref on users.display_mode).
-         Phase A wires the body class + the always-on overrides (motion
-         off, italics neutralised, single-column main, max line length).
-         Widget-level changes (table -> stacked cards, charts -> lists)
-         arrive in Phase B as widgets adopt the <x-clarity-table>
-         component. --}}
+         Lighter touch than originally planned: keep the standard
+         responsive grid layout intact, just nudge typography + spacing
+         so text is easier to track for someone with eye strain or
+         diplopia. No structural overrides (no forced single column,
+         no table-as-cards). Italics neutralised, motion off. --}}
     <style>
-        body.mode-high-clarity { line-height: 1.7; letter-spacing: 0.005em; }
-        body.mode-high-clarity main { max-width: 56rem; }
+        body.mode-high-clarity { line-height: 1.7; letter-spacing: 0.01em; }
         body.mode-high-clarity *,
         body.mode-high-clarity *::before,
         body.mode-high-clarity *::after {
@@ -134,66 +133,30 @@
         body.mode-high-clarity em,
         body.mode-high-clarity i { font-style: normal; font-weight: 600; }
 
-        /* Clarity-tabular: tables that opt-in to the stacked-card render
-           in high-clarity mode. Standard mode leaves the table alone.
-           Each row becomes a bordered card; each cell becomes a labelled
-           line with the column name pulled from data-label. */
-        body.mode-high-clarity table.clarity-tabular,
-        body.mode-high-clarity table.clarity-tabular thead,
-        body.mode-high-clarity table.clarity-tabular tbody,
-        body.mode-high-clarity table.clarity-tabular tr,
-        body.mode-high-clarity table.clarity-tabular td,
-        body.mode-high-clarity table.clarity-tabular th {
-            display: block;
-            border: none;
-            text-align: left !important;
-        }
-        body.mode-high-clarity table.clarity-tabular thead { display: none; }
-        body.mode-high-clarity table.clarity-tabular tbody tr[data-row] {
-            border: 2px solid #2a2a35;
-            border-radius: 0.5rem;
-            padding: 0.85rem 1rem;
-            margin: 0 0.75rem 0.85rem;
-            background: rgba(0,0,0,0.15);
-        }
-        body.mode-high-clarity table.clarity-tabular tbody tr[data-row]:first-child { margin-top: 0.85rem; }
-        body.mode-high-clarity table.clarity-tabular tbody td {
-            padding: 0.2rem 0;
-            font-size: 0.875rem;
-        }
-        /* First cell of each row acts as the card heading. Convention:
-           the consumer puts the primary identifier (Name with link) in
-           the first cell with no data-label, so it renders bold + larger
-           with no "Label:" prefix. */
-        body.mode-high-clarity table.clarity-tabular tbody tr[data-row] td:first-child {
-            font-size: 0.95rem;
-            font-weight: 600;
-            margin-bottom: 0.4rem;
-            padding-bottom: 0.4rem;
-            border-bottom: 1px solid #2a2a35;
-        }
-        body.mode-high-clarity table.clarity-tabular tbody td[data-label]::before {
-            content: attr(data-label) ":";
-            display: inline-block;
-            min-width: 9ch;
-            color: #7a7a8c;
-            font-weight: 500;
-            margin-right: 0.5rem;
-            text-transform: none;
-            letter-spacing: 0;
-        }
-        /* The empty-message row is purely a search-no-match indicator;
-           it should look like an inline note, not a card. */
-        body.mode-high-clarity table.clarity-tabular tbody tr[data-empty-message] {
-            border: none;
-            background: none;
-            margin: 0;
-            padding: 0.5rem 0;
-            font-style: italic;
-            color: #7a7a8c;
-        }
-        body.mode-high-clarity table.clarity-tabular tbody tr[data-empty-message]::before { content: none; }
-        body.mode-high-clarity table.clarity-tabular tbody tr[data-empty-message] td::before { content: none; }
+        /* Subtle font-size bump on the Tailwind text-* utilities the
+           dashboard uses. Keeps proportions, just makes the smallest
+           tier readable without zooming. */
+        body.mode-high-clarity .text-xs   { font-size: 0.8125rem;  } /* 13px from 12 */
+        body.mode-high-clarity .text-sm   { font-size: 0.9375rem;  } /* 15px from 14 */
+        body.mode-high-clarity .text-base { font-size: 1.0625rem;  } /* 17px from 16 */
+        body.mode-high-clarity .text-lg   { font-size: 1.1875rem;  } /* 19px from 18 */
+        body.mode-high-clarity .text-xl   { font-size: 1.375rem;   } /* 22px from 20 */
+        body.mode-high-clarity .text-\[10px\] { font-size: 0.6875rem; } /* 11px from 10 */
+        body.mode-high-clarity .text-\[11px\] { font-size: 0.75rem; }  /* 12px from 11 */
+
+        /* Extra vertical breathing room on cells in the dashboard's
+           tables, so adjacent rows don't visually merge under
+           vertical diplopia. */
+        body.mode-high-clarity table tbody td { padding-top: 0.65rem; padding-bottom: 0.65rem; }
+        body.mode-high-clarity table thead th { padding-top: 0.65rem; padding-bottom: 0.65rem; }
+
+        /* Sections (widget panels) get a touch more internal padding
+           around their header strips. */
+        body.mode-high-clarity section > header { padding-top: 1rem; padding-bottom: 1rem; }
+
+        /* Lift muted text contrast slightly so secondary info is
+           legible without losing the visual hierarchy. */
+        body.mode-high-clarity .text-muted { color: #9494a5; }
     </style>
     {{-- WoW class colours, used by the timeline + inactive list. --}}
     <style>
@@ -306,9 +269,10 @@
                 </form>
             </div>
             {{-- High-clarity toggle. Single-form POST per click; no JS.
-                 The label flips to "Standard view" once high-clarity is
-                 active so the action reads as the destination, not the
-                 current state. --}}
+                 Label always names the mode (High-clarity view); the
+                 ON/OFF indicator reflects whether that mode is active.
+                 Hidden input sends the OPPOSITE value so submitting
+                 toggles. --}}
             <form method="POST" action="{{ route('preferences.display') }}" class="pt-2 border-t border-line/60">
                 @csrf
                 @php
@@ -318,10 +282,10 @@
                        value="{{ $hc ? \App\Models\User::DISPLAY_STANDARD : \App\Models\User::DISPLAY_HIGH_CLARITY }}">
                 <button type="submit"
                         class="w-full text-left text-[11px] text-muted hover:text-ink transition flex items-center justify-between"
-                        title="{{ $hc ? 'Switch back to the default dashboard layout' : 'Single-column, big spacing, no motion' }}">
-                    <span>{{ $hc ? 'Standard view' : 'High-clarity view' }}</span>
+                        title="{{ $hc ? 'Click to turn off (back to the default dashboard)' : 'Click to turn on. Single-column, big spacing, no motion.' }}">
+                    <span>High-clarity view</span>
                     <span class="text-[10px] uppercase tracking-wider {{ $hc ? 'text-emerald-300' : 'text-muted/60' }}">
-                        {{ $hc ? 'on' : 'off' }}
+                        {{ $hc ? 'ON' : 'OFF' }}
                     </span>
                 </button>
             </form>
