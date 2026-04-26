@@ -194,24 +194,24 @@ it('digest:weekly --dry-run prints to stdout without posting', function () {
     Http::assertNothingSent();
 });
 
-it('digest:weekly posts to Discord when the webhook is set', function () {
+it('digest:weekly falls back to the legacy env var when no webhooks are configured', function () {
     Http::fake(['discord.test/*' => Http::response('', 204)]);
     digestMember('Sheday-Silvermoon');
 
     $this->artisan('digest:weekly')
-        ->expectsOutputToContain('Posted weekly digest')
+        ->expectsOutputToContain('legacy DIGEST_DISCORD_WEBHOOK_URL')
         ->assertExitCode(0);
 
     Http::assertSent(fn ($req) => str_contains($req->url(), 'discord.test/webhooks'));
 });
 
-it('digest:weekly falls back to stdout when no webhook is configured', function () {
+it('digest:weekly falls back to stdout when neither the table nor the env var is set', function () {
     config(['digest.discord_webhook_url' => '']);
     Http::fake();
     digestMember('Sheday-Silvermoon');
 
     $this->artisan('digest:weekly')
-        ->expectsOutputToContain('not set; printing to stdout')
+        ->expectsOutputToContain('No weekly_digest webhook configured')
         ->assertExitCode(0);
 
     Http::assertNothingSent();

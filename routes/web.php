@@ -77,6 +77,14 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     // is in progress so officers can see results without reloading.
     Route::get('/admin/sync', [\App\Http\Controllers\Admin\SyncDashboardController::class, 'index'])->name('admin.sync.index');
     Route::post('/admin/sync/grm', [\App\Http\Controllers\Admin\SyncDashboardController::class, 'uploadGrm'])->name('admin.sync.grm.upload');
+
+    // Officer-managed Discord webhook table. Used by the digest sender
+    // and any future webhook-based sender (event reminders etc).
+    Route::get('/admin/webhooks',                 [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'index'])->name('admin.webhooks.index');
+    Route::post('/admin/webhooks',                [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'store'])->name('admin.webhooks.store');
+    Route::put('/admin/webhooks/{webhook}',       [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'update'])->name('admin.webhooks.update');
+    Route::delete('/admin/webhooks/{webhook}',    [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'destroy'])->name('admin.webhooks.destroy');
+    Route::post('/admin/webhooks/{webhook}/test', [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'test'])->name('admin.webhooks.test');
 });
 
 // .ics download for a single event. Signed via HMAC(ics_uid|ics_sequence)
