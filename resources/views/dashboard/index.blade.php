@@ -5,6 +5,10 @@
 @section('content')
     @include('dashboard.widgets.roster-health', ['health' => $health])
 
+    <div class="mt-6">
+        @include('dashboard.widgets.team-progression', ['teamProgression' => $teamProgression])
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         @include('dashboard.widgets.upcoming-events', ['upcomingEvents' => $upcomingEvents])
         @include('dashboard.widgets.attendance', ['attendance' => $attendance])

@@ -64,12 +64,20 @@ class RaiderioSnapshotImporter
                 continue;
             }
 
-            $slug = RealmSlug::slugify($collapsedRealm);
-            if ($collapsedRealm !== null && ! isset(((array) config('raiderio.realm_slugs', []))[$collapsedRealm]) && $slug === strtolower($collapsedRealm)) {
-                // Track unknown realms once per run so officers know what
-                // to add to config('raiderio.realm_slugs') without spamming
-                // the log per-character.
-                $unknownRealms[$collapsedRealm] = true;
+            // Prefer the canonical realm we've previously backfilled into
+            // members.realm (always slug-correct). Fall back to the
+            // collapsed realm parsed out of the GRM key, which goes
+            // through the realm_slugs config map.
+            if ($member->realm) {
+                $slug = RealmSlug::slugifyCanonical($member->realm) ?? RealmSlug::slugify($collapsedRealm);
+            } else {
+                $slug = RealmSlug::slugify($collapsedRealm);
+                if ($collapsedRealm !== null && ! isset(((array) config('raiderio.realm_slugs', []))[$collapsedRealm]) && $slug === strtolower($collapsedRealm)) {
+                    // Track unknown realms once per run so officers know what
+                    // to add to config('raiderio.realm_slugs') without spamming
+                    // the log per-character.
+                    $unknownRealms[$collapsedRealm] = true;
+                }
             }
 
             try {
@@ -144,6 +152,16 @@ class RaiderioSnapshotImporter
                 if (! $member) {
                     continue;
                 }
+
+                // Backfill the canonical realm onto the member (with
+                // spaces and apostrophes preserved). RIO returns this
+                // even when GRM only had the collapsed form, so we
+                // build up a clean realm column over time.
+                $canonicalRealm = is_string($body['realm'] ?? null) ? $body['realm'] : null;
+                if ($canonicalRealm && $member->realm !== $canonicalRealm) {
+                    $member->forceFill(['realm' => $canonicalRealm])->saveQuietly();
+                }
+
                 MemberSnapshot::query()->updateOrCreate(
                     [
                         'snapshot_id' => $snapshot->id,

@@ -12,6 +12,7 @@ use App\Models\MemberEvent;
 use App\Models\MemberSnapshot;
 use App\Models\RaidEvent;
 use App\Models\Snapshot;
+use App\Models\TeamMapping;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -45,7 +46,97 @@ class DashboardController extends Controller
             'upcomingEvents' => $this->upcomingEvents(),
             'attendance' => $this->attendance($guildKey),
             'wowaudit' => $this->wowauditCurrentPeriod($guildKey),
+            'teamProgression' => $this->teamProgression($guildKey),
         ]);
+    }
+
+    /**
+     * Per-team summary built from the latest Raider.IO snapshot. Groups
+     * active members by members.team and rolls up best raid progression,
+     * average ilvl, top RIO score, and top weekly key per team.
+     *
+     * Empty teams are dropped so the widget only renders teams that
+     * actually have someone on them.
+     *
+     * @return array{captured_at: ?\Carbon\CarbonInterface, teams: array<string,array{count:int,with_data:int,best_raid_summary:?string,best_raid_key:?string,avg_ilvl:?int,top_rio:?float,top_key:?int}>}
+     */
+    private function teamProgression(string $guildKey): array
+    {
+        $latest = Snapshot::query()
+            ->where('guild_key', $guildKey)
+            ->where('source', Snapshot::SOURCE_RAIDERIO)
+            ->latest('captured_at')
+            ->first();
+
+        // Even with no raiderio snapshot we still group active members by
+        // team so officers see who's on which team in the empty state.
+        $membersByTeam = Member::query()
+            ->forGuild($guildKey)
+            ->active()
+            ->whereNotNull('team')
+            ->get()
+            ->groupBy('team');
+
+        $snapsByMember = collect();
+        if ($latest) {
+            $snapsByMember = MemberSnapshot::query()
+                ->where('snapshot_id', $latest->id)
+                ->get()
+                ->keyBy('member_id');
+        }
+
+        $teams = [];
+        foreach (TeamMapping::TEAMS as $team) {
+            $members = $membersByTeam->get($team, collect());
+            if ($members->isEmpty()) {
+                continue;
+            }
+
+            $snaps = $members
+                ->map(fn ($m) => $snapsByMember->get($m->id))
+                ->filter();
+
+            // Best raid progression across the team: prefer most mythic
+            // kills, then most heroic kills as a tiebreaker.
+            $bestSummary = null;
+            $bestKey = null;
+            $bestM = -1;
+            $bestH = -1;
+            foreach ($snaps as $snap) {
+                foreach ((array) ($snap->raid_progression_json ?? []) as $instanceKey => $p) {
+                    if (! is_array($p)) {
+                        continue;
+                    }
+                    $m = (int) ($p['mythic_bosses_killed'] ?? 0);
+                    $h = (int) ($p['heroic_bosses_killed'] ?? 0);
+                    if ($m > $bestM || ($m === $bestM && $h > $bestH)) {
+                        $bestM = $m;
+                        $bestH = $h;
+                        $bestSummary = is_string($p['summary'] ?? null) ? $p['summary'] : null;
+                        $bestKey = $instanceKey;
+                    }
+                }
+            }
+
+            $ilvls = $snaps->pluck('ilvl')->filter()->all();
+            $rios = $snaps->pluck('mplus_score')->filter()->all();
+            $keys = $snaps->pluck('mplus_keystone')->filter()->all();
+
+            $teams[$team] = [
+                'count' => $members->count(),
+                'with_data' => $snaps->count(),
+                'best_raid_summary' => $bestSummary,
+                'best_raid_key' => $bestKey,
+                'avg_ilvl' => $ilvls ? (int) round(array_sum($ilvls) / count($ilvls)) : null,
+                'top_rio' => $rios ? (float) max($rios) : null,
+                'top_key' => $keys ? (int) max($keys) : null,
+            ];
+        }
+
+        return [
+            'captured_at' => $latest?->captured_at,
+            'teams' => $teams,
+        ];
     }
 
     /**

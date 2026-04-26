@@ -227,3 +227,51 @@ it('command runs end-to-end with no active members', function () {
         ->expectsOutputToContain('0 members queried')
         ->assertExitCode(0);
 });
+
+it('backfills members.realm from the RIO response', function () {
+    $member = makeMember('Sheday-Silvermoon');
+
+    Http::fake([
+        '*' => Http::response(rioProfile([
+            'name' => 'Sheday',
+            'realm' => 'Silvermoon',
+        ]), 200),
+    ]);
+
+    (new RaiderioSnapshotImporter(
+        client: RaiderioClient::fromConfig(),
+        guildKey: 'Regenesis-Silvermoon',
+        requestDelayMs: 0,
+    ))->pull();
+
+    expect($member->fresh()->realm)->toBe('Silvermoon');
+});
+
+it('prefers members.realm over the slug map when calling RIO', function () {
+    // Member's collapsed realm in the GRM key is "PozzodellEternita" -
+    // would normally hit the slug map. With realm backfilled, use the
+    // canonical form directly.
+    makeMember('Argus-PozzodellEternita', ['realm' => 'Pozzo dell\'Eternita']);
+
+    Http::fake([
+        '*' => Http::response(rioProfile(), 200),
+    ]);
+
+    (new RaiderioSnapshotImporter(
+        client: RaiderioClient::fromConfig(),
+        guildKey: 'Regenesis-Silvermoon',
+        requestDelayMs: 0,
+    ))->pull();
+
+    Http::assertSent(fn ($req) => str_contains($req->url(), 'realm=pozzo-delleternita')
+        && str_contains($req->url(), 'name=Argus'));
+});
+
+it('slugifyCanonical handles spaces, apostrophes, accents-friendly inputs', function () {
+    expect(RealmSlug::slugifyCanonical('Stormrage'))->toBe('stormrage');
+    expect(RealmSlug::slugifyCanonical('Twisting Nether'))->toBe('twisting-nether');
+    expect(RealmSlug::slugifyCanonical("Pozzo dell'Eternita"))->toBe('pozzo-delleternita');
+    expect(RealmSlug::slugifyCanonical("The Sha'tar"))->toBe('the-shatar');
+    expect(RealmSlug::slugifyCanonical(null))->toBeNull();
+    expect(RealmSlug::slugifyCanonical(''))->toBeNull();
+});

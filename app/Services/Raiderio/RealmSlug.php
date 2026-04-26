@@ -47,4 +47,25 @@ class RealmSlug
         }
         return strtolower($collapsedRealm);
     }
+
+    /**
+     * Slugify a canonical realm name with spaces and apostrophes
+     * preserved (e.g. "Twisting Nether" -> "twisting-nether",
+     * "Pozzo dell'Eternita" -> "pozzo-delleternita"). Used when we have
+     * the realm via members.realm (backfilled from a previous RIO call)
+     * and don't need to fall through the collapsed-name map.
+     */
+    public static function slugifyCanonical(?string $canonicalRealm): ?string
+    {
+        if ($canonicalRealm === null || $canonicalRealm === '') {
+            return null;
+        }
+        $s = mb_strtolower($canonicalRealm);
+        // Drop apostrophes outright (RIO does), then convert any
+        // non-alphanumeric run (spaces, punctuation, etc.) to a single
+        // hyphen, and trim hyphens at the edges.
+        $s = str_replace(["'", '’'], '', $s);
+        $s = preg_replace('/[^a-z0-9]+/u', '-', $s) ?? '';
+        return trim($s, '-');
+    }
 }

@@ -34,6 +34,10 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     // users.team (set on next GRM ingest / next role check respectively).
     Route::get('/admin/teams', [\App\Http\Controllers\Admin\TeamMappingController::class, 'index'])->name('admin.teams.index');
     Route::post('/admin/teams', [\App\Http\Controllers\Admin\TeamMappingController::class, 'update'])->name('admin.teams.update');
+
+    // On-demand Raider.IO refresh. Same logic as the scheduled
+    // raiderio:pull command; rate-limited per officer.
+    Route::post('/admin/raiderio/sync', [\App\Http\Controllers\Admin\RaiderioSyncController::class, 'store'])->name('admin.raiderio.sync');
 });
 
 // .ics download for a single event. Signed via HMAC(ics_uid|ics_sequence)
