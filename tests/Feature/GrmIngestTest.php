@@ -259,6 +259,8 @@ it('runs the full pipeline end to end and persists all derived data', function (
     expect(LogEvent::count())->toBe(2);
     $promoted = LogEvent::where('type_code', 1)->first();
     expect($promoted->type_name)->toBe('PROMOTED');
+    $rejoin = LogEvent::where('type_code', 14)->first();
+    expect($rejoin->type_name)->toBe('INACTIVE_RETURN');
 
     // Member snapshots: one per member, with raw_json populated.
     expect(MemberSnapshot::count())->toBe(3);

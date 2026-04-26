@@ -361,7 +361,7 @@ class GrmNormalizer
             'guild_key' => $this->guildKey,
             'occurred_at' => $occurredAt,
             'type_code' => $typeCode,
-            'type_name' => self::logTypeName($typeCode),
+            'type_name' => self::logTypeName($typeCode, $values, $message),
             'actor' => $actor,
             'target' => $target,
             'message_raw' => $message,
@@ -373,30 +373,56 @@ class GrmNormalizer
     }
 
     /**
-     * Best-effort name for known GRM log type codes. Empirical: derived
-     * from observed messages in the user's real data + reading
-     * GRM_Log.lua. Unknown codes return null and the timeline widget
-     * falls back to the rendered message.
+     * Map a GRM log type code to a stable string label. Codes verified
+     * against upstream GRM_Log.lua (TheGeneticsGuy/Guild-Roster-Manager
+     * Retail branch).
+     *
+     * Two codes carry sub-types in the row payload:
+     *   - 10 (left-or-kicked): boolean playerWasKicked at $values[3].
+     *   - 15 (event): we keyword-match the rendered message to split
+     *     birthday vs anniversary, since eventIndex semantics aren't
+     *     documented and the rendered string is the reliable signal.
+     *
+     * Unknown codes return null and the timeline widget falls back to
+     * the rendered message.
+     *
+     * @param  array<int,mixed>  $values  array_values() of the saved row
      */
-    public static function logTypeName(int $code): ?string
+    public static function logTypeName(int $code, array $values = [], string $message = ''): ?string
     {
         return match ($code) {
-            0 => 'JOINED',
             1 => 'PROMOTED',
             2 => 'DEMOTED',
-            3 => 'LEFT',
+            3 => 'LEVEL_UP',
             4 => 'PUBLIC_NOTE',
             5 => 'OFFICER_NOTE',
-            6 => 'LEVEL_UP',
-            7 => 'INACTIVE_RETURN',
-            8 => 'NAME_CHANGE',
-            9 => 'RANK_RENAME',
-            10 => 'EVENT_BIRTHDAY',
-            11 => 'EVENT_ANNIVERSARY',
-            12 => 'KICKED',
-            13 => 'BANNED',
-            14 => 'CAME_ONLINE',
+            6 => 'RANK_RENAME',
+            7 => 'REJOINED',
+            8 => 'JOINED',
+            9 => 'REJOINED_BANNED',
+            10 => ! empty($values[3]) ? 'KICKED' : 'LEFT',
+            11 => 'NAME_CHANGE',
+            14 => 'INACTIVE_RETURN',
+            15 => self::eventSubtype($message),
+            16 => 'RECOMMEND_KICK',
+            22 => 'RECOMMEND_PROMOTE',
+            23 => 'RECOMMEND_DEMOTE',
+            24 => 'HARDCORE_DEATH',
+            25 => 'RECOMMEND_SPECIAL',
             default => null,
         };
+    }
+
+    private static function eventSubtype(string $message): string
+    {
+        $lower = strtolower($message);
+        if (str_contains($lower, 'anniversary') || str_contains($lower, 'in the guild')) {
+            return 'EVENT_ANNIVERSARY';
+        }
+        if (str_contains($lower, 'birthday')) {
+            return 'EVENT_BIRTHDAY';
+        }
+
+        return 'EVENT';
     }
 }
