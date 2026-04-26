@@ -37,6 +37,7 @@
                                 $main = $group->members->firstWhere('pivot.is_main', true) ?? $group->members->first();
                                 $cls = 'cls-' . strtoupper($main->class ?? '');
                             @endphp
+                            <x-class-icon :class="$main->class ?? null" />
                             <span class="{{ $cls }} font-medium">{{ $main->name ?? 'unknown' }}</span>
                             <span class="text-muted text-xs ml-1">+ {{ $group->members->count() - 1 }} alts</span>
                             @if ($group->nickname)
@@ -49,7 +50,8 @@
                         @foreach ($group->members as $m)
                             @php $altCls = 'cls-' . strtoupper($m->class ?? ''); @endphp
                             <li class="flex items-center justify-between gap-2">
-                                <span>
+                                <span class="inline-flex items-center gap-1.5">
+                                    <x-class-icon :class="$m->class" :size="14" />
                                     <span class="{{ $altCls }}">{{ $m->name }}</span>
                                     @if ($m->pivot->is_main)
                                         <span class="ml-1 px-1 py-0.5 rounded bg-accent/20 text-accent text-[10px] uppercase">main</span>

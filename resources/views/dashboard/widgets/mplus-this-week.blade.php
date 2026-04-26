@@ -59,7 +59,10 @@
                 <tr class="border-t border-line" data-row>
                     <td class="px-4 py-2 font-mono text-muted text-right" data-sort-key="rank" data-sort-value="{{ $i + 1 }}">{{ $i + 1 }}</td>
                     <td class="px-2 py-2 truncate max-w-[260px]" data-sort-key="character" data-sort-value="{{ strtolower($snap->member->name) }}">
-                        <span class="{{ $cls }}">{{ $snap->member->name }}</span>
+                        <span class="inline-flex items-center gap-1.5">
+                            <x-class-icon :class="$snap->member->class" />
+                            <span class="{{ $cls }}">{{ $snap->member->name }}</span>
+                        </span>
                     </td>
                     <td class="px-4 py-2 font-mono text-right text-xs" data-label="Key" data-sort-key="key" data-sort-value="{{ $level }}">
                         <span class="{{ $tone }}">+{{ $level }}</span>

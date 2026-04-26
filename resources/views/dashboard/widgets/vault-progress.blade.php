@@ -85,7 +85,10 @@
                 @php $cls = 'cls-' . strtoupper($row['member']->class ?? ''); @endphp
                 <tr class="border-t border-line" data-row>
                     <td class="px-4 py-2 truncate max-w-[200px]" data-sort-key="character" data-sort-value="{{ strtolower($row['member']->name) }}">
-                        <span class="{{ $cls }}">{{ $row['member']->name }}</span>
+                        <span class="inline-flex items-center gap-1.5">
+                            <x-class-icon :class="$row['member']->class" />
+                            <span class="{{ $cls }}">{{ $row['member']->name }}</span>
+                        </span>
                     </td>
                     <td class="px-2 py-2 font-mono text-muted" data-label="Raid" data-sort-key="raids" data-sort-value="{{ $row['raids'] }}">{{ $row['raids'] }}/3</td>
                     <td class="px-2 py-2 font-mono text-muted" data-label="M+" data-sort-key="dungeons" data-sort-value="{{ $row['dungeons'] }}">{{ $row['dungeons'] }}/3</td>

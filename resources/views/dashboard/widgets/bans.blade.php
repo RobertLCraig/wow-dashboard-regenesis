@@ -38,7 +38,10 @@
                 @php $cls = 'cls-' . strtoupper($b->class ?? ''); @endphp
                 <tr class="border-t border-line" data-row>
                     <td class="px-4 py-2" data-sort-key="name" data-sort-value="{{ strtolower($b->name) }}">
-                        <span class="{{ $cls }} font-medium">{{ $b->name }}</span>
+                        <span class="inline-flex items-center gap-1.5">
+                            <x-class-icon :class="$b->class" />
+                            <span class="{{ $cls }} font-medium">{{ $b->name }}</span>
+                        </span>
                         <span class="text-muted text-xs ml-1">L{{ $b->level }} {{ $b->rank_name }}</span>
                     </td>
                     <td class="px-2 py-2 text-xs" data-label="Reason">

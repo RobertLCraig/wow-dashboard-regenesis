@@ -55,7 +55,10 @@
                 @endphp
                 <tr class="border-t border-line" data-row>
                     <td class="px-4 py-2 truncate max-w-[260px]" data-sort-key="character" data-sort-value="{{ strtolower($m->name) }}">
-                        <a href="{{ route('character.show', $m->name) }}" class="{{ $cls }} hover:underline">{{ $m->name }}</a>
+                        <span class="inline-flex items-center gap-1.5">
+                            <x-class-icon :class="$m->class" />
+                            <a href="{{ route('character.show', $m->name) }}" class="{{ $cls }} hover:underline">{{ $m->name }}</a>
+                        </span>
                         @if ($isTrial)
                             <span class="ml-2 text-[10px] uppercase tracking-wider text-amber-300/80 border border-amber-700/40 rounded px-1 py-0.5">Trial</span>
                         @endif

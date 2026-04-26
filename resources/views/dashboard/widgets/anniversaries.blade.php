@@ -47,7 +47,10 @@
                 @endphp
                 <tr class="border-t border-line" data-row>
                     <td class="px-4 py-2" data-sort-key="name" data-sort-value="{{ strtolower($m->name) }}">
-                        <span class="{{ $cls }} font-medium">{{ $m->name }}</span>
+                        <span class="inline-flex items-center gap-1.5">
+                            <x-class-icon :class="$m->class" />
+                            <span class="{{ $cls }} font-medium">{{ $m->name }}</span>
+                        </span>
                     </td>
                     <td class="px-2 py-2 font-mono text-amber-300 text-right text-xs"
                         data-label="Years"

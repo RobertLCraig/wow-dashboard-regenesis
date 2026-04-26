@@ -51,7 +51,8 @@
                         @php $cls = 'cls-' . strtoupper($m->class ?? ''); @endphp
                         <li class="px-4 py-3 flex items-center justify-between gap-3">
                             <div class="min-w-0">
-                                <div class="text-sm">
+                                <div class="text-sm flex items-center gap-1.5">
+                                    <x-class-icon :class="$m->class" />
                                     <span class="{{ $cls }} font-medium">{{ $m->name }}</span>
                                     <span class="text-muted text-xs ml-1">L{{ $m->level }} {{ $m->rank_name }}</span>
                                 </div>
