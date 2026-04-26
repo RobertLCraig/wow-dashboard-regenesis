@@ -17,7 +17,7 @@ class PreferencesController extends Controller
     public function display(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'display_mode' => ['required', Rule::in([User::DISPLAY_STANDARD, User::DISPLAY_HIGH_CLARITY])],
+            'display_mode' => ['required', Rule::in(User::DISPLAY_MODES)],
         ]);
 
         $request->user()->forceFill(['display_mode' => $data['display_mode']])->save();

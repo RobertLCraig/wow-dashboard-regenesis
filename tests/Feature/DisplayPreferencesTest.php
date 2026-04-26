@@ -26,26 +26,19 @@ it('defaults new users to standard display mode', function () {
     expect($u->fresh()->display_mode)->toBe(User::DISPLAY_STANDARD);
 });
 
-it('persists a switch to high-clarity mode', function () {
+it('persists each of the three valid display modes', function (string $mode) {
     $u = makePrefsOfficer();
 
     $this->actingAs($u)
-        ->post(route('preferences.display'), ['display_mode' => User::DISPLAY_HIGH_CLARITY])
+        ->post(route('preferences.display'), ['display_mode' => $mode])
         ->assertRedirect();
 
-    expect($u->fresh()->display_mode)->toBe(User::DISPLAY_HIGH_CLARITY);
-});
-
-it('persists a switch back to standard mode', function () {
-    $u = makePrefsOfficer();
-    $u->forceFill(['display_mode' => User::DISPLAY_HIGH_CLARITY])->save();
-
-    $this->actingAs($u)
-        ->post(route('preferences.display'), ['display_mode' => User::DISPLAY_STANDARD])
-        ->assertRedirect();
-
-    expect($u->fresh()->display_mode)->toBe(User::DISPLAY_STANDARD);
-});
+    expect($u->fresh()->display_mode)->toBe($mode);
+})->with([
+    'standard'      => User::DISPLAY_STANDARD,
+    'clear'         => User::DISPLAY_CLEAR,
+    'high_clarity'  => User::DISPLAY_HIGH_CLARITY,
+]);
 
 it('rejects an unknown display_mode value', function () {
     $u = makePrefsOfficer();
@@ -62,21 +55,50 @@ it('requires authentication', function () {
         ->assertRedirect(route('auth.discord.start'));
 });
 
-it('renders the body with mode-standard for a default user', function () {
+it('renders the body with the right mode-* class for each pref', function (string $mode, string $expectedClass) {
+    $u = makePrefsOfficer();
+    $u->forceFill(['display_mode' => $mode])->save();
+
+    $response = $this->actingAs($u)->get(route('dashboard'));
+
+    $response->assertOk();
+    expect($response->getContent())->toContain($expectedClass);
+})->with([
+    'standard -> mode-standard'        => [User::DISPLAY_STANDARD,     'mode-standard'],
+    'clear -> mode-clear'              => [User::DISPLAY_CLEAR,        'mode-clear'],
+    'high_clarity -> mode-high-clarity' => [User::DISPLAY_HIGH_CLARITY, 'mode-high-clarity'],
+]);
+
+it('renders three segmented-control buttons in the sidebar footer', function () {
     $u = makePrefsOfficer();
 
     $response = $this->actingAs($u)->get(route('dashboard'));
 
     $response->assertOk();
-    expect($response->getContent())->toContain('mode-standard');
+    $html = $response->getContent();
+    expect($html)
+        ->toContain('View clarity')
+        ->toContain('value="standard"')
+        ->toContain('value="clear"')
+        ->toContain('value="high_clarity"')
+        ->toContain('Standard')
+        ->toContain('Clear')
+        ->toContain('High');
 });
 
-it('renders the body with mode-high-clarity once the user opts in', function () {
+it('marks the active clarity step with aria-pressed=true', function () {
     $u = makePrefsOfficer();
-    $u->forceFill(['display_mode' => User::DISPLAY_HIGH_CLARITY])->save();
+    $u->forceFill(['display_mode' => User::DISPLAY_CLEAR])->save();
 
     $response = $this->actingAs($u)->get(route('dashboard'));
 
     $response->assertOk();
-    expect($response->getContent())->toContain('mode-high-clarity');
+    $html = $response->getContent();
+
+    // The form for "clear" should wrap a button with aria-pressed=true;
+    // the other two buttons should be aria-pressed=false. We assert
+    // both pressed states are present and that the active label sits
+    // adjacent to the true marker.
+    expect($html)->toContain('aria-pressed="true"');
+    expect($html)->toContain('aria-pressed="false"');
 });

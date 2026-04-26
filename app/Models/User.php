@@ -20,7 +20,14 @@ class User extends Authenticatable
     public const TIER_OFFICER = 'officer';
 
     public const DISPLAY_STANDARD = 'standard';
+    public const DISPLAY_CLEAR = 'clear';
     public const DISPLAY_HIGH_CLARITY = 'high_clarity';
+
+    public const DISPLAY_MODES = [
+        self::DISPLAY_STANDARD,
+        self::DISPLAY_CLEAR,
+        self::DISPLAY_HIGH_CLARITY,
+    ];
 
     protected $fillable = [
         'name',

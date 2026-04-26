@@ -115,48 +115,123 @@
             },
         };
     </script>
-    {{-- High-clarity display mode (per-user pref on users.display_mode).
-         Lighter touch than originally planned: keep the standard
-         responsive grid layout intact, just nudge typography + spacing
-         so text is easier to track for someone with eye strain or
-         diplopia. No structural overrides (no forced single column,
-         no table-as-cards). Italics neutralised, motion off. --}}
+    {{-- Display mode (users.display_mode). Three steps stack additively:
+
+         standard      no overrides at all (baseline)
+         clear         + typography nudge (bigger text, more padding,
+                       no italics, no motion, lifted muted contrast)
+         high_clarity  + structural overrides (single-column grids,
+                       tables collapse into stacked cards)
+
+         CSS shape: the typography layer applies to both `clear` and
+         `high-clarity` (so users can step UP without losing earlier
+         gains); the structural layer applies to `high-clarity` only.
+         Standard mode pays no CSS cost. --}}
     <style>
-        body.mode-high-clarity { line-height: 1.7; letter-spacing: 0.01em; }
-        body.mode-high-clarity *,
-        body.mode-high-clarity *::before,
-        body.mode-high-clarity *::after {
+        /* --- Layer 1: typography nudge (clear + high-clarity) --- */
+        body.mode-clear, body.mode-high-clarity {
+            line-height: 1.7;
+            letter-spacing: 0.01em;
+        }
+        body.mode-clear *, body.mode-clear *::before, body.mode-clear *::after,
+        body.mode-high-clarity *, body.mode-high-clarity *::before, body.mode-high-clarity *::after {
             animation-duration: 0.001ms !important;
             animation-iteration-count: 1 !important;
             transition-duration: 0.001ms !important;
         }
-        body.mode-high-clarity em,
-        body.mode-high-clarity i { font-style: normal; font-weight: 600; }
-
-        /* Subtle font-size bump on the Tailwind text-* utilities the
-           dashboard uses. Keeps proportions, just makes the smallest
-           tier readable without zooming. */
-        body.mode-high-clarity .text-xs   { font-size: 0.8125rem;  } /* 13px from 12 */
-        body.mode-high-clarity .text-sm   { font-size: 0.9375rem;  } /* 15px from 14 */
-        body.mode-high-clarity .text-base { font-size: 1.0625rem;  } /* 17px from 16 */
-        body.mode-high-clarity .text-lg   { font-size: 1.1875rem;  } /* 19px from 18 */
-        body.mode-high-clarity .text-xl   { font-size: 1.375rem;   } /* 22px from 20 */
-        body.mode-high-clarity .text-\[10px\] { font-size: 0.6875rem; } /* 11px from 10 */
-        body.mode-high-clarity .text-\[11px\] { font-size: 0.75rem; }  /* 12px from 11 */
-
-        /* Extra vertical breathing room on cells in the dashboard's
-           tables, so adjacent rows don't visually merge under
-           vertical diplopia. */
-        body.mode-high-clarity table tbody td { padding-top: 0.65rem; padding-bottom: 0.65rem; }
-        body.mode-high-clarity table thead th { padding-top: 0.65rem; padding-bottom: 0.65rem; }
-
-        /* Sections (widget panels) get a touch more internal padding
-           around their header strips. */
+        body.mode-clear em, body.mode-clear i,
+        body.mode-high-clarity em, body.mode-high-clarity i {
+            font-style: normal;
+            font-weight: 600;
+        }
+        body.mode-clear .text-xs,        body.mode-high-clarity .text-xs        { font-size: 0.8125rem; }
+        body.mode-clear .text-sm,        body.mode-high-clarity .text-sm        { font-size: 0.9375rem; }
+        body.mode-clear .text-base,      body.mode-high-clarity .text-base      { font-size: 1.0625rem; }
+        body.mode-clear .text-lg,        body.mode-high-clarity .text-lg        { font-size: 1.1875rem; }
+        body.mode-clear .text-xl,        body.mode-high-clarity .text-xl        { font-size: 1.375rem;  }
+        body.mode-clear .text-\[10px\],  body.mode-high-clarity .text-\[10px\]  { font-size: 0.6875rem; }
+        body.mode-clear .text-\[11px\],  body.mode-high-clarity .text-\[11px\]  { font-size: 0.75rem;   }
+        body.mode-clear table tbody td, body.mode-clear table thead th,
+        body.mode-high-clarity table tbody td, body.mode-high-clarity table thead th {
+            padding-top: 0.65rem;
+            padding-bottom: 0.65rem;
+        }
+        body.mode-clear section > header,
         body.mode-high-clarity section > header { padding-top: 1rem; padding-bottom: 1rem; }
-
-        /* Lift muted text contrast slightly so secondary info is
-           legible without losing the visual hierarchy. */
+        body.mode-clear .text-muted,
         body.mode-high-clarity .text-muted { color: #9494a5; }
+
+        /* --- Layer 2: structural overrides (high-clarity only) --- */
+        /* Bigger typographic step on top of the layer-1 bump. */
+        body.mode-high-clarity { line-height: 1.85; }
+        body.mode-high-clarity .text-xs        { font-size: 0.875rem;  } /* 14px */
+        body.mode-high-clarity .text-sm        { font-size: 1rem;      } /* 16px */
+        body.mode-high-clarity .text-base      { font-size: 1.125rem;  } /* 18px */
+        body.mode-high-clarity .text-lg        { font-size: 1.25rem;   } /* 20px */
+        body.mode-high-clarity .text-xl        { font-size: 1.5rem;    } /* 24px */
+        body.mode-high-clarity .text-\[10px\]  { font-size: 0.75rem;   }
+        body.mode-high-clarity .text-\[11px\]  { font-size: 0.8125rem; }
+
+        /* Force every responsive grid to single-column so adjacent
+           widgets stack instead of sitting side-by-side. The grid still
+           lays out as flow, just one item per row with generous gap. */
+        body.mode-high-clarity .grid {
+            display: flex !important;
+            flex-direction: column;
+            gap: 1.75rem;
+        }
+
+        /* Tables that opted into clarity-tabular collapse into a
+           stacked-card list. Each row becomes a bordered card; each
+           cell becomes a labelled line via data-label + ::before. */
+        body.mode-high-clarity table.clarity-tabular,
+        body.mode-high-clarity table.clarity-tabular thead,
+        body.mode-high-clarity table.clarity-tabular tbody,
+        body.mode-high-clarity table.clarity-tabular tr,
+        body.mode-high-clarity table.clarity-tabular td,
+        body.mode-high-clarity table.clarity-tabular th {
+            display: block;
+            border: none;
+            text-align: left !important;
+        }
+        body.mode-high-clarity table.clarity-tabular thead { display: none; }
+        body.mode-high-clarity table.clarity-tabular tbody tr[data-row] {
+            border: 2px solid #2a2a35;
+            border-radius: 0.5rem;
+            padding: 0.85rem 1rem;
+            margin: 0 0.75rem 0.85rem;
+            background: rgba(0,0,0,0.15);
+        }
+        body.mode-high-clarity table.clarity-tabular tbody tr[data-row]:first-child { margin-top: 0.85rem; }
+        body.mode-high-clarity table.clarity-tabular tbody td { padding: 0.3rem 0; }
+        body.mode-high-clarity table.clarity-tabular tbody tr[data-row] td:first-child {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #2a2a35;
+        }
+        body.mode-high-clarity table.clarity-tabular tbody td[data-label]::before {
+            content: attr(data-label) ":";
+            display: inline-block;
+            min-width: 9ch;
+            color: #9494a5;
+            font-weight: 500;
+            margin-right: 0.6rem;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+        body.mode-high-clarity table.clarity-tabular tbody tr[data-empty-message] {
+            border: none;
+            background: none;
+            margin: 0;
+            padding: 0.5rem 0;
+            font-style: normal;
+            font-weight: 600;
+            color: #9494a5;
+        }
+        body.mode-high-clarity table.clarity-tabular tbody tr[data-empty-message]::before { content: none; }
+        body.mode-high-clarity table.clarity-tabular tbody tr[data-empty-message] td::before { content: none; }
     </style>
     {{-- WoW class colours, used by the timeline + inactive list. --}}
     <style>
@@ -178,7 +253,11 @@
 </head>
 @php
     $displayMode = auth()->user()?->display_mode ?? \App\Models\User::DISPLAY_STANDARD;
-    $bodyMode = $displayMode === \App\Models\User::DISPLAY_HIGH_CLARITY ? 'mode-high-clarity' : 'mode-standard';
+    $bodyMode = match ($displayMode) {
+        \App\Models\User::DISPLAY_HIGH_CLARITY => 'mode-high-clarity',
+        \App\Models\User::DISPLAY_CLEAR        => 'mode-clear',
+        default                                => 'mode-standard',
+    };
 @endphp
 <body class="bg-bg text-ink font-sans antialiased min-h-screen {{ $bodyMode }}" x-data="{ navOpen: false }">
 @php
@@ -268,27 +347,39 @@
                     <button class="text-accent hover:underline">Sign out</button>
                 </form>
             </div>
-            {{-- High-clarity toggle. Single-form POST per click; no JS.
-                 Label always names the mode (High-clarity view); the
-                 ON/OFF indicator reflects whether that mode is active.
-                 Hidden input sends the OPPOSITE value so submitting
-                 toggles. --}}
-            <form method="POST" action="{{ route('preferences.display') }}" class="pt-2 border-t border-line/60">
-                @csrf
-                @php
-                    $hc = $displayMode === \App\Models\User::DISPLAY_HIGH_CLARITY;
-                @endphp
-                <input type="hidden" name="display_mode"
-                       value="{{ $hc ? \App\Models\User::DISPLAY_STANDARD : \App\Models\User::DISPLAY_HIGH_CLARITY }}">
-                <button type="submit"
-                        class="w-full text-left text-[11px] text-muted hover:text-ink transition flex items-center justify-between"
-                        title="{{ $hc ? 'Click to turn off (back to the default dashboard)' : 'Click to turn on. Single-column, big spacing, no motion.' }}">
-                    <span>High-clarity view</span>
-                    <span class="text-[10px] uppercase tracking-wider {{ $hc ? 'text-emerald-300' : 'text-muted/60' }}">
-                        {{ $hc ? 'ON' : 'OFF' }}
-                    </span>
-                </button>
-            </form>
+            {{-- View clarity dial. Three steps, each a JS-free POST.
+                 Standard = no overrides. Clear = typography nudge.
+                 High = stacked-card tables + single-column flow.
+                 Each step layers on top of the previous; click the
+                 active one to leave it as-is (POST is idempotent). --}}
+            @php
+                $clarityOptions = [
+                    \App\Models\User::DISPLAY_STANDARD     => ['label' => 'Standard', 'hint' => 'Default dashboard, no overrides.'],
+                    \App\Models\User::DISPLAY_CLEAR        => ['label' => 'Clear',    'hint' => 'Bigger text, more spacing, no motion.'],
+                    \App\Models\User::DISPLAY_HIGH_CLARITY => ['label' => 'High',     'hint' => 'Single column, tables become stacked cards.'],
+                ];
+            @endphp
+            <div class="pt-2 border-t border-line/60">
+                <div class="text-[10px] uppercase tracking-wider text-muted/60 mb-1">View clarity</div>
+                <div class="flex border border-line rounded overflow-hidden" role="group" aria-label="View clarity">
+                    @foreach ($clarityOptions as $value => $opt)
+                        @php $active = $displayMode === $value; @endphp
+                        <form method="POST" action="{{ route('preferences.display') }}" class="flex-1">
+                            @csrf
+                            <input type="hidden" name="display_mode" value="{{ $value }}">
+                            <button type="submit"
+                                    title="{{ $opt['hint'] }}"
+                                    aria-pressed="{{ $active ? 'true' : 'false' }}"
+                                    class="w-full text-[11px] py-1.5 transition
+                                           {{ $active
+                                               ? 'bg-accent/20 text-ink font-medium'
+                                               : 'text-muted hover:text-ink hover:bg-line/40' }}">
+                                {{ $opt['label'] }}
+                            </button>
+                        </form>
+                    @endforeach
+                </div>
+            </div>
         </div>
     </aside>
 
