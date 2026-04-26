@@ -55,7 +55,7 @@
                         @endphp
                         <tr class="border-t border-line">
                             <td class="px-4 py-2 truncate max-w-[260px]">
-                                <span class="{{ $cls }}">{{ $m->name }}</span>
+                                <a href="{{ route('character.show', $m->name) }}" class="{{ $cls }} hover:underline">{{ $m->name }}</a>
                                 @if ($isTrial)
                                     <span class="ml-2 text-[10px] uppercase tracking-wider text-amber-300/80 border border-amber-700/40 rounded px-1 py-0.5">Trial</span>
                                 @endif

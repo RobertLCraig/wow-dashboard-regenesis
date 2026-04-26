@@ -48,6 +48,13 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::get('/reports/{code}', [\App\Http\Controllers\Dashboard\ReportsController::class, 'show'])
         ->where('code', '[A-Za-z0-9]+')->name('reports.show');
 
+    // Character drilldown. Member name format is "Char-Realm" (the GRM
+    // SavedVariables convention) so the param allows letters and a
+    // single hyphen separator. Apostrophes are stripped by GRM, no
+    // need to whitelist them.
+    Route::get('/character/{nameRealm}', [\App\Http\Controllers\Dashboard\CharacterController::class, 'show'])
+        ->where('nameRealm', '[A-Za-z]+-[A-Za-z]+')->name('character.show');
+
     Route::get('/events', [\App\Http\Controllers\Events\EventController::class, 'index'])->name('events.index');
     Route::get('/events/new', [\App\Http\Controllers\Events\EventController::class, 'create'])->name('events.create');
     Route::post('/events', [\App\Http\Controllers\Events\EventController::class, 'store'])->name('events.store');

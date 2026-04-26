@@ -48,7 +48,7 @@
                     @endphp
                     <tr class="border-t border-line" data-row>
                         <td class="px-4 py-2" data-sort-key="name" data-sort-value="{{ strtolower($m->name) }}">
-                            <span class="{{ $cls }}">{{ $m->name }}</span>
+                            <a href="{{ route('character.show', $m->name) }}" class="{{ $cls }} hover:underline">{{ $m->name }}</a>
                             @if ($m->level)
                                 <span class="text-muted text-xs ml-1">L{{ $m->level }}</span>
                             @endif
