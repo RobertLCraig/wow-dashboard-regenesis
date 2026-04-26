@@ -152,6 +152,7 @@
     $navAdmin = [
         ['route' => 'events.index',                 'label' => 'Events',         'matches' => ['events.*'],                       'can' => 'events.create'],
         ['route' => 'admin.teams.index',            'label' => 'Team mapping',   'matches' => ['admin.teams.index', 'admin.teams.update'], 'can' => 'settings.manage'],
+        ['route' => 'admin.teams.schedule.index',   'label' => 'Team schedule',  'matches' => ['admin.teams.schedule.*'],         'can' => 'settings.manage'],
         ['route' => 'admin.sync.index',             'label' => 'Sync',           'matches' => ['admin.sync.*'],                   'can' => 'settings.manage'],
     ];
     $navLink = function (array $item) {

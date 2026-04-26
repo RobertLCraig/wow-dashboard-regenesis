@@ -14,7 +14,11 @@
      * each configured raid day at the configured default time of day.
      */
     $tz = config('raidhelper.timezone');
-    [$defH, $defM] = array_map('intval', explode(':', config('raidhelper.default_time_of_day', '19:30') . ':0'));
+    // Resolved preset already merges any officer-edited /admin/teams/schedule
+    // override onto the config defaults; raid_time falls through to
+    // raidhelper.default_time_of_day if neither layer set it.
+    $raidTime = $preset['raid_time'] ?? config('raidhelper.default_time_of_day', '19:30');
+    [$defH, $defM] = array_map('intval', explode(':', $raidTime . ':0'));
     $now = \Carbon\CarbonImmutable::now($tz);
 
     // Build the pill list once on the server so the rendered HTML is

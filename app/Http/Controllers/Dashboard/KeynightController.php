@@ -7,6 +7,7 @@ use App\Models\Member;
 use App\Models\MemberSnapshot;
 use App\Models\RaidEvent;
 use App\Models\Snapshot;
+use App\Services\Teams\TeamScheduleResolver;
 use Illuminate\View\View;
 
 /**
@@ -31,7 +32,7 @@ class KeynightController extends Controller
         abort_unless(auth()->user()?->can('dashboard.keynight.view'), 403);
 
         $guildKey = (string) config('grm.guild_key');
-        $preset = (array) config('raidhelper.teams.keynight');
+        $preset = TeamScheduleResolver::for('keynight');
 
         return view('dashboard.keynight', [
             'lastSnapshot' => Snapshot::query()

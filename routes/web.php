@@ -51,6 +51,14 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::get('/admin/teams', [\App\Http\Controllers\Admin\TeamMappingController::class, 'index'])->name('admin.teams.index');
     Route::post('/admin/teams', [\App\Http\Controllers\Admin\TeamMappingController::class, 'update'])->name('admin.teams.update');
 
+    // Per-team raid schedule (days + time). Overrides config defaults so
+    // raid leads can change Heroic from Tue/Thu to Mon/Wed without a
+    // redeploy. Empty table is fine; pages fall back to config.
+    Route::get('/admin/teams/schedule', [\App\Http\Controllers\Admin\TeamScheduleController::class, 'index'])->name('admin.teams.schedule.index');
+    Route::post('/admin/teams/schedule', [\App\Http\Controllers\Admin\TeamScheduleController::class, 'update'])->name('admin.teams.schedule.update');
+    Route::post('/admin/teams/schedule/{slug}/reset', [\App\Http\Controllers\Admin\TeamScheduleController::class, 'reset'])
+        ->where('slug', '[a-z_]+')->name('admin.teams.schedule.reset');
+
     // On-demand Raider.IO refresh. Same logic as the scheduled
     // raiderio:pull command; rate-limited per officer.
     Route::post('/admin/raiderio/sync', [\App\Http\Controllers\Admin\RaiderioSyncController::class, 'store'])->name('admin.raiderio.sync');

@@ -8,6 +8,7 @@ use App\Models\MemberSnapshot;
 use App\Models\RaidEvent;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
+use App\Services\Teams\TeamScheduleResolver;
 use Illuminate\View\View;
 
 /**
@@ -38,7 +39,7 @@ class TeamDashboardController extends Controller
         abort_unless(auth()->user()?->can("dashboard.team.{$slug}.view"), 403);
 
         $guildKey = (string) config('grm.guild_key');
-        $preset = (array) config("raidhelper.teams.{$slug}");
+        $preset = TeamScheduleResolver::for($slug);
 
         $members = Member::query()
             ->forGuild($guildKey)
