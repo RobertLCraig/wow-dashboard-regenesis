@@ -63,12 +63,14 @@
 
                 <div class="px-5 py-4 space-y-3 text-sm">
                     <div class="flex items-center justify-between">
-                        <span class="text-xs uppercase tracking-wider text-muted">Last snapshot</span>
-                        <span class="text-ink">
-                            @if ($src['snapshot'])
-                                {{ $src['snapshot']->captured_at->diffForHumans() }}
-                                <span class="text-muted">/</span>
-                                {{ $src['snapshot']->member_count ?? '?' }} members
+                        <span class="text-xs uppercase tracking-wider text-muted">Last sync</span>
+                        <span class="text-ink text-right">
+                            @if ($src['last_seen_at'])
+                                {{ $src['last_seen_at']->diffForHumans() }}
+                                @if ($src['last_summary'])
+                                    <span class="text-muted">/</span>
+                                    <span class="text-muted">{{ $src['last_summary'] }}</span>
+                                @endif
                             @else
                                 <span class="text-muted italic">none yet</span>
                             @endif
@@ -111,6 +113,7 @@
                             $syncRoute = match ($key) {
                                 'raiderio' => 'admin.raiderio.sync',
                                 'wowaudit' => 'admin.wowaudit.sync',
+                                'wcl'      => 'admin.wcl.sync',
                                 default => null,
                             };
                         @endphp

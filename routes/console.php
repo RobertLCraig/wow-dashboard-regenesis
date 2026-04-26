@@ -59,3 +59,12 @@ Schedule::command('digest:weekly')
     )
     ->timezone(config('raidhelper.timezone', 'Europe/London'))
     ->onOneServer();
+
+// Daily WCL reports pull. One GraphQL call returns the latest N
+// reports; idempotent on `code`. Short-circuits when WCL_CLIENT_ID /
+// WCL_CLIENT_SECRET are unset so a pre-credential deploy is fine.
+Schedule::command('wcl:pull')
+    ->dailyAt('07:30')
+    ->timezone(config('raidhelper.timezone', 'Europe/London'))
+    ->onOneServer()
+    ->withoutOverlapping();

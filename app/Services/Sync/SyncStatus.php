@@ -28,6 +28,7 @@ class SyncStatus
     public const SOURCE_GRM      = 'grm';
     public const SOURCE_WOWAUDIT = 'wowaudit';
     public const SOURCE_RAIDHELPER = 'raidhelper';
+    public const SOURCE_WCL      = 'wcl';
 
     public const QUEUED  = 'queued';
     public const RUNNING = 'running';
@@ -49,6 +50,11 @@ class SyncStatus
     public static function wowauditMutexKey(): string
     {
         return 'sync:mutex:wowaudit';
+    }
+
+    public static function wclMutexKey(): string
+    {
+        return 'sync:mutex:wcl';
     }
 
     /**

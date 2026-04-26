@@ -72,6 +72,9 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     // On-demand wowaudit refresh. Same shape as raiderio.sync.
     Route::post('/admin/wowaudit/sync', [\App\Http\Controllers\Admin\WowauditSyncController::class, 'store'])->name('admin.wowaudit.sync');
 
+    // On-demand Warcraft Logs pull. Same shape as raiderio.sync.
+    Route::post('/admin/wcl/sync', [\App\Http\Controllers\Admin\WclSyncController::class, 'store'])->name('admin.wcl.sync');
+
     // Dedicated sync dashboard: per-source status panels + GRM file
     // upload + on-demand sync triggers. Auto-refreshes while a sync
     // is in progress so officers can see results without reloading.

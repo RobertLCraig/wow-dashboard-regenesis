@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Snapshot;
+use App\Models\WclReport;
 use App\Services\Grm\GrmSnapshotIngester;
 use App\Services\Grm\LuaTableParser;
 use App\Services\Sync\SyncStatus;
@@ -26,11 +27,18 @@ class SyncDashboardController extends Controller
     {
         $guildKey = (string) config('grm.guild_key');
 
+        $grm = $this->latestSnapshot($guildKey, Snapshot::SOURCE_GRM);
+        $woa = $this->latestSnapshot($guildKey, Snapshot::SOURCE_WOWAUDIT);
+        $rio = $this->latestSnapshot($guildKey, Snapshot::SOURCE_RAIDERIO);
+        $wcl = WclReport::query()->latest('captured_at')->first();
+        $wclTotal = WclReport::query()->count();
+
         $sources = [
             SyncStatus::SOURCE_GRM => [
                 'label' => 'GRM (in-game)',
                 'description' => 'In-game Guild_Roster_Manager addon. Pushed from your PC by the PowerShell sync tool every 30 minutes; you can also drop a SavedVariables.lua file here for an immediate import.',
-                'snapshot' => $this->latestSnapshot($guildKey, Snapshot::SOURCE_GRM),
+                'last_seen_at' => $grm?->captured_at,
+                'last_summary' => $grm ? "{$grm->member_count} members" : null,
                 'state' => SyncStatus::get(SyncStatus::SOURCE_GRM),
                 'cadence' => 'Push: every 30 min from your PC.',
                 'has_button' => false,
@@ -39,7 +47,8 @@ class SyncDashboardController extends Controller
             SyncStatus::SOURCE_RAIDHELPER => [
                 'label' => 'Raid-Helper',
                 'description' => 'Discord raid signups. Real-time push via webhook + a daily safety-net pull.',
-                'snapshot' => null,
+                'last_seen_at' => null,
+                'last_summary' => null,
                 'state' => SyncStatus::get(SyncStatus::SOURCE_RAIDHELPER),
                 'cadence' => 'Push: webhook on event create/update/delete. Pull: daily 06:15 UK.',
                 'has_button' => false,
@@ -48,7 +57,8 @@ class SyncDashboardController extends Controller
             SyncStatus::SOURCE_WOWAUDIT => [
                 'label' => 'Wowaudit',
                 'description' => 'Mythic team\'s vault + ilvl tracker. Pulled hourly from wowaudit.com.',
-                'snapshot' => $this->latestSnapshot($guildKey, Snapshot::SOURCE_WOWAUDIT),
+                'last_seen_at' => $woa?->captured_at,
+                'last_summary' => $woa ? "{$woa->member_count} members" : null,
                 'state' => SyncStatus::get(SyncStatus::SOURCE_WOWAUDIT),
                 'cadence' => 'Pull: hourly.',
                 'has_button' => true,
@@ -57,9 +67,20 @@ class SyncDashboardController extends Controller
             SyncStatus::SOURCE_RAIDERIO => [
                 'label' => 'Raider.IO',
                 'description' => 'Per-character raid progression + M+ scores for every active member. Roster-flexible (covers heroic + mythic teams).',
-                'snapshot' => $this->latestSnapshot($guildKey, Snapshot::SOURCE_RAIDERIO),
+                'last_seen_at' => $rio?->captured_at,
+                'last_summary' => $rio ? "{$rio->member_count} members" : null,
                 'state' => SyncStatus::get(SyncStatus::SOURCE_RAIDERIO),
                 'cadence' => 'Pull: twice daily (07:00 + 18:00 UK).',
+                'has_button' => true,
+                'has_upload' => false,
+            ],
+            SyncStatus::SOURCE_WCL => [
+                'label' => 'Warcraft Logs',
+                'description' => 'Per-raid-night reports from Warcraft Logs (title, zone, time). Per-encounter parses ship in a follow-up.',
+                'last_seen_at' => $wcl?->captured_at,
+                'last_summary' => $wcl ? "{$wclTotal} reports stored / latest: {$wcl->title}" : null,
+                'state' => SyncStatus::get(SyncStatus::SOURCE_WCL),
+                'cadence' => 'Pull: daily 07:30 UK.',
                 'has_button' => true,
                 'has_upload' => false,
             ],
