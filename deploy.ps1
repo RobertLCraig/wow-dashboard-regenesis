@@ -148,18 +148,33 @@ if ($otherStatus) {
 
 # ── 5. Push to origin ────────────────────────────────────────────────
 Write-Step "[5/6]" "Pushing to origin/$Branch..."
-$unpushed = git log "origin/$Branch..HEAD" --oneline 2>$null
-if ($unpushed) {
-    Write-Host "       Unpushed commits:"
-    Write-Host $unpushed
+$originUrl = (git config --get remote.origin.url 2>$null)
+if (-not $originUrl) {
+    throw "No git remote 'origin' is configured. Run 'git remote add origin <url>' before deploying."
+}
+git rev-parse --verify --quiet "origin/$Branch" *>$null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "       origin/$Branch does not exist yet, pushing for the first time..."
     if ($DryRun) {
-        Write-Host "       (dry run - would run: git push origin $Branch)"
+        Write-Host "       (dry run - would run: git push -u origin $Branch)"
     } else {
-        git push origin $Branch
+        git push -u origin $Branch
         if ($LASTEXITCODE -ne 0) { throw "git push failed." }
     }
 } else {
-    Write-Host "       Already in sync with origin/$Branch."
+    $unpushed = git log "origin/$Branch..HEAD" --oneline
+    if ($unpushed) {
+        Write-Host "       Unpushed commits:"
+        Write-Host $unpushed
+        if ($DryRun) {
+            Write-Host "       (dry run - would run: git push origin $Branch)"
+        } else {
+            git push origin $Branch
+            if ($LASTEXITCODE -ne 0) { throw "git push failed." }
+        }
+    } else {
+        Write-Host "       Already in sync with origin/$Branch."
+    }
 }
 
 # ── 6. Trigger the server-side deploy ────────────────────────────────

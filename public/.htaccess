@@ -1,3 +1,13 @@
+# Hostinger CloudLinux: pin this vhost to PHP 8.4 (composer requires >=8.4).
+# The hPanel per-domain selector defaults to 8.3; this overrides at the
+# .htaccess layer. No-op on hosts without alt-php handlers.
+<IfModule lsapi_module>
+    AddHandler application/x-httpd-alt-php84___lsphp .php
+</IfModule>
+<IfModule !lsapi_module>
+    AddHandler application/x-httpd-alt-php84 .php
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
