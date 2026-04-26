@@ -47,3 +47,15 @@ Schedule::command('raidhelper:sync-events')
     ->timezone(config('raidhelper.timezone', 'Europe/London'))
     ->onOneServer()
     ->withoutOverlapping();
+
+// Weekly officer digest posted to Discord. Day + time configurable in
+// config/digest.php (defaults to Sun 09:00 UK). Short-circuits cleanly
+// when DIGEST_DISCORD_WEBHOOK_URL is empty so a pre-configured deploy
+// doesn't error before the webhook is set up.
+Schedule::command('digest:weekly')
+    ->weeklyOn(
+        (int) config('digest.cadence.day', 7),
+        (string) config('digest.cadence.time', '09:00'),
+    )
+    ->timezone(config('raidhelper.timezone', 'Europe/London'))
+    ->onOneServer();
