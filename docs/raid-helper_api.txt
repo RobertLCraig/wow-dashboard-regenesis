@@ -1,0 +1,651 @@
+<html lang="en"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width"><title>Raid-Helper - API Documentation</title><meta property="og:title" content="Raid-Helper Discord Bot"><meta name="description" content="Raid-Helper is the best calendar bot for Discord! Gone are the days of using third-party websites to organize your events, you can do it all within Discord now!"><meta property="og:description" content="Raid-Helper is the best calendar bot for Discord! Gone are the days of using third-party websites to organize your events, you can do it all within Discord now!"><meta property="og:locale" content="en_US"><link rel="canonical" href="https://raid-helper.xyz"><meta property="og:url" content="https://raid-helper.xyz"><meta property="og:site_name" content="Raid-Helper Discord Bot"><meta name="twitter:card" content="summary"><meta property="twitter:title" content="Raid-Helper Discord Bot"><link rel="shortcut icon" type="image/png" href="/favicon.ico"><title>Webpack App</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css"><link href="/chunk-04f9a7c0.cd9a150bf_27.js" rel="prefetch"><link href="/chunk-2d2172fb.cd9a150bf_27.js" rel="prefetch"><link href="/chunk-ff882af0.cd9a150bf_27.js" rel="prefetch"><link href="/css/chunk-04f9a7c0.52aa4a62.css" rel="prefetch"><link href="/css/chunk-ff882af0.e4283b39.css" rel="prefetch"><link href="/app.cd9a150bf_27.js" rel="preload" as="script"><link href="/chunk-vendors.cd9a150bf_27.js" rel="preload" as="script"><link href="/css/app.39891eeb.css" rel="preload" as="style"><link href="/css/chunk-vendors.4a5935bf.css" rel="preload" as="style"><link href="/css/chunk-vendors.4a5935bf.css" rel="stylesheet"><link href="/css/app.39891eeb.css" rel="stylesheet"><style type="text/css">.Cookie{position:fixed;overflow:hidden;box-sizing:border-box;z-index:9999;width:100%;display:flex;justify-content:space-between;align-items:baseline;flex-direction:column}.Cookie>*{margin:.9375rem 0;align-self:center}@media screen and (min-width: 48rem){.Cookie{flex-flow:row}.Cookie>*{margin:0}}.Cookie--top{top:0;left:0;right:0}.Cookie--bottom{bottom:0;left:0;right:0}.Cookie__buttons{display:flex;flex-direction:column}.Cookie__buttons>*{margin:.3125rem 0}@media screen and (min-width: 48rem){.Cookie__buttons{flex-direction:row}.Cookie__buttons>*{margin:0 .9375rem}}.Cookie__button{cursor:pointer;align-self:center;white-space:nowrap}.Cookie__declineButton{cursor:pointer;align-self:center;white-space:nowrap}.Cookie--base{background:#F1F1F1;color:#232323;padding:1.250em}.Cookie--base .Cookie__button{background:#97D058;padding:0.625em 3.125em;color:#fff;border-radius:0;border:0;font-size:1em}.Cookie--base .Cookie__button:hover{background:#7ebf36}.Cookie--base .Cookie__button--decline{background:transparent;padding:0.625em 3.125em;color:#727272;border-radius:0;border:0;font-size:1em}.Cookie--base .Cookie__button--decline:hover{background:#cbcbcb}.Cookie--base--rounded{background:#F1F1F1;color:#232323;padding:1.250em}.Cookie--base--rounded .Cookie__button{background:#97D058;padding:0.625em 3.125em;color:#fff;border-radius:20px;border:0;font-size:1em}.Cookie--base--rounded .Cookie__button:hover{background:#7ebf36}.Cookie--base--rounded .Cookie__button--decline{background:transparent;padding:0.625em 3.125em;color:#727272;border-radius:20px;border:0;font-size:1em}.Cookie--base--rounded .Cookie__button--decline:hover{background:#cbcbcb}.Cookie--blood-orange{background:#424851;color:#fff;padding:1.250em}.Cookie--blood-orange .Cookie__button{background:#E76A68;padding:0.625em 3.125em;color:#fff;border-radius:0;border:0;font-size:1em}.Cookie--blood-orange .Cookie__button:hover{background:#e03f3c}.Cookie--blood-orange .Cookie__button--decline{background:transparent;padding:0.625em 3.125em;color:#000;border-radius:0;border:0;font-size:1em}.Cookie--blood-orange .Cookie__button--decline:hover{background:#202327}.Cookie--blood-orange--rounded{background:#424851;color:#fff;padding:1.250em}.Cookie--blood-orange--rounded .Cookie__button{background:#E76A68;padding:0.625em 3.125em;color:#fff;border-radius:20px;border:0;font-size:1em}.Cookie--blood-orange--rounded .Cookie__button:hover{background:#e03f3c}.Cookie--blood-orange--rounded .Cookie__button--decline{background:transparent;padding:0.625em 3.125em;color:#000;border-radius:20px;border:0;font-size:1em}.Cookie--blood-orange--rounded .Cookie__button--decline:hover{background:#202327}.Cookie--dark-lime{background:#424851;color:#fff;padding:1.250em}.Cookie--dark-lime .Cookie__button{background:#97D058;padding:0.625em 3.125em;color:#fff;border-radius:0;border:0;font-size:1em}.Cookie--dark-lime .Cookie__button:hover{background:#7ebf36}.Cookie--dark-lime .Cookie__button--decline{background:transparent;padding:0.625em 3.125em;color:#000;border-radius:0;border:0;font-size:1em}.Cookie--dark-lime .Cookie__button--decline:hover{background:#202327}.Cookie--dark-lime--rounded{background:#424851;color:#fff;padding:1.250em}.Cookie--dark-lime--rounded .Cookie__button{background:#97D058;padding:0.625em 3.125em;color:#fff;border-radius:20px;border:0;font-size:1em}.Cookie--dark-lime--rounded .Cookie__button:hover{background:#7ebf36}.Cookie--dark-lime--rounded .Cookie__button--decline{background:transparent;padding:0.625em 3.125em;color:#000;border-radius:20px;border:0;font-size:1em}.Cookie--dark-lime--rounded .Cookie__button--decline:hover{background:#202327}.Cookie--royal{background:#FBC227;color:#232323;padding:1.250em}.Cookie--royal .Cookie__button{background:#726CEA;padding:0.625em 3.125em;color:#fff;border-radius:0;border:0;font-size:1em}.Cookie--royal .Cookie__button:hover{background:#473fe4}.Cookie--royal .Cookie__button--decline{background:transparent;padding:0.625em 3.125em;color:#221901;border-radius:0;border:0;font-size:1em}.Cookie--royal .Cookie__button--decline:hover{background:#d29a04}.Cookie--royal--rounded{background:#FBC227;color:#232323;padding:1.250em}.Cookie--royal--rounded .Cookie__button{background:#726CEA;padding:0.625em 3.125em;color:#fff;border-radius:20px;border:0;font-size:1em}.Cookie--royal--rounded .Cookie__button:hover{background:#473fe4}.Cookie--royal--rounded .Cookie__button--decline{background:transparent;padding:0.625em 3.125em;color:#221901;border-radius:20px;border:0;font-size:1em}.Cookie--royal--rounded .Cookie__button--decline:hover{background:#d29a04}.slideFromTop-enter,.slideFromTop-leave-to{transform:translate(0px, -12.5em)}.slideFromTop-enter-to,.slideFromTop-leave{transform:translate(0px, 0px)}.slideFromBottom-enter,.slideFromBottom-leave-to{transform:translate(0px, 12.5em)}.slideFromBottom-enter-to,.slideFromBottom-leave{transform:translate(0px, 0px)}.slideFromBottom-enter-active,.slideFromBottom-leave-active,.slideFromTop-enter-active,.slideFromTop-leave-active{transition:transform .4s ease-in}.fade-enter-active,.fade-leave-active{transition:opacity .5s}.fade-enter,.fade-leave-to{opacity:0}
+</style><style type="text/css" id="vuetify-theme-stylesheet">.v-application a { color: #202025; }
+.v-application .primary {
+  background-color: #202025 !important;
+  border-color: #202025 !important;
+}
+.v-application .primary--text {
+  color: #202025 !important;
+  caret-color: #202025 !important;
+}
+.v-application .primary.lighten-5 {
+  background-color: #97969d !important;
+  border-color: #97969d !important;
+}
+.v-application .primary--text.text--lighten-5 {
+  color: #97969d !important;
+  caret-color: #97969d !important;
+}
+.v-application .primary.lighten-4 {
+  background-color: #7d7d83 !important;
+  border-color: #7d7d83 !important;
+}
+.v-application .primary--text.text--lighten-4 {
+  color: #7d7d83 !important;
+  caret-color: #7d7d83 !important;
+}
+.v-application .primary.lighten-3 {
+  background-color: #64646a !important;
+  border-color: #64646a !important;
+}
+.v-application .primary--text.text--lighten-3 {
+  color: #64646a !important;
+  caret-color: #64646a !important;
+}
+.v-application .primary.lighten-2 {
+  background-color: #4c4c52 !important;
+  border-color: #4c4c52 !important;
+}
+.v-application .primary--text.text--lighten-2 {
+  color: #4c4c52 !important;
+  caret-color: #4c4c52 !important;
+}
+.v-application .primary.lighten-1 {
+  background-color: #35353b !important;
+  border-color: #35353b !important;
+}
+.v-application .primary--text.text--lighten-1 {
+  color: #35353b !important;
+  caret-color: #35353b !important;
+}
+.v-application .primary.darken-1 {
+  background-color: #080810 !important;
+  border-color: #080810 !important;
+}
+.v-application .primary--text.text--darken-1 {
+  color: #080810 !important;
+  caret-color: #080810 !important;
+}
+.v-application .primary.darken-2 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .primary--text.text--darken-2 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .primary.darken-3 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .primary--text.text--darken-3 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .primary.darken-4 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .primary--text.text--darken-4 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .secondary {
+  background-color: #43434e !important;
+  border-color: #43434e !important;
+}
+.v-application .secondary--text {
+  color: #43434e !important;
+  caret-color: #43434e !important;
+}
+.v-application .secondary.lighten-5 {
+  background-color: #c2c2cf !important;
+  border-color: #c2c2cf !important;
+}
+.v-application .secondary--text.text--lighten-5 {
+  color: #c2c2cf !important;
+  caret-color: #c2c2cf !important;
+}
+.v-application .secondary.lighten-4 {
+  background-color: #a7a7b4 !important;
+  border-color: #a7a7b4 !important;
+}
+.v-application .secondary--text.text--lighten-4 {
+  color: #a7a7b4 !important;
+  caret-color: #a7a7b4 !important;
+}
+.v-application .secondary.lighten-3 {
+  background-color: #8d8c99 !important;
+  border-color: #8d8c99 !important;
+}
+.v-application .secondary--text.text--lighten-3 {
+  color: #8d8c99 !important;
+  caret-color: #8d8c99 !important;
+}
+.v-application .secondary.lighten-2 {
+  background-color: #73737f !important;
+  border-color: #73737f !important;
+}
+.v-application .secondary--text.text--lighten-2 {
+  color: #73737f !important;
+  caret-color: #73737f !important;
+}
+.v-application .secondary.lighten-1 {
+  background-color: #5a5a66 !important;
+  border-color: #5a5a66 !important;
+}
+.v-application .secondary--text.text--lighten-1 {
+  color: #5a5a66 !important;
+  caret-color: #5a5a66 !important;
+}
+.v-application .secondary.darken-1 {
+  background-color: #2d2d37 !important;
+  border-color: #2d2d37 !important;
+}
+.v-application .secondary--text.text--darken-1 {
+  color: #2d2d37 !important;
+  caret-color: #2d2d37 !important;
+}
+.v-application .secondary.darken-2 {
+  background-color: #181822 !important;
+  border-color: #181822 !important;
+}
+.v-application .secondary--text.text--darken-2 {
+  color: #181822 !important;
+  caret-color: #181822 !important;
+}
+.v-application .secondary.darken-3 {
+  background-color: #00000c !important;
+  border-color: #00000c !important;
+}
+.v-application .secondary--text.text--darken-3 {
+  color: #00000c !important;
+  caret-color: #00000c !important;
+}
+.v-application .secondary.darken-4 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .secondary--text.text--darken-4 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .accent {
+  background-color: #222227 !important;
+  border-color: #222227 !important;
+}
+.v-application .accent--text {
+  color: #222227 !important;
+  caret-color: #222227 !important;
+}
+.v-application .accent.lighten-5 {
+  background-color: #99999f !important;
+  border-color: #99999f !important;
+}
+.v-application .accent--text.text--lighten-5 {
+  color: #99999f !important;
+  caret-color: #99999f !important;
+}
+.v-application .accent.lighten-4 {
+  background-color: #7f7f85 !important;
+  border-color: #7f7f85 !important;
+}
+.v-application .accent--text.text--lighten-4 {
+  color: #7f7f85 !important;
+  caret-color: #7f7f85 !important;
+}
+.v-application .accent.lighten-3 {
+  background-color: #66666c !important;
+  border-color: #66666c !important;
+}
+.v-application .accent--text.text--lighten-3 {
+  color: #66666c !important;
+  caret-color: #66666c !important;
+}
+.v-application .accent.lighten-2 {
+  background-color: #4e4e54 !important;
+  border-color: #4e4e54 !important;
+}
+.v-application .accent--text.text--lighten-2 {
+  color: #4e4e54 !important;
+  caret-color: #4e4e54 !important;
+}
+.v-application .accent.lighten-1 {
+  background-color: #37373d !important;
+  border-color: #37373d !important;
+}
+.v-application .accent--text.text--lighten-1 {
+  color: #37373d !important;
+  caret-color: #37373d !important;
+}
+.v-application .accent.darken-1 {
+  background-color: #0c0c12 !important;
+  border-color: #0c0c12 !important;
+}
+.v-application .accent--text.text--darken-1 {
+  color: #0c0c12 !important;
+  caret-color: #0c0c12 !important;
+}
+.v-application .accent.darken-2 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .accent--text.text--darken-2 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .accent.darken-3 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .accent--text.text--darken-3 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .accent.darken-4 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .accent--text.text--darken-4 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .error {
+  background-color: #ff1744 !important;
+  border-color: #ff1744 !important;
+}
+.v-application .error--text {
+  color: #ff1744 !important;
+  caret-color: #ff1744 !important;
+}
+.v-application .error.lighten-5 {
+  background-color: #ffc3c3 !important;
+  border-color: #ffc3c3 !important;
+}
+.v-application .error--text.text--lighten-5 {
+  color: #ffc3c3 !important;
+  caret-color: #ffc3c3 !important;
+}
+.v-application .error.lighten-4 {
+  background-color: #ffa5a8 !important;
+  border-color: #ffa5a8 !important;
+}
+.v-application .error--text.text--lighten-4 {
+  color: #ffa5a8 !important;
+  caret-color: #ffa5a8 !important;
+}
+.v-application .error.lighten-3 {
+  background-color: #ff868e !important;
+  border-color: #ff868e !important;
+}
+.v-application .error--text.text--lighten-3 {
+  color: #ff868e !important;
+  caret-color: #ff868e !important;
+}
+.v-application .error.lighten-2 {
+  background-color: #ff6774 !important;
+  border-color: #ff6774 !important;
+}
+.v-application .error--text.text--lighten-2 {
+  color: #ff6774 !important;
+  caret-color: #ff6774 !important;
+}
+.v-application .error.lighten-1 {
+  background-color: #ff455c !important;
+  border-color: #ff455c !important;
+}
+.v-application .error--text.text--lighten-1 {
+  color: #ff455c !important;
+  caret-color: #ff455c !important;
+}
+.v-application .error.darken-1 {
+  background-color: #de002e !important;
+  border-color: #de002e !important;
+}
+.v-application .error--text.text--darken-1 {
+  color: #de002e !important;
+  caret-color: #de002e !important;
+}
+.v-application .error.darken-2 {
+  background-color: #bd0019 !important;
+  border-color: #bd0019 !important;
+}
+.v-application .error--text.text--darken-2 {
+  color: #bd0019 !important;
+  caret-color: #bd0019 !important;
+}
+.v-application .error.darken-3 {
+  background-color: #9d0001 !important;
+  border-color: #9d0001 !important;
+}
+.v-application .error--text.text--darken-3 {
+  color: #9d0001 !important;
+  caret-color: #9d0001 !important;
+}
+.v-application .error.darken-4 {
+  background-color: #7d0000 !important;
+  border-color: #7d0000 !important;
+}
+.v-application .error--text.text--darken-4 {
+  color: #7d0000 !important;
+  caret-color: #7d0000 !important;
+}
+.v-application .info {
+  background-color: #2196f3 !important;
+  border-color: #2196f3 !important;
+}
+.v-application .info--text {
+  color: #2196f3 !important;
+  caret-color: #2196f3 !important;
+}
+.v-application .info.lighten-5 {
+  background-color: #d4ffff !important;
+  border-color: #d4ffff !important;
+}
+.v-application .info--text.text--lighten-5 {
+  color: #d4ffff !important;
+  caret-color: #d4ffff !important;
+}
+.v-application .info.lighten-4 {
+  background-color: #b5ffff !important;
+  border-color: #b5ffff !important;
+}
+.v-application .info--text.text--lighten-4 {
+  color: #b5ffff !important;
+  caret-color: #b5ffff !important;
+}
+.v-application .info.lighten-3 {
+  background-color: #95e8ff !important;
+  border-color: #95e8ff !important;
+}
+.v-application .info--text.text--lighten-3 {
+  color: #95e8ff !important;
+  caret-color: #95e8ff !important;
+}
+.v-application .info.lighten-2 {
+  background-color: #75ccff !important;
+  border-color: #75ccff !important;
+}
+.v-application .info--text.text--lighten-2 {
+  color: #75ccff !important;
+  caret-color: #75ccff !important;
+}
+.v-application .info.lighten-1 {
+  background-color: #51b0ff !important;
+  border-color: #51b0ff !important;
+}
+.v-application .info--text.text--lighten-1 {
+  color: #51b0ff !important;
+  caret-color: #51b0ff !important;
+}
+.v-application .info.darken-1 {
+  background-color: #007cd6 !important;
+  border-color: #007cd6 !important;
+}
+.v-application .info--text.text--darken-1 {
+  color: #007cd6 !important;
+  caret-color: #007cd6 !important;
+}
+.v-application .info.darken-2 {
+  background-color: #0064ba !important;
+  border-color: #0064ba !important;
+}
+.v-application .info--text.text--darken-2 {
+  color: #0064ba !important;
+  caret-color: #0064ba !important;
+}
+.v-application .info.darken-3 {
+  background-color: #004d9f !important;
+  border-color: #004d9f !important;
+}
+.v-application .info--text.text--darken-3 {
+  color: #004d9f !important;
+  caret-color: #004d9f !important;
+}
+.v-application .info.darken-4 {
+  background-color: #003784 !important;
+  border-color: #003784 !important;
+}
+.v-application .info--text.text--darken-4 {
+  color: #003784 !important;
+  caret-color: #003784 !important;
+}
+.v-application .success {
+  background-color: #4caf50 !important;
+  border-color: #4caf50 !important;
+}
+.v-application .success--text {
+  color: #4caf50 !important;
+  caret-color: #4caf50 !important;
+}
+.v-application .success.lighten-5 {
+  background-color: #dcffd6 !important;
+  border-color: #dcffd6 !important;
+}
+.v-application .success--text.text--lighten-5 {
+  color: #dcffd6 !important;
+  caret-color: #dcffd6 !important;
+}
+.v-application .success.lighten-4 {
+  background-color: #beffba !important;
+  border-color: #beffba !important;
+}
+.v-application .success--text.text--lighten-4 {
+  color: #beffba !important;
+  caret-color: #beffba !important;
+}
+.v-application .success.lighten-3 {
+  background-color: #a2ff9e !important;
+  border-color: #a2ff9e !important;
+}
+.v-application .success--text.text--lighten-3 {
+  color: #a2ff9e !important;
+  caret-color: #a2ff9e !important;
+}
+.v-application .success.lighten-2 {
+  background-color: #85e783 !important;
+  border-color: #85e783 !important;
+}
+.v-application .success--text.text--lighten-2 {
+  color: #85e783 !important;
+  caret-color: #85e783 !important;
+}
+.v-application .success.lighten-1 {
+  background-color: #69cb69 !important;
+  border-color: #69cb69 !important;
+}
+.v-application .success--text.text--lighten-1 {
+  color: #69cb69 !important;
+  caret-color: #69cb69 !important;
+}
+.v-application .success.darken-1 {
+  background-color: #2d9437 !important;
+  border-color: #2d9437 !important;
+}
+.v-application .success--text.text--darken-1 {
+  color: #2d9437 !important;
+  caret-color: #2d9437 !important;
+}
+.v-application .success.darken-2 {
+  background-color: #00791e !important;
+  border-color: #00791e !important;
+}
+.v-application .success--text.text--darken-2 {
+  color: #00791e !important;
+  caret-color: #00791e !important;
+}
+.v-application .success.darken-3 {
+  background-color: #006000 !important;
+  border-color: #006000 !important;
+}
+.v-application .success--text.text--darken-3 {
+  color: #006000 !important;
+  caret-color: #006000 !important;
+}
+.v-application .success.darken-4 {
+  background-color: #004700 !important;
+  border-color: #004700 !important;
+}
+.v-application .success--text.text--darken-4 {
+  color: #004700 !important;
+  caret-color: #004700 !important;
+}
+.v-application .warning {
+  background-color: #fb8c00 !important;
+  border-color: #fb8c00 !important;
+}
+.v-application .warning--text {
+  color: #fb8c00 !important;
+  caret-color: #fb8c00 !important;
+}
+.v-application .warning.lighten-5 {
+  background-color: #ffff9e !important;
+  border-color: #ffff9e !important;
+}
+.v-application .warning--text.text--lighten-5 {
+  color: #ffff9e !important;
+  caret-color: #ffff9e !important;
+}
+.v-application .warning.lighten-4 {
+  background-color: #fffb82 !important;
+  border-color: #fffb82 !important;
+}
+.v-application .warning--text.text--lighten-4 {
+  color: #fffb82 !important;
+  caret-color: #fffb82 !important;
+}
+.v-application .warning.lighten-3 {
+  background-color: #ffdf67 !important;
+  border-color: #ffdf67 !important;
+}
+.v-application .warning--text.text--lighten-3 {
+  color: #ffdf67 !important;
+  caret-color: #ffdf67 !important;
+}
+.v-application .warning.lighten-2 {
+  background-color: #ffc24b !important;
+  border-color: #ffc24b !important;
+}
+.v-application .warning--text.text--lighten-2 {
+  color: #ffc24b !important;
+  caret-color: #ffc24b !important;
+}
+.v-application .warning.lighten-1 {
+  background-color: #ffa72d !important;
+  border-color: #ffa72d !important;
+}
+.v-application .warning--text.text--lighten-1 {
+  color: #ffa72d !important;
+  caret-color: #ffa72d !important;
+}
+.v-application .warning.darken-1 {
+  background-color: #db7200 !important;
+  border-color: #db7200 !important;
+}
+.v-application .warning--text.text--darken-1 {
+  color: #db7200 !important;
+  caret-color: #db7200 !important;
+}
+.v-application .warning.darken-2 {
+  background-color: #bb5900 !important;
+  border-color: #bb5900 !important;
+}
+.v-application .warning--text.text--darken-2 {
+  color: #bb5900 !important;
+  caret-color: #bb5900 !important;
+}
+.v-application .warning.darken-3 {
+  background-color: #9d4000 !important;
+  border-color: #9d4000 !important;
+}
+.v-application .warning--text.text--darken-3 {
+  color: #9d4000 !important;
+  caret-color: #9d4000 !important;
+}
+.v-application .warning.darken-4 {
+  background-color: #802700 !important;
+  border-color: #802700 !important;
+}
+.v-application .warning--text.text--darken-4 {
+  color: #802700 !important;
+  caret-color: #802700 !important;
+}
+.v-application .background {
+  background-color: #2e2e33 !important;
+  border-color: #2e2e33 !important;
+}
+.v-application .background--text {
+  color: #2e2e33 !important;
+  caret-color: #2e2e33 !important;
+}
+.v-application .background.lighten-5 {
+  background-color: #a8a8ae !important;
+  border-color: #a8a8ae !important;
+}
+.v-application .background--text.text--lighten-5 {
+  color: #a8a8ae !important;
+  caret-color: #a8a8ae !important;
+}
+.v-application .background.lighten-4 {
+  background-color: #8e8e94 !important;
+  border-color: #8e8e94 !important;
+}
+.v-application .background--text.text--lighten-4 {
+  color: #8e8e94 !important;
+  caret-color: #8e8e94 !important;
+}
+.v-application .background.lighten-3 {
+  background-color: #74747a !important;
+  border-color: #74747a !important;
+}
+.v-application .background--text.text--lighten-3 {
+  color: #74747a !important;
+  caret-color: #74747a !important;
+}
+.v-application .background.lighten-2 {
+  background-color: #5c5c61 !important;
+  border-color: #5c5c61 !important;
+}
+.v-application .background--text.text--lighten-2 {
+  color: #5c5c61 !important;
+  caret-color: #5c5c61 !important;
+}
+.v-application .background.lighten-1 {
+  background-color: #44444a !important;
+  border-color: #44444a !important;
+}
+.v-application .background--text.text--lighten-1 {
+  color: #44444a !important;
+  caret-color: #44444a !important;
+}
+.v-application .background.darken-1 {
+  background-color: #19191e !important;
+  border-color: #19191e !important;
+}
+.v-application .background--text.text--darken-1 {
+  color: #19191e !important;
+  caret-color: #19191e !important;
+}
+.v-application .background.darken-2 {
+  background-color: #000005 !important;
+  border-color: #000005 !important;
+}
+.v-application .background--text.text--darken-2 {
+  color: #000005 !important;
+  caret-color: #000005 !important;
+}
+.v-application .background.darken-3 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .background--text.text--darken-3 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .background.darken-4 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .background--text.text--darken-4 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}</style><link rel="stylesheet" type="text/css" href="/css/chunk-ff882af0.e4283b39.css"><script charset="utf-8" src="/chunk-ff882af0.cd9a150bf_27.js"></script><link rel="stylesheet" type="text/css" href="/css/chunk-04f9a7c0.52aa4a62.css"><script charset="utf-8" src="/chunk-04f9a7c0.cd9a150bf_27.js"></script></head><body><noscript><strong>We're sorry but Webpack App doesn't work properly without JavaScript enabled. Please enable it to continue.</strong></noscript><div data-app="true" class="v-application v-application--is-ltr theme--light" id="main" style="background: rgb(46, 46, 51);"><div class="v-application--wrap"><nav data-v-ca7dafa6=""><header data-v-ca7dafa6="" class="v-sheet theme--dark elevation-0 v-toolbar v-app-bar v-app-bar--clipped v-app-bar--fixed" style="height: 65px; margin-top: 0px; transform: translateY(0px); left: 0px; right: 0px; background-color: rgb(29, 29, 33); border-color: rgb(29, 29, 33) rgb(29, 29, 33) rgb(16, 16, 18); z-index: 15; border-bottom-width: 1px; border-bottom-style: solid;" data-booted="true"><div class="v-toolbar__content" style="height: 65px;"><div data-v-ca7dafa6="" class="row"><div data-v-ca7dafa6="" class="col"><div data-v-ca7dafa6="" class="v-image v-responsive mt-8 ml-n3 theme--dark" style="min-width: 260px; max-height: 25px; max-width: 260px; position: absolute; cursor: pointer; margin-top: 20px !important;"><div class="v-responsive__sizer" style="padding-bottom: 17.228%;"></div><div class="v-image__image v-image__image--cover" style="background-image: url(&quot;https://raid-helper.xyz/img/test.d8c5592e.png&quot;); background-position: center center;"></div><div class="v-responsive__content" style="width: 2316px;"></div></div></div><div data-v-ca7dafa6=""><button data-v-ca7dafa6="" type="button" class="my-7 btn v-btn v-btn--plain v-btn--text theme--dark elevation-0 v-size--default"><span class="v-btn__content">Dashboard</span></button><button data-v-ca7dafa6="" type="button" class="my-7 btn v-btn v-btn--plain v-btn--text theme--dark elevation-0 v-size--default"><span class="v-btn__content">Documentation</span></button><button data-v-ca7dafa6="" type="button" class="my-7 btn v-btn v-btn--plain v-btn--text theme--dark elevation-0 v-size--default"><span class="v-btn__content">Support Server</span></button><button data-v-ca7dafa6="" type="button" class="my-7 btn v-btn v-btn--plain v-btn--text theme--dark elevation-0 v-size--default"><span class="v-btn__content">Invite Bot</span></button><button data-v-ca7dafa6="" type="button" class="my-7 btn v-btn v-btn--plain v-btn--text theme--dark elevation-0 v-size--default" style="color: rgb(170, 174, 251); caret-color: rgb(170, 174, 251);"><span class="v-btn__content"><span data-v-ca7dafa6="" class="prem">Premium</span></span></button></div><!----><div data-v-ca7dafa6=""><!----><!----></div></div></div></header></nav><main class="v-main" data-booted="true" style="padding: 65px 0px 0px;"><div class="v-main__wrap"><div class="container justify"><div class="layout row fluid"><div class="flex xs0 sm1 md1 lg1 xl2"></div><div class="flex my-12 xs12 sm10 md10 lg10 xl8 rounded-lg"><div class="container"><span class="bg"></span><div align="center" class="mt-n7 mb-15 px-3 col col-12"><div class="v-item-group theme--dark v-btn-toggle v-btn-toggle--tile"><a href="/documentation/intro" class="v-btn v-btn--has-bg v-btn--router v-btn--tile theme--dark elevation-0 v-size--default" style="min-width: 130px; background-color: rgb(32, 32, 37); border-color: currentcolor; opacity: 0.8; border-width: medium; border-style: none; border-image: initial;"><span class="v-btn__content">Intro</span></a><a href="/documentation/commands" class="v-btn v-btn--has-bg v-btn--router v-btn--tile theme--dark elevation-0 v-size--default" style="min-width: 130px; background-color: rgb(32, 32, 37); border-color: currentcolor; opacity: 0.8; border-width: medium; border-style: none; border-image: initial;"><span class="v-btn__content">Commands</span></a></div><div class="v-item-group theme--dark v-btn-toggle v-btn-toggle--tile"><a href="/documentation/advanced" class="v-btn v-btn--has-bg v-btn--router v-btn--tile theme--dark elevation-0 v-size--default" style="min-width: 130px; background-color: rgb(32, 32, 37); border-color: currentcolor; opacity: 0.8; border-width: medium; border-style: none; border-image: initial;"><span class="v-btn__content">Advanced</span></a><a href="/documentation/reference" class="v-btn v-btn--has-bg v-btn--router v-btn--tile theme--dark elevation-0 v-size--default" style="min-width: 130px; background-color: rgb(32, 32, 37); border-color: currentcolor; opacity: 0.8; border-width: medium; border-style: none; border-image: initial;"><span class="v-btn__content">Reference</span></a></div><div class="v-item-group theme--dark v-btn-toggle v-btn-toggle--tile"><a href="/documentation/guides" class="v-btn v-btn--has-bg v-btn--router v-btn--tile theme--dark elevation-0 v-size--default" style="min-width: 130px; background-color: rgb(32, 32, 37); border-color: currentcolor; opacity: 0.8; border-width: medium; border-style: none; border-image: initial;"><span class="v-btn__content">Guides</span></a><a href="/documentation/api" aria-current="page" class="v-item--active v-btn--active v-btn v-btn--has-bg v-btn--router v-btn--tile theme--dark v-item--active elevation-0 v-size--default red lighten-1" style="min-width: 130px; opacity: 1; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial;"><span class="v-btn__content">API</span></a></div></div><div class="mt-n8 mx-3 v-card v-sheet theme--light primary" style="height: 100%;"><div class="v-card__text" style="color: white;"><div class="my-2 px-0 v-item-group theme--dark v-expansion-panels v-expansion-panels--flat v-expansion-panels--tile"><h1 class="mb-7 mt-4">Server Endpoints</h1><div aria-expanded="false" class="v-expansion-panel my-1 v-expansion-panel--next-active"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 18px;"><div class="row"><div class="col"><div class="mb-n5 col col-12"><span>Authorization</span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">How to authorize for requests that require server authorization.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="true" class="v-expansion-panel my-1 v-expansion-panel--active panel"><button type="button" class="v-expansion-panel-header v-expansion-panel-header--active" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;" aria-expanded="true"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: rgb(37, 150, 190); margin: auto; text-align: center;">GET</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/events/<span style="color: purple;">EVENTID</span></span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Fetch the full data of a single event. Does not require authorization!</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><div class="v-expansion-panel-content pt-5" style="background-color: rgb(55, 58, 62);"><div class="v-expansion-panel-content__wrap"><div class="row justify-center"><button type="button" class="pa-2 mr-3 mb-8 mt-5 v-btn v-btn--has-bg theme--dark elevation-3 v-size--x-small purple darken-2" style="text-transform: none;"><span class="v-btn__content">Copy URL</span></button><button type="button" class="pa-2 mr-3 mb-8 mt-5 v-btn v-btn--has-bg theme--dark elevation-3 v-size--x-small purple darken-2" style="text-transform: none;"><span class="v-btn__content">Copy cURL</span></button></div>	
+                   This request will return you the full data of the specified event. No authorization is required. Because this is a GET request it can be easily accessed via the browser. Here is an <a href="https://raid-helper.xyz/api/v4/events/998707032230203474" target="_blank" style="color: lightblue;">example</a>.
+                   If you wish to view the JSON in a structured way inside your browser, consider installing a chrome extension like <a href="https://chrome.google.com/webstore/detail/jsonvue/chklaanhfefbnpoihckbnefhakgolnmc" target="_blank" style="color: lightblue;">JSONVue</a> to format the data properly for you.
+                   
+                   <h1 class="mt-10 mb-7">Request Structure</h1><div aria-expanded="true" class="v-expansion-panel my-1 v-expansion-panel--active v-item--active"><button type="button" class="v-expansion-panel-header v-expansion-panel-header--active" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 18px;" aria-expanded="true"><div class="row"><div><span class="px-2 py-1 field2">Headers</span><span class="mx-2" style="color: grey; font-size: 15px;"></span></div><br></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><div class="v-expansion-panel-content pt-5" style="background-color: rgba(28, 29, 33, 0.65); line-height: 30px;"><div class="v-expansion-panel-content__wrap"><span class="px-2 py-1 pill1">Authorization</span><span class="px-2 py-1 pill2">&lt;apikey&gt;</span><span class="v-tooltip v-tooltip--top"><!----></span><span class="ml-1 px-1 py-1 pill3"><i aria-hidden="true" class="v-icon notranslate mdi mdi-help theme--dark green--text" style="font-size: 12px; margin-bottom: 2px;"></i></span>
+                     - Your servers api key which you can get and refresh via /apikey.                         
+
+                  </div></div></div><h1 class="mt-10 mb-7">Response Structure</h1><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 18px;"><div class="row"><div><span class="px-2 py-1 field2">Body</span></div><br></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div></div></div></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: rgb(37, 150, 190); margin: auto; text-align: center;">GET</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/servers/<span style="color: purple;">SERVERID</span>/events</span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Fetch general data of all events on your server.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: rgb(37, 150, 190); margin: auto; text-align: center;">GET</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/servers/<span style="color: purple;">SERVERID</span>/scheduledevents</span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Fetch general data of all scheduled events on your server.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: yellow; margin: auto; text-align: center;">POST</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/servers/<span style="color: purple;">SERVERID</span>/channels/<span style="color: purple;">CHANNELID</span>/event</span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Create a new event.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: rgb(51, 153, 51); margin: auto; text-align: center;">PATCH</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/events/<span style="color: purple;">EVENTID</span></span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Edit an event.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: red; margin: auto; text-align: center;">DELETE</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/events/<span style="color: purple;">EVENTID</span></span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Delete an event.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: yellow; margin: auto; text-align: center;">POST</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/events/<span style="color: purple;">EVENTID</span>/signups</span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Add a sign-up to an event.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: rgb(51, 153, 51); margin: auto; text-align: center;">PATCH</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/events/<span style="color: purple;">EVENTID</span>/signups/<span style="color: purple;">SIGNUPID</span></span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Edit a sign-up.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: red; margin: auto; text-align: center;">DELETE</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/events/<span style="color: purple;">EVENTID</span>/signups/<span style="color: purple;">SIGNUPID</span></span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Delete a sign-up.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: yellow; margin: auto; text-align: center;">POST</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/servers/<span style="color: purple;">SERVERID</span>/channels/<span style="color: purple;">CHANNELID</span>/embed</span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Create a new embed message.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: rgb(37, 150, 190); margin: auto; text-align: center;">GET</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/servers/<span style="color: purple;">SERVERID</span>/entities/<span style="color: purple;">ENTITYID</span>/dkp</span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Fetch the current DKP of members in your server.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: rgb(51, 153, 51); margin: auto; text-align: center;">PATCH</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/servers/<span style="color: purple;">SERVERID</span>/entities/<span style="color: purple;">ENTITYID</span>/dkp</span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Manipulate the current DKP of members in your server.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: rgb(37, 150, 190); margin: auto; text-align: center;">GET</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/servers/<span style="color: purple;">SERVERID</span>/attendance</span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Fetch the attendance statistics for your server.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: rgb(37, 150, 190); margin: auto; text-align: center;">GET</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/rollgenerators/<span style="color: purple;">MESSAGEID</span></span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Fetch the data of a rollgenerator.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: rgb(37, 150, 190); margin: auto; text-align: center;">GET</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/comps/<span style="color: purple;">COMPID</span></span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Fetch the full data of a comp from the comp tool. Does not require authorization.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: rgb(51, 153, 51); margin: auto; text-align: center;">PATCH</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/comps/<span style="color: purple;">COMPID</span></span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Edit a comp.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: rgb(51, 153, 51); margin: auto; text-align: center;">PATCH</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/comps/<span style="color: purple;">COMPID</span>/groups/<span style="color: purple;">GROUPID</span>/slots/<span style="color: purple;">SLOTID</span></span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Edit a specific slot in the comp.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: red; margin: auto; text-align: center;">DELETE</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/comps/<span style="color: purple;">COMPID</span>/groups/<span style="color: purple;">GROUPID</span>/slots/<span style="color: purple;">SLOTID</span></span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Delete a specific slot in the comp.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><h1 class="mb-7 mt-7">User Endpoints</h1><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 18px;"><div class="row"><div class="col"><div class="mb-n5 col col-12"><span>Authorization</span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">How to authorize for requests that require user authorization.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: rgb(37, 150, 190); margin: auto; text-align: center;">GET</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">https://raid-helper.xyz/api/v4/users/<span style="color: purple;">APIKEY</span>/events</span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Fetch general data of all events that you are signed up to.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><h1 class="mb-7 mt-7">Webhooks</h1><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 18px;"><div class="row"><div class="col"><div class="mb-n5 col col-12"><span>Intro</span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">A short explanation of webhooks.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 18px;"><div class="row"><div class="col"><div class="mb-n5 col col-12"><span>Authorization</span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">How to verify the request.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: yellow; margin: auto; text-align: center;">POST</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">event.create</span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Receive a request when a new event gets created.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: yellow; margin: auto; text-align: center;">POST</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">event.edit</span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Receive a request when any event gets updated.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel my-1 v-expansion-panel--next-active"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(24, 25, 28); border-color: rgb(24, 25, 28); font-size: 15px;"><div class="row"><div class="mb-0 col col-auto" style="min-width: 90px; text-align: center; justify-content: center; padding-top: 35px;"><div style="font-weight: 800; font-size: 20px; color: yellow; margin: auto; text-align: center;">POST</div></div><div class="col"><div class="mb-n4 col col-12"><span style="word-break: break-word;">event.delete</span></div><div class="mb-0 col col-12"><span style="color: gray; font-size: 15px;">Receive a request when any event gets deleted.</span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div></div></div></div><div class="v-snack v-snack--bottom v-snack--has-background"><div class="v-snack__wrapper v-sheet theme--dark elevation-0 green" style="display: none;"><div role="status" aria-live="polite" class="v-snack__content"><span style="font-size: 15px;">Copied to clipboard!</span></div><div class="v-snack__action "></div></div></div></div></div><div class="flex xs0 sm1 md1 lg1 xl2"></div></div></div></div></main><footer class="v-footer v-sheet theme--dark v-footer--padless transparent" data-booted="true"><div class="text-center col col-13"><a href="/Privacypolicy" class="mx-n2 font-weight-small grey--text v-btn v-btn--plain v-btn--router theme--dark v-size--small"><span class="v-btn__content">
+         Privacy Policy
+        </span></a><!----><span class="font-weight-small grey--text">|</span><a href="/Termsofservice" class="mx-n2 font-weight-small grey--text v-btn v-btn--plain v-btn--router theme--dark elevation-0 v-size--small"><span class="v-btn__content">Terms of Service</span></a><p class="font-weight-small grey--text">© 2019-2026 Raid-Helper | All rights reserved.</p></div></footer></div></div><script src="/chunk-vendors.cd9a150bf_27.js"></script><script src="/app.cd9a150bf_27.js"></script></body></html>

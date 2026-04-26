@@ -1,0 +1,708 @@
+<html lang="en"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width"><title>Raid-Helper - Commands Documentation</title><meta property="og:title" content="Raid-Helper Discord Bot"><meta name="description" content="Raid-Helper is the best calendar bot for Discord! Gone are the days of using third-party websites to organize your events, you can do it all within Discord now!"><meta property="og:description" content="Raid-Helper is the best calendar bot for Discord! Gone are the days of using third-party websites to organize your events, you can do it all within Discord now!"><meta property="og:locale" content="en_US"><link rel="canonical" href="https://raid-helper.xyz"><meta property="og:url" content="https://raid-helper.xyz"><meta property="og:site_name" content="Raid-Helper Discord Bot"><meta name="twitter:card" content="summary"><meta property="twitter:title" content="Raid-Helper Discord Bot"><link rel="shortcut icon" type="image/png" href="/favicon.ico"><title>Webpack App</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css"><link href="/chunk-04f9a7c0.cd9a150bf_27.js" rel="prefetch"><link href="/chunk-2d2172fb.cd9a150bf_27.js" rel="prefetch"><link href="/chunk-ff882af0.cd9a150bf_27.js" rel="prefetch"><link href="/css/chunk-04f9a7c0.52aa4a62.css" rel="prefetch"><link href="/css/chunk-ff882af0.e4283b39.css" rel="prefetch"><link href="/app.cd9a150bf_27.js" rel="preload" as="script"><link href="/chunk-vendors.cd9a150bf_27.js" rel="preload" as="script"><link href="/css/app.39891eeb.css" rel="preload" as="style"><link href="/css/chunk-vendors.4a5935bf.css" rel="preload" as="style"><link href="/css/chunk-vendors.4a5935bf.css" rel="stylesheet"><link href="/css/app.39891eeb.css" rel="stylesheet"><style type="text/css">.Cookie{position:fixed;overflow:hidden;box-sizing:border-box;z-index:9999;width:100%;display:flex;justify-content:space-between;align-items:baseline;flex-direction:column}.Cookie>*{margin:.9375rem 0;align-self:center}@media screen and (min-width: 48rem){.Cookie{flex-flow:row}.Cookie>*{margin:0}}.Cookie--top{top:0;left:0;right:0}.Cookie--bottom{bottom:0;left:0;right:0}.Cookie__buttons{display:flex;flex-direction:column}.Cookie__buttons>*{margin:.3125rem 0}@media screen and (min-width: 48rem){.Cookie__buttons{flex-direction:row}.Cookie__buttons>*{margin:0 .9375rem}}.Cookie__button{cursor:pointer;align-self:center;white-space:nowrap}.Cookie__declineButton{cursor:pointer;align-self:center;white-space:nowrap}.Cookie--base{background:#F1F1F1;color:#232323;padding:1.250em}.Cookie--base .Cookie__button{background:#97D058;padding:0.625em 3.125em;color:#fff;border-radius:0;border:0;font-size:1em}.Cookie--base .Cookie__button:hover{background:#7ebf36}.Cookie--base .Cookie__button--decline{background:transparent;padding:0.625em 3.125em;color:#727272;border-radius:0;border:0;font-size:1em}.Cookie--base .Cookie__button--decline:hover{background:#cbcbcb}.Cookie--base--rounded{background:#F1F1F1;color:#232323;padding:1.250em}.Cookie--base--rounded .Cookie__button{background:#97D058;padding:0.625em 3.125em;color:#fff;border-radius:20px;border:0;font-size:1em}.Cookie--base--rounded .Cookie__button:hover{background:#7ebf36}.Cookie--base--rounded .Cookie__button--decline{background:transparent;padding:0.625em 3.125em;color:#727272;border-radius:20px;border:0;font-size:1em}.Cookie--base--rounded .Cookie__button--decline:hover{background:#cbcbcb}.Cookie--blood-orange{background:#424851;color:#fff;padding:1.250em}.Cookie--blood-orange .Cookie__button{background:#E76A68;padding:0.625em 3.125em;color:#fff;border-radius:0;border:0;font-size:1em}.Cookie--blood-orange .Cookie__button:hover{background:#e03f3c}.Cookie--blood-orange .Cookie__button--decline{background:transparent;padding:0.625em 3.125em;color:#000;border-radius:0;border:0;font-size:1em}.Cookie--blood-orange .Cookie__button--decline:hover{background:#202327}.Cookie--blood-orange--rounded{background:#424851;color:#fff;padding:1.250em}.Cookie--blood-orange--rounded .Cookie__button{background:#E76A68;padding:0.625em 3.125em;color:#fff;border-radius:20px;border:0;font-size:1em}.Cookie--blood-orange--rounded .Cookie__button:hover{background:#e03f3c}.Cookie--blood-orange--rounded .Cookie__button--decline{background:transparent;padding:0.625em 3.125em;color:#000;border-radius:20px;border:0;font-size:1em}.Cookie--blood-orange--rounded .Cookie__button--decline:hover{background:#202327}.Cookie--dark-lime{background:#424851;color:#fff;padding:1.250em}.Cookie--dark-lime .Cookie__button{background:#97D058;padding:0.625em 3.125em;color:#fff;border-radius:0;border:0;font-size:1em}.Cookie--dark-lime .Cookie__button:hover{background:#7ebf36}.Cookie--dark-lime .Cookie__button--decline{background:transparent;padding:0.625em 3.125em;color:#000;border-radius:0;border:0;font-size:1em}.Cookie--dark-lime .Cookie__button--decline:hover{background:#202327}.Cookie--dark-lime--rounded{background:#424851;color:#fff;padding:1.250em}.Cookie--dark-lime--rounded .Cookie__button{background:#97D058;padding:0.625em 3.125em;color:#fff;border-radius:20px;border:0;font-size:1em}.Cookie--dark-lime--rounded .Cookie__button:hover{background:#7ebf36}.Cookie--dark-lime--rounded .Cookie__button--decline{background:transparent;padding:0.625em 3.125em;color:#000;border-radius:20px;border:0;font-size:1em}.Cookie--dark-lime--rounded .Cookie__button--decline:hover{background:#202327}.Cookie--royal{background:#FBC227;color:#232323;padding:1.250em}.Cookie--royal .Cookie__button{background:#726CEA;padding:0.625em 3.125em;color:#fff;border-radius:0;border:0;font-size:1em}.Cookie--royal .Cookie__button:hover{background:#473fe4}.Cookie--royal .Cookie__button--decline{background:transparent;padding:0.625em 3.125em;color:#221901;border-radius:0;border:0;font-size:1em}.Cookie--royal .Cookie__button--decline:hover{background:#d29a04}.Cookie--royal--rounded{background:#FBC227;color:#232323;padding:1.250em}.Cookie--royal--rounded .Cookie__button{background:#726CEA;padding:0.625em 3.125em;color:#fff;border-radius:20px;border:0;font-size:1em}.Cookie--royal--rounded .Cookie__button:hover{background:#473fe4}.Cookie--royal--rounded .Cookie__button--decline{background:transparent;padding:0.625em 3.125em;color:#221901;border-radius:20px;border:0;font-size:1em}.Cookie--royal--rounded .Cookie__button--decline:hover{background:#d29a04}.slideFromTop-enter,.slideFromTop-leave-to{transform:translate(0px, -12.5em)}.slideFromTop-enter-to,.slideFromTop-leave{transform:translate(0px, 0px)}.slideFromBottom-enter,.slideFromBottom-leave-to{transform:translate(0px, 12.5em)}.slideFromBottom-enter-to,.slideFromBottom-leave{transform:translate(0px, 0px)}.slideFromBottom-enter-active,.slideFromBottom-leave-active,.slideFromTop-enter-active,.slideFromTop-leave-active{transition:transform .4s ease-in}.fade-enter-active,.fade-leave-active{transition:opacity .5s}.fade-enter,.fade-leave-to{opacity:0}
+</style><style type="text/css" id="vuetify-theme-stylesheet">.v-application a { color: #202025; }
+.v-application .primary {
+  background-color: #202025 !important;
+  border-color: #202025 !important;
+}
+.v-application .primary--text {
+  color: #202025 !important;
+  caret-color: #202025 !important;
+}
+.v-application .primary.lighten-5 {
+  background-color: #97969d !important;
+  border-color: #97969d !important;
+}
+.v-application .primary--text.text--lighten-5 {
+  color: #97969d !important;
+  caret-color: #97969d !important;
+}
+.v-application .primary.lighten-4 {
+  background-color: #7d7d83 !important;
+  border-color: #7d7d83 !important;
+}
+.v-application .primary--text.text--lighten-4 {
+  color: #7d7d83 !important;
+  caret-color: #7d7d83 !important;
+}
+.v-application .primary.lighten-3 {
+  background-color: #64646a !important;
+  border-color: #64646a !important;
+}
+.v-application .primary--text.text--lighten-3 {
+  color: #64646a !important;
+  caret-color: #64646a !important;
+}
+.v-application .primary.lighten-2 {
+  background-color: #4c4c52 !important;
+  border-color: #4c4c52 !important;
+}
+.v-application .primary--text.text--lighten-2 {
+  color: #4c4c52 !important;
+  caret-color: #4c4c52 !important;
+}
+.v-application .primary.lighten-1 {
+  background-color: #35353b !important;
+  border-color: #35353b !important;
+}
+.v-application .primary--text.text--lighten-1 {
+  color: #35353b !important;
+  caret-color: #35353b !important;
+}
+.v-application .primary.darken-1 {
+  background-color: #080810 !important;
+  border-color: #080810 !important;
+}
+.v-application .primary--text.text--darken-1 {
+  color: #080810 !important;
+  caret-color: #080810 !important;
+}
+.v-application .primary.darken-2 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .primary--text.text--darken-2 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .primary.darken-3 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .primary--text.text--darken-3 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .primary.darken-4 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .primary--text.text--darken-4 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .secondary {
+  background-color: #43434e !important;
+  border-color: #43434e !important;
+}
+.v-application .secondary--text {
+  color: #43434e !important;
+  caret-color: #43434e !important;
+}
+.v-application .secondary.lighten-5 {
+  background-color: #c2c2cf !important;
+  border-color: #c2c2cf !important;
+}
+.v-application .secondary--text.text--lighten-5 {
+  color: #c2c2cf !important;
+  caret-color: #c2c2cf !important;
+}
+.v-application .secondary.lighten-4 {
+  background-color: #a7a7b4 !important;
+  border-color: #a7a7b4 !important;
+}
+.v-application .secondary--text.text--lighten-4 {
+  color: #a7a7b4 !important;
+  caret-color: #a7a7b4 !important;
+}
+.v-application .secondary.lighten-3 {
+  background-color: #8d8c99 !important;
+  border-color: #8d8c99 !important;
+}
+.v-application .secondary--text.text--lighten-3 {
+  color: #8d8c99 !important;
+  caret-color: #8d8c99 !important;
+}
+.v-application .secondary.lighten-2 {
+  background-color: #73737f !important;
+  border-color: #73737f !important;
+}
+.v-application .secondary--text.text--lighten-2 {
+  color: #73737f !important;
+  caret-color: #73737f !important;
+}
+.v-application .secondary.lighten-1 {
+  background-color: #5a5a66 !important;
+  border-color: #5a5a66 !important;
+}
+.v-application .secondary--text.text--lighten-1 {
+  color: #5a5a66 !important;
+  caret-color: #5a5a66 !important;
+}
+.v-application .secondary.darken-1 {
+  background-color: #2d2d37 !important;
+  border-color: #2d2d37 !important;
+}
+.v-application .secondary--text.text--darken-1 {
+  color: #2d2d37 !important;
+  caret-color: #2d2d37 !important;
+}
+.v-application .secondary.darken-2 {
+  background-color: #181822 !important;
+  border-color: #181822 !important;
+}
+.v-application .secondary--text.text--darken-2 {
+  color: #181822 !important;
+  caret-color: #181822 !important;
+}
+.v-application .secondary.darken-3 {
+  background-color: #00000c !important;
+  border-color: #00000c !important;
+}
+.v-application .secondary--text.text--darken-3 {
+  color: #00000c !important;
+  caret-color: #00000c !important;
+}
+.v-application .secondary.darken-4 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .secondary--text.text--darken-4 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .accent {
+  background-color: #222227 !important;
+  border-color: #222227 !important;
+}
+.v-application .accent--text {
+  color: #222227 !important;
+  caret-color: #222227 !important;
+}
+.v-application .accent.lighten-5 {
+  background-color: #99999f !important;
+  border-color: #99999f !important;
+}
+.v-application .accent--text.text--lighten-5 {
+  color: #99999f !important;
+  caret-color: #99999f !important;
+}
+.v-application .accent.lighten-4 {
+  background-color: #7f7f85 !important;
+  border-color: #7f7f85 !important;
+}
+.v-application .accent--text.text--lighten-4 {
+  color: #7f7f85 !important;
+  caret-color: #7f7f85 !important;
+}
+.v-application .accent.lighten-3 {
+  background-color: #66666c !important;
+  border-color: #66666c !important;
+}
+.v-application .accent--text.text--lighten-3 {
+  color: #66666c !important;
+  caret-color: #66666c !important;
+}
+.v-application .accent.lighten-2 {
+  background-color: #4e4e54 !important;
+  border-color: #4e4e54 !important;
+}
+.v-application .accent--text.text--lighten-2 {
+  color: #4e4e54 !important;
+  caret-color: #4e4e54 !important;
+}
+.v-application .accent.lighten-1 {
+  background-color: #37373d !important;
+  border-color: #37373d !important;
+}
+.v-application .accent--text.text--lighten-1 {
+  color: #37373d !important;
+  caret-color: #37373d !important;
+}
+.v-application .accent.darken-1 {
+  background-color: #0c0c12 !important;
+  border-color: #0c0c12 !important;
+}
+.v-application .accent--text.text--darken-1 {
+  color: #0c0c12 !important;
+  caret-color: #0c0c12 !important;
+}
+.v-application .accent.darken-2 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .accent--text.text--darken-2 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .accent.darken-3 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .accent--text.text--darken-3 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .accent.darken-4 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .accent--text.text--darken-4 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .error {
+  background-color: #ff1744 !important;
+  border-color: #ff1744 !important;
+}
+.v-application .error--text {
+  color: #ff1744 !important;
+  caret-color: #ff1744 !important;
+}
+.v-application .error.lighten-5 {
+  background-color: #ffc3c3 !important;
+  border-color: #ffc3c3 !important;
+}
+.v-application .error--text.text--lighten-5 {
+  color: #ffc3c3 !important;
+  caret-color: #ffc3c3 !important;
+}
+.v-application .error.lighten-4 {
+  background-color: #ffa5a8 !important;
+  border-color: #ffa5a8 !important;
+}
+.v-application .error--text.text--lighten-4 {
+  color: #ffa5a8 !important;
+  caret-color: #ffa5a8 !important;
+}
+.v-application .error.lighten-3 {
+  background-color: #ff868e !important;
+  border-color: #ff868e !important;
+}
+.v-application .error--text.text--lighten-3 {
+  color: #ff868e !important;
+  caret-color: #ff868e !important;
+}
+.v-application .error.lighten-2 {
+  background-color: #ff6774 !important;
+  border-color: #ff6774 !important;
+}
+.v-application .error--text.text--lighten-2 {
+  color: #ff6774 !important;
+  caret-color: #ff6774 !important;
+}
+.v-application .error.lighten-1 {
+  background-color: #ff455c !important;
+  border-color: #ff455c !important;
+}
+.v-application .error--text.text--lighten-1 {
+  color: #ff455c !important;
+  caret-color: #ff455c !important;
+}
+.v-application .error.darken-1 {
+  background-color: #de002e !important;
+  border-color: #de002e !important;
+}
+.v-application .error--text.text--darken-1 {
+  color: #de002e !important;
+  caret-color: #de002e !important;
+}
+.v-application .error.darken-2 {
+  background-color: #bd0019 !important;
+  border-color: #bd0019 !important;
+}
+.v-application .error--text.text--darken-2 {
+  color: #bd0019 !important;
+  caret-color: #bd0019 !important;
+}
+.v-application .error.darken-3 {
+  background-color: #9d0001 !important;
+  border-color: #9d0001 !important;
+}
+.v-application .error--text.text--darken-3 {
+  color: #9d0001 !important;
+  caret-color: #9d0001 !important;
+}
+.v-application .error.darken-4 {
+  background-color: #7d0000 !important;
+  border-color: #7d0000 !important;
+}
+.v-application .error--text.text--darken-4 {
+  color: #7d0000 !important;
+  caret-color: #7d0000 !important;
+}
+.v-application .info {
+  background-color: #2196f3 !important;
+  border-color: #2196f3 !important;
+}
+.v-application .info--text {
+  color: #2196f3 !important;
+  caret-color: #2196f3 !important;
+}
+.v-application .info.lighten-5 {
+  background-color: #d4ffff !important;
+  border-color: #d4ffff !important;
+}
+.v-application .info--text.text--lighten-5 {
+  color: #d4ffff !important;
+  caret-color: #d4ffff !important;
+}
+.v-application .info.lighten-4 {
+  background-color: #b5ffff !important;
+  border-color: #b5ffff !important;
+}
+.v-application .info--text.text--lighten-4 {
+  color: #b5ffff !important;
+  caret-color: #b5ffff !important;
+}
+.v-application .info.lighten-3 {
+  background-color: #95e8ff !important;
+  border-color: #95e8ff !important;
+}
+.v-application .info--text.text--lighten-3 {
+  color: #95e8ff !important;
+  caret-color: #95e8ff !important;
+}
+.v-application .info.lighten-2 {
+  background-color: #75ccff !important;
+  border-color: #75ccff !important;
+}
+.v-application .info--text.text--lighten-2 {
+  color: #75ccff !important;
+  caret-color: #75ccff !important;
+}
+.v-application .info.lighten-1 {
+  background-color: #51b0ff !important;
+  border-color: #51b0ff !important;
+}
+.v-application .info--text.text--lighten-1 {
+  color: #51b0ff !important;
+  caret-color: #51b0ff !important;
+}
+.v-application .info.darken-1 {
+  background-color: #007cd6 !important;
+  border-color: #007cd6 !important;
+}
+.v-application .info--text.text--darken-1 {
+  color: #007cd6 !important;
+  caret-color: #007cd6 !important;
+}
+.v-application .info.darken-2 {
+  background-color: #0064ba !important;
+  border-color: #0064ba !important;
+}
+.v-application .info--text.text--darken-2 {
+  color: #0064ba !important;
+  caret-color: #0064ba !important;
+}
+.v-application .info.darken-3 {
+  background-color: #004d9f !important;
+  border-color: #004d9f !important;
+}
+.v-application .info--text.text--darken-3 {
+  color: #004d9f !important;
+  caret-color: #004d9f !important;
+}
+.v-application .info.darken-4 {
+  background-color: #003784 !important;
+  border-color: #003784 !important;
+}
+.v-application .info--text.text--darken-4 {
+  color: #003784 !important;
+  caret-color: #003784 !important;
+}
+.v-application .success {
+  background-color: #4caf50 !important;
+  border-color: #4caf50 !important;
+}
+.v-application .success--text {
+  color: #4caf50 !important;
+  caret-color: #4caf50 !important;
+}
+.v-application .success.lighten-5 {
+  background-color: #dcffd6 !important;
+  border-color: #dcffd6 !important;
+}
+.v-application .success--text.text--lighten-5 {
+  color: #dcffd6 !important;
+  caret-color: #dcffd6 !important;
+}
+.v-application .success.lighten-4 {
+  background-color: #beffba !important;
+  border-color: #beffba !important;
+}
+.v-application .success--text.text--lighten-4 {
+  color: #beffba !important;
+  caret-color: #beffba !important;
+}
+.v-application .success.lighten-3 {
+  background-color: #a2ff9e !important;
+  border-color: #a2ff9e !important;
+}
+.v-application .success--text.text--lighten-3 {
+  color: #a2ff9e !important;
+  caret-color: #a2ff9e !important;
+}
+.v-application .success.lighten-2 {
+  background-color: #85e783 !important;
+  border-color: #85e783 !important;
+}
+.v-application .success--text.text--lighten-2 {
+  color: #85e783 !important;
+  caret-color: #85e783 !important;
+}
+.v-application .success.lighten-1 {
+  background-color: #69cb69 !important;
+  border-color: #69cb69 !important;
+}
+.v-application .success--text.text--lighten-1 {
+  color: #69cb69 !important;
+  caret-color: #69cb69 !important;
+}
+.v-application .success.darken-1 {
+  background-color: #2d9437 !important;
+  border-color: #2d9437 !important;
+}
+.v-application .success--text.text--darken-1 {
+  color: #2d9437 !important;
+  caret-color: #2d9437 !important;
+}
+.v-application .success.darken-2 {
+  background-color: #00791e !important;
+  border-color: #00791e !important;
+}
+.v-application .success--text.text--darken-2 {
+  color: #00791e !important;
+  caret-color: #00791e !important;
+}
+.v-application .success.darken-3 {
+  background-color: #006000 !important;
+  border-color: #006000 !important;
+}
+.v-application .success--text.text--darken-3 {
+  color: #006000 !important;
+  caret-color: #006000 !important;
+}
+.v-application .success.darken-4 {
+  background-color: #004700 !important;
+  border-color: #004700 !important;
+}
+.v-application .success--text.text--darken-4 {
+  color: #004700 !important;
+  caret-color: #004700 !important;
+}
+.v-application .warning {
+  background-color: #fb8c00 !important;
+  border-color: #fb8c00 !important;
+}
+.v-application .warning--text {
+  color: #fb8c00 !important;
+  caret-color: #fb8c00 !important;
+}
+.v-application .warning.lighten-5 {
+  background-color: #ffff9e !important;
+  border-color: #ffff9e !important;
+}
+.v-application .warning--text.text--lighten-5 {
+  color: #ffff9e !important;
+  caret-color: #ffff9e !important;
+}
+.v-application .warning.lighten-4 {
+  background-color: #fffb82 !important;
+  border-color: #fffb82 !important;
+}
+.v-application .warning--text.text--lighten-4 {
+  color: #fffb82 !important;
+  caret-color: #fffb82 !important;
+}
+.v-application .warning.lighten-3 {
+  background-color: #ffdf67 !important;
+  border-color: #ffdf67 !important;
+}
+.v-application .warning--text.text--lighten-3 {
+  color: #ffdf67 !important;
+  caret-color: #ffdf67 !important;
+}
+.v-application .warning.lighten-2 {
+  background-color: #ffc24b !important;
+  border-color: #ffc24b !important;
+}
+.v-application .warning--text.text--lighten-2 {
+  color: #ffc24b !important;
+  caret-color: #ffc24b !important;
+}
+.v-application .warning.lighten-1 {
+  background-color: #ffa72d !important;
+  border-color: #ffa72d !important;
+}
+.v-application .warning--text.text--lighten-1 {
+  color: #ffa72d !important;
+  caret-color: #ffa72d !important;
+}
+.v-application .warning.darken-1 {
+  background-color: #db7200 !important;
+  border-color: #db7200 !important;
+}
+.v-application .warning--text.text--darken-1 {
+  color: #db7200 !important;
+  caret-color: #db7200 !important;
+}
+.v-application .warning.darken-2 {
+  background-color: #bb5900 !important;
+  border-color: #bb5900 !important;
+}
+.v-application .warning--text.text--darken-2 {
+  color: #bb5900 !important;
+  caret-color: #bb5900 !important;
+}
+.v-application .warning.darken-3 {
+  background-color: #9d4000 !important;
+  border-color: #9d4000 !important;
+}
+.v-application .warning--text.text--darken-3 {
+  color: #9d4000 !important;
+  caret-color: #9d4000 !important;
+}
+.v-application .warning.darken-4 {
+  background-color: #802700 !important;
+  border-color: #802700 !important;
+}
+.v-application .warning--text.text--darken-4 {
+  color: #802700 !important;
+  caret-color: #802700 !important;
+}
+.v-application .background {
+  background-color: #2e2e33 !important;
+  border-color: #2e2e33 !important;
+}
+.v-application .background--text {
+  color: #2e2e33 !important;
+  caret-color: #2e2e33 !important;
+}
+.v-application .background.lighten-5 {
+  background-color: #a8a8ae !important;
+  border-color: #a8a8ae !important;
+}
+.v-application .background--text.text--lighten-5 {
+  color: #a8a8ae !important;
+  caret-color: #a8a8ae !important;
+}
+.v-application .background.lighten-4 {
+  background-color: #8e8e94 !important;
+  border-color: #8e8e94 !important;
+}
+.v-application .background--text.text--lighten-4 {
+  color: #8e8e94 !important;
+  caret-color: #8e8e94 !important;
+}
+.v-application .background.lighten-3 {
+  background-color: #74747a !important;
+  border-color: #74747a !important;
+}
+.v-application .background--text.text--lighten-3 {
+  color: #74747a !important;
+  caret-color: #74747a !important;
+}
+.v-application .background.lighten-2 {
+  background-color: #5c5c61 !important;
+  border-color: #5c5c61 !important;
+}
+.v-application .background--text.text--lighten-2 {
+  color: #5c5c61 !important;
+  caret-color: #5c5c61 !important;
+}
+.v-application .background.lighten-1 {
+  background-color: #44444a !important;
+  border-color: #44444a !important;
+}
+.v-application .background--text.text--lighten-1 {
+  color: #44444a !important;
+  caret-color: #44444a !important;
+}
+.v-application .background.darken-1 {
+  background-color: #19191e !important;
+  border-color: #19191e !important;
+}
+.v-application .background--text.text--darken-1 {
+  color: #19191e !important;
+  caret-color: #19191e !important;
+}
+.v-application .background.darken-2 {
+  background-color: #000005 !important;
+  border-color: #000005 !important;
+}
+.v-application .background--text.text--darken-2 {
+  color: #000005 !important;
+  caret-color: #000005 !important;
+}
+.v-application .background.darken-3 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .background--text.text--darken-3 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}
+.v-application .background.darken-4 {
+  background-color: #000000 !important;
+  border-color: #000000 !important;
+}
+.v-application .background--text.text--darken-4 {
+  color: #000000 !important;
+  caret-color: #000000 !important;
+}</style><link rel="stylesheet" type="text/css" href="/css/chunk-ff882af0.e4283b39.css"><script charset="utf-8" src="/chunk-ff882af0.cd9a150bf_27.js"></script><link rel="stylesheet" type="text/css" href="/css/chunk-04f9a7c0.52aa4a62.css"><script charset="utf-8" src="/chunk-04f9a7c0.cd9a150bf_27.js"></script></head><body><noscript><strong>We're sorry but Webpack App doesn't work properly without JavaScript enabled. Please enable it to continue.</strong></noscript><div data-app="true" class="v-application v-application--is-ltr theme--light" id="main" style="background: rgb(46, 46, 51);"><div class="v-application--wrap"><nav data-v-ca7dafa6=""><header data-v-ca7dafa6="" class="v-sheet theme--dark elevation-0 v-toolbar v-app-bar v-app-bar--clipped v-app-bar--fixed" style="height: 65px; margin-top: 0px; transform: translateY(0px); left: 0px; right: 0px; background-color: rgb(29, 29, 33); border-color: rgb(29, 29, 33) rgb(29, 29, 33) rgb(16, 16, 18); z-index: 15; border-bottom-width: 1px; border-bottom-style: solid;" data-booted="true"><div class="v-toolbar__content" style="height: 65px;"><div data-v-ca7dafa6="" class="row"><div data-v-ca7dafa6="" class="col"><div data-v-ca7dafa6="" class="v-image v-responsive mt-8 ml-n3 theme--dark" style="min-width: 260px; max-height: 25px; max-width: 260px; position: absolute; cursor: pointer; margin-top: 20px !important;"><div class="v-responsive__sizer" style="padding-bottom: 17.228%;"></div><div class="v-image__image v-image__image--cover" style="background-image: url(&quot;https://raid-helper.xyz/img/test.d8c5592e.png&quot;); background-position: center center;"></div><div class="v-responsive__content" style="width: 2316px;"></div></div></div><div data-v-ca7dafa6=""><button data-v-ca7dafa6="" type="button" class="my-7 btn v-btn v-btn--plain v-btn--text theme--dark elevation-0 v-size--default"><span class="v-btn__content">Dashboard</span></button><button data-v-ca7dafa6="" type="button" class="my-7 btn v-btn v-btn--plain v-btn--text theme--dark elevation-0 v-size--default"><span class="v-btn__content">Documentation</span></button><button data-v-ca7dafa6="" type="button" class="my-7 btn v-btn v-btn--plain v-btn--text theme--dark elevation-0 v-size--default"><span class="v-btn__content">Support Server</span></button><button data-v-ca7dafa6="" type="button" class="my-7 btn v-btn v-btn--plain v-btn--text theme--dark elevation-0 v-size--default"><span class="v-btn__content">Invite Bot</span></button><button data-v-ca7dafa6="" type="button" class="my-7 btn v-btn v-btn--plain v-btn--text theme--dark elevation-0 v-size--default" style="color: rgb(170, 174, 251); caret-color: rgb(170, 174, 251);"><span class="v-btn__content"><span data-v-ca7dafa6="" class="prem">Premium</span></span></button></div><!----><div data-v-ca7dafa6=""><!----><!----></div></div></div></header></nav><main class="v-main" data-booted="true" style="padding: 65px 0px 0px;"><div class="v-main__wrap"><div class="container justify"><div class="layout row fluid"><div class="flex xs0 sm1 md1 lg1 xl2"></div><div class="flex my-12 xs12 sm10 md10 lg10 xl8 rounded-lg"><div class="container"><span class="bg"></span><div align="center" class="mt-n7 mb-15 px-3 col col-12"><div class="v-item-group theme--dark v-btn-toggle v-btn-toggle--tile"><a href="/documentation/intro" class="v-btn v-btn--has-bg v-btn--router v-btn--tile theme--dark elevation-0 v-size--default" style="min-width: 130px; background-color: rgb(32, 32, 37); border-color: currentcolor; opacity: 0.8; border-width: medium; border-style: none; border-image: initial;"><span class="v-btn__content">Intro</span></a><a href="/documentation/commands" aria-current="page" class="v-item--active v-btn--active v-btn v-btn--has-bg v-btn--router v-btn--tile theme--dark v-item--active elevation-0 v-size--default red lighten-1" style="min-width: 130px; opacity: 1; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial;"><span class="v-btn__content">Commands</span></a></div><div class="v-item-group theme--dark v-btn-toggle v-btn-toggle--tile"><a href="/documentation/advanced" class="v-btn v-btn--has-bg v-btn--router v-btn--tile theme--dark elevation-0 v-size--default" style="min-width: 130px; background-color: rgb(32, 32, 37); border-color: currentcolor; opacity: 0.8; border-width: medium; border-style: none; border-image: initial;"><span class="v-btn__content">Advanced</span></a><a href="/documentation/reference" class="v-btn v-btn--has-bg v-btn--router v-btn--tile theme--dark elevation-0 v-size--default" style="min-width: 130px; background-color: rgb(32, 32, 37); border-color: currentcolor; opacity: 0.8; border-width: medium; border-style: none; border-image: initial;"><span class="v-btn__content">Reference</span></a></div><div class="v-item-group theme--dark v-btn-toggle v-btn-toggle--tile"><a href="/documentation/guides" class="v-btn v-btn--has-bg v-btn--router v-btn--tile theme--dark elevation-0 v-size--default" style="min-width: 130px; background-color: rgb(32, 32, 37); border-color: currentcolor; opacity: 0.8; border-width: medium; border-style: none; border-image: initial;"><span class="v-btn__content">Guides</span></a><a href="/documentation/api" class="v-btn v-btn--has-bg v-btn--router v-btn--tile theme--dark elevation-0 v-size--default" style="min-width: 130px; background-color: rgb(32, 32, 37); border-color: currentcolor; opacity: 0.8; border-width: medium; border-style: none; border-image: initial;"><span class="v-btn__content">API</span></a></div></div><div class="v-input mb-n6 ml-3 mr-3 mt-n8 v-input--dense theme--dark v-text-field v-text-field--solo-flat v-text-field--is-booted v-text-field--enclosed v-text-field--outlined v-select v-autocomplete" style="z-index: 7; min-width: 250px !important; border-radius: 0px;"><div class="v-input__control"><div role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-owns="list-2430" class="v-input__slot secondary"><fieldset aria-hidden="true"><legend style="width: 0px;"><span class="notranslate">​</span></legend></fieldset><div class="v-select__slot"><label for="input-2430" class="v-label theme--dark" style="left: 0px; right: auto; position: absolute;">Search...</label><input id="input-2430" type="text" autocomplete="off"><div class="v-input__append-inner"><div></div></div><div class="v-input__append-inner"><div class="v-input__icon v-input__icon--append"><i aria-hidden="true" class="v-icon notranslate mdi mdi-menu-down theme--dark"></i></div></div><input type="hidden"></div><div class="v-menu"><!----></div></div><div class="v-text-field__details"><div class="v-messages theme--dark"><div class="v-messages__wrapper"></div></div></div></div></div><!----><div class="container"><div class="v-tabs border v-tabs--grow theme--dark"><div role="tablist" class="v-item-group theme--dark v-slide-group v-tabs-bar v-tabs-bar--is-mobile primary--text primary" data-booted="true"><div class="v-slide-group__prev v-slide-group__prev--disabled"><!----></div><div class="v-slide-group__wrapper"><div class="v-slide-group__content v-tabs-bar__content"><div class="v-tabs-slider-wrapper" style="height: 2px; left: 0px; width: 181px;"><div class="v-tabs-slider"></div></div><div tabindex="0" aria-selected="true" role="tab" class="v-tab accent lighten-1 v-tab--active" style="margin-left: 0px !important;">
+        General
+      </div><div tabindex="0" aria-selected="false" role="tab" class="v-tab" style="margin-left: 0px !important;">
+        Event
+      </div><div tabindex="0" aria-selected="false" role="tab" class="v-tab" style="margin-left: 0px !important;">
+        Premium
+      </div><div tabindex="0" aria-selected="false" role="tab" class="v-tab" style="margin-left: 0px !important;">
+        Setting
+      </div></div></div><div class="v-slide-group__next v-slide-group__next--disabled"><!----></div></div></div><div class="v-card v-sheet theme--dark elevation-0 rounded-0" style="background-color: transparent !important;"><div class="v-window v-item-group theme--light v-tabs-items" style="background-color: transparent !important;"><div class="v-window__container" style=""><div class="v-window-item v-window-item--active" style="background-color: transparent !important;"><div class="mt-2 v-item-group theme--dark v-expansion-panels v-expansion-panels--hover v-expansion-panels--tile" style="background-color: transparent !important;"><div class="container pa-0"><div aria-expanded="true" class="v-expansion-panel mb-2 v-expansion-panel--active panel"><button type="button" class="v-expansion-panel-header v-expansion-panel-header--active" style="background-color: rgb(29, 29, 33);" aria-expanded="true"><div class="row"><div class="text-left mb-n4 col col-12" style="font-size: 1.4em;">
+                      /welcome
+                    </div><div class="text-left col col-12"><div class="row"><span class="mx-3 my-3" style="color: darkgray;">Create a welcome message that will be sent via DM to users joining your server.</span></div><div class="row px-2"><span class="ml-1 mb-3"><span class="v-chip v-chip--label theme--dark v-size--x-small" aria-haspopup="true" aria-expanded="false" style="background-color: rgb(0, 128, 0); border-color: rgb(0, 128, 0);"><span class="v-chip__content">
+                            Admin
+                          </span></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span></span><span class="ml-1 mb-3"><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-chip v-chip--label theme--dark v-size--x-small" aria-haspopup="true" aria-expanded="false" style="background-color: rgb(128, 96, 96); border-color: rgb(128, 96, 96);"><span class="v-chip__content">
+                          Manage Server
+                        </span></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span></span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><div class="v-expansion-panel-content mt-0" style="background-color: rgb(48, 48, 54);"><div class="v-expansion-panel-content__wrap"><div class="row"><div class="my-2 v-item-group theme--dark v-expansion-panels v-expansion-panels--flat v-expansion-panels--tile"><div aria-expanded="false" class="v-expansion-panel mt-2 elevation-0 mt-4"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(29, 29, 33);"><div class="row"><div class="mb-n4 col col-12">
+                    /welcome set
+                    </div><div class="mb-0 col col-12"><span style="color: gray;">Set the welcome message that will be sent to users joining your server.</span></div><span class="ml-3 mb-3"><span class="v-chip v-chip--label theme--dark v-size--x-small" aria-haspopup="true" aria-expanded="false" style="background-color: rgb(0, 128, 0); border-color: rgb(0, 128, 0);"><span class="v-chip__content">
+                            Admin
+                          </span></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span></span><span class="ml-3 mb-3"><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-chip v-chip--label theme--dark v-size--x-small" aria-haspopup="true" aria-expanded="false" style="background-color: rgb(128, 96, 96); border-color: rgb(128, 96, 96);"><span class="v-chip__content">
+                          Manage Server
+                        </span></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span></span></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel mt-2 elevation-0"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(29, 29, 33);"><div class="row"><div class="mb-n4 col col-12">
+                    /welcome reset
+                    </div><div class="mb-0 col col-12"><span style="color: gray;">Resets the setting</span></div><span class="ml-3 mb-3"><span class="v-chip v-chip--label theme--dark v-size--x-small" aria-haspopup="true" aria-expanded="false" style="background-color: rgb(0, 128, 0); border-color: rgb(0, 128, 0);"><span class="v-chip__content">
+                            Admin
+                          </span></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span></span><span class="ml-3 mb-3"><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-chip v-chip--label theme--dark v-size--x-small" aria-haspopup="true" aria-expanded="false" style="background-color: rgb(128, 96, 96); border-color: rgb(128, 96, 96);"><span class="v-chip__content">
+                          Manage Server
+                        </span></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span></span></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div><div aria-expanded="false" class="v-expansion-panel mt-2 elevation-0"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(29, 29, 33);"><div class="row"><div class="mb-n4 col col-12">
+                    /welcome show
+                    </div><div class="mb-0 col col-12"><span style="color: gray;">Show the currently set welcome message.</span></div><span class="ml-3 mb-3"><span class="v-chip v-chip--label theme--dark v-size--x-small" aria-haspopup="true" aria-expanded="false" style="background-color: rgb(0, 128, 0); border-color: rgb(0, 128, 0);"><span class="v-chip__content">
+                            Admin
+                          </span></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span></span><span class="ml-3 mb-3"><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-chip v-chip--label theme--dark v-size--x-small" aria-haspopup="true" aria-expanded="false" style="background-color: rgb(128, 96, 96); border-color: rgb(128, 96, 96);"><span class="v-chip__content">
+                          Manage Server
+                        </span></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span></span></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div></div><!----></div></div></div></div></div><div class="container pa-0"><div aria-expanded="false" class="v-expansion-panel mb-2"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(29, 29, 33);"><div class="row"><div class="text-left mb-n4 col col-12" style="font-size: 1.4em;">
+                      /embed
+                    </div><div class="text-left col col-12"><div class="row"><span class="mx-3 my-3" style="color: darkgray;">Show your saved embeds or create a new one.</span></div><div class="row px-2"><span class="ml-1 mb-3"><span class="v-chip v-chip--label theme--dark v-size--x-small" aria-haspopup="true" aria-expanded="false" style="background-color: rgb(0, 128, 0); border-color: rgb(0, 128, 0);"><span class="v-chip__content">
+                            Admin
+                          </span></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span></span><span class="ml-1 mb-3"><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-chip v-chip--label theme--dark v-size--x-small" aria-haspopup="true" aria-expanded="false" style="background-color: rgb(128, 96, 96); border-color: rgb(128, 96, 96);"><span class="v-chip__content">
+                          Manage Server
+                        </span></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span></span><span class="ml-1 mb-3"><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-chip v-chip--label theme--dark v-size--x-small" aria-haspopup="true" aria-expanded="false" style="background-color: rgb(39, 123, 171); border-color: rgb(39, 123, 171);"><span class="v-chip__content">
+                          Manager
+                        </span></span><span class="v-tooltip v-tooltip--top"><!----></span></span><span class="ml-1 mb-3"><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-chip v-chip--label theme--dark v-size--x-small" aria-haspopup="true" aria-expanded="false" style="background-color: rgb(171, 120, 120); border-color: rgb(171, 120, 120);"><span class="v-chip__content">
+                          Assistant
+                        </span></span></span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div></div><div class="container pa-0"><div aria-expanded="false" class="v-expansion-panel mb-2"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(29, 29, 33);"><div class="row"><div class="text-left mb-n4 col col-12" style="font-size: 1.4em;">
+                      /reactionrole
+                    </div><div class="text-left col col-12"><div class="row"><span class="mx-3 my-3" style="color: darkgray;">Create a reaction role message for users to assign roles to themselves.</span></div><div class="row px-2"><span class="ml-1 mb-3"><span class="v-chip v-chip--label theme--dark v-size--x-small" aria-haspopup="true" aria-expanded="false" style="background-color: rgb(0, 128, 0); border-color: rgb(0, 128, 0);"><span class="v-chip__content">
+                            Admin
+                          </span></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span></span><span class="ml-1 mb-3"><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-chip v-chip--label theme--dark v-size--x-small" aria-haspopup="true" aria-expanded="false" style="background-color: rgb(128, 96, 96); border-color: rgb(128, 96, 96);"><span class="v-chip__content">
+                          Manage Server
+                        </span></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span></span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div></div><div class="container pa-0"><div aria-expanded="false" class="v-expansion-panel mb-2"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(29, 29, 33);"><div class="row"><div class="text-left mb-n4 col col-12" style="font-size: 1.4em;">
+                      /timer
+                    </div><div class="text-left col col-12"><div class="row"><span class="mx-3 my-3" style="color: darkgray;">Create a timer in your server.</span></div><div class="row px-2"><span class="ml-1 mb-3"><span class="v-chip v-chip--label theme--dark v-size--x-small" aria-haspopup="true" aria-expanded="false" style="background-color: rgb(0, 128, 0); border-color: rgb(0, 128, 0);"><span class="v-chip__content">
+                            Admin
+                          </span></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span></span><span class="ml-1 mb-3"><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-chip v-chip--label theme--dark v-size--x-small" aria-haspopup="true" aria-expanded="false" style="background-color: rgb(128, 96, 96); border-color: rgb(128, 96, 96);"><span class="v-chip__content">
+                          Manage Server
+                        </span></span><span class="v-tooltip v-tooltip--top"><!----></span><span class="v-tooltip v-tooltip--top"><!----></span></span></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div></div><div class="container pa-0"><div aria-expanded="false" class="v-expansion-panel mb-2"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(29, 29, 33);"><div class="row"><div class="text-left mb-n4 col col-12" style="font-size: 1.4em;">
+                      /timestamp
+                    </div><div class="text-left col col-12"><div class="row"><span class="mx-3 my-3" style="color: darkgray;">Create a Discord timestamp that lets you share a localized time with other users.</span></div><div class="row px-2"></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div></div><div class="container pa-0"><div aria-expanded="false" class="v-expansion-panel mb-2"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(29, 29, 33);"><div class="row"><div class="text-left mb-n4 col col-12" style="font-size: 1.4em;">
+                      /item
+                    </div><div class="text-left col col-12"><div class="row"><span class="mx-3 my-3" style="color: darkgray;">Search for a TBC or Classic WoW item.</span></div><div class="row px-2"></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div></div><div class="container pa-0"><div aria-expanded="false" class="v-expansion-panel mb-2"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(29, 29, 33);"><div class="row"><div class="text-left mb-n4 col col-12" style="font-size: 1.4em;">
+                      /roll
+                    </div><div class="text-left col col-12"><div class="row"><span class="mx-3 my-3" style="color: darkgray;">Roll the dice!</span></div><div class="row px-2"></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div></div><div class="container pa-0"><div aria-expanded="false" class="v-expansion-panel mb-2"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(29, 29, 33);"><div class="row"><div class="text-left mb-n4 col col-12" style="font-size: 1.4em;">
+                      /rollgenerator
+                    </div><div class="text-left col col-12"><div class="row"><span class="mx-3 my-3" style="color: darkgray;">Create a message that lets users roll by clicking a button.</span></div><div class="row px-2"></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div></div><div class="container pa-0"><div aria-expanded="false" class="v-expansion-panel mb-2"><button type="button" class="v-expansion-panel-header" style="background-color: rgb(29, 29, 33);"><div class="row"><div class="text-left mb-n4 col col-12" style="font-size: 1.4em;">
+                      /dkp
+                    </div><div class="text-left col col-12"><div class="row"><span class="mx-3 my-3" style="color: darkgray;">Manipulate or show the DKP of members.</span></div><div class="row px-2"></div></div></div><div class="v-expansion-panel-header__icon"><i aria-hidden="true" class="v-icon notranslate mdi mdi-chevron-down theme--dark"></i></div></button><!----></div></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div><div class="container pa-0"><!----></div></div></div><!----><!----><!----></div></div></div></div></div></div><div class="flex xs0 sm1 md1 lg1 xl2"></div></div></div></div></main><footer class="v-footer v-sheet theme--dark v-footer--padless transparent" data-booted="true"><div class="text-center col col-13"><a href="/Privacypolicy" class="mx-n2 font-weight-small grey--text v-btn v-btn--plain v-btn--router theme--dark v-size--small"><span class="v-btn__content">
+         Privacy Policy
+        </span></a><!----><span class="font-weight-small grey--text">|</span><a href="/Termsofservice" class="mx-n2 font-weight-small grey--text v-btn v-btn--plain v-btn--router theme--dark elevation-0 v-size--small"><span class="v-btn__content">Terms of Service</span></a><p class="font-weight-small grey--text">© 2019-2026 Raid-Helper | All rights reserved.</p></div></footer></div></div><script src="/chunk-vendors.cd9a150bf_27.js"></script><script src="/app.cd9a150bf_27.js"></script></body></html>

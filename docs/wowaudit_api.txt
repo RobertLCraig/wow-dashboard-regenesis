@@ -1,0 +1,4070 @@
+
+Regenesis
+Silvermoon-EU
+Profile
+Log Out (Djinni)
+General
+Dashboard
+Roster(24)
+Neighborhood
+Access Control
+Patreon
+API
+Help
+Settings
+Spreadsheet
+Make copy
+Demo
+Refresh Status
+Raids
+Calendar
+Upcoming
+Statistics
+
+Discord Bot
+Wishlists
+Overview
+Personal
+Loot History
+Recruitment
+Applications
+Form
+Customize
+General
+API
+You can interact with your team's data through API endpoints. By default, access to your team's data is disabled entirely. A private key will be generated when you enable access; with this key your entire environment is approachable, so keep it safe! To authenticate simply include the key as an Authorization header (prefixed with Bearer ) or as an `api_key` query parameter.
+
+Credentials
+4a662a4ee9a5a5800f346d807420fc4c2de0b31c9d6fe6f5801b3956b4ab4aea
+Applications
+
+GET
+​/v1​/applications
+Show all applications without details
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "applications": [
+    {
+      "id": 1,
+      "applied_at": "2024-10-01T19:50:49.000Z",
+      "status": "submitted",
+      "role": "damage",
+      "age": 23,
+      "country": "The Netherlands",
+      "battletag": "Applicant#1234",
+      "discord_id": "ApplicantDiscord#2468",
+      "main_character": {
+        "name": "Sheday",
+        "realm": "Stormrage",
+        "region": "EU",
+        "class": "Paladin",
+        "race": "Human",
+        "faction": "Alliance",
+        "level": 60
+      }
+    }
+  ]
+}
+GET
+​/v1​/applications​/{id}
+Show a single application with details
+
+Parameters
+Try it out
+Name	Description
+id *
+string
+(path)
+ID of the application
+
+id - ID of the application
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "id": 1,
+  "applied_at": "2024-10-01T19:50:58.000Z",
+  "status": "submitted",
+  "role": "damage",
+  "age": 23,
+  "country": "The Netherlands",
+  "battletag": "Applicant#1234",
+  "discord_id": "ApplicantDiscord#2468",
+  "main_character": {
+    "name": "Sheday",
+    "realm": "Stormrage",
+    "region": "EU",
+    "class": "Paladin",
+    "race": "Human",
+    "faction": "Alliance",
+    "level": 60
+  },
+  "alts": [
+    {
+      "name": "Justbandage",
+      "realm": "Stormrage",
+      "region": "EU",
+      "class": "Priest",
+      "race": "Human",
+      "faction": "Alliance",
+      "level": 60
+    },
+    {
+      "name": "Illidan",
+      "realm": "Stormrage",
+      "region": "EU",
+      "class": "Demon Hunter",
+      "race": "Night Elf",
+      "faction": "Alliance",
+      "level": 60
+    }
+  ],
+  "questions": [
+    {
+      "question": "What is your favourite colour?",
+      "answer": "Black."
+    },
+    {
+      "question": "Upload a screenshot.",
+      "files": [
+        {
+          "original_filename": "screenshot.png",
+          "url": "https://data.wowaudit.com/recruitment/images/screenshot.png"
+        }
+      ]
+    }
+  ]
+}
+PUT
+​/v1​/applications​/{id}
+Update a single application
+
+Parameters
+Try it out
+Name	Description
+id *
+string
+(path)
+ID of the application
+
+id - ID of the application
+application
+object
+(body)
+Example Value
+Model
+{
+  "status": "under_review | accepted | rejected",
+  "notes": "Internal notes",
+  "message": "Message to the applicant"
+}
+Parameter content type
+
+application/json
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "result": "Application updated"
+}
+DELETE
+​/v1​/applications​/{id}
+Delete a single application
+
+Parameters
+Try it out
+Name	Description
+id *
+string
+(path)
+ID of the application
+
+id - ID of the application
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "result": "Application deleted"
+}
+Raids
+
+GET
+​/v1​/attendance
+Show attendance statistics
+
+Parameters
+Try it out
+Name	Description
+instance
+string
+(query)
+Scope statistics to the provided instance (name) only.
+
+Castle Nathria
+encounter
+string
+(query)
+Scope statistics to the provided encounter (name or ID) only (ignored if the instance isn't set).
+
+Shriekwing
+start_date
+string
+(query)
+Show only statistics from after or on this date.
+
+2020-01-31
+end_date
+string
+(query)
+Show only statistics from before or on this date. Defaults to today's date.
+
+2021-12-31
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "instance": "Castle Nathria",
+  "encounter": "Shriekwing",
+  "start_date": "2020-01-31",
+  "end_date": "2021-12-31",
+  "characters": [
+    {
+      "id": 3,
+      "name": "Tute",
+      "class": "Priest",
+      "role": "Heal",
+      "attended_amount_of_raids": null,
+      "total_amount_of_raids": null,
+      "attended_percentage": 0,
+      "selected_amount_of_encounters": null,
+      "total_amount_of_encounters": null,
+      "selected_percentage": 0
+    },
+    {
+      "id": 1,
+      "name": "Sheday",
+      "class": "Paladin",
+      "role": "Melee",
+      "attended_amount_of_raids": null,
+      "total_amount_of_raids": null,
+      "attended_percentage": 0,
+      "selected_amount_of_encounters": null,
+      "total_amount_of_encounters": null,
+      "selected_percentage": 0
+    },
+    {
+      "id": 2,
+      "name": "Kormash",
+      "class": "Death Knight",
+      "role": "Tank",
+      "attended_amount_of_raids": null,
+      "total_amount_of_raids": null,
+      "attended_percentage": 0,
+      "selected_amount_of_encounters": null,
+      "total_amount_of_encounters": null,
+      "selected_percentage": 0
+    },
+    {
+      "id": 4,
+      "name": "Bexey",
+      "class": "Mage",
+      "role": "Ranged",
+      "attended_amount_of_raids": null,
+      "total_amount_of_raids": null,
+      "attended_percentage": 0,
+      "selected_amount_of_encounters": null,
+      "total_amount_of_encounters": null,
+      "selected_percentage": 0
+    }
+  ]
+}
+GET
+​/v1​/raids
+Show a list of raids without details
+
+Parameters
+Try it out
+Name	Description
+include_past
+boolean
+(query)
+Show raids that happened in the past in addition to upcoming raids.
+
+Default value : false
+
+
+false
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "raids": [
+    {
+      "id": 14,
+      "date": "2024-10-02",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 1,
+      "date": "2024-10-06",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 0,
+      "total_size": 4
+    },
+    {
+      "id": 15,
+      "date": "2024-10-09",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 2,
+      "date": "2024-10-13",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 16,
+      "date": "2024-10-16",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 3,
+      "date": "2024-10-20",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 17,
+      "date": "2024-10-23",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 4,
+      "date": "2024-10-27",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 18,
+      "date": "2024-10-30",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 5,
+      "date": "2024-11-03",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 19,
+      "date": "2024-11-06",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 6,
+      "date": "2024-11-10",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 20,
+      "date": "2024-11-13",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 7,
+      "date": "2024-11-17",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 21,
+      "date": "2024-11-20",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 8,
+      "date": "2024-11-24",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 22,
+      "date": "2024-11-27",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 9,
+      "date": "2024-12-01",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 23,
+      "date": "2024-12-04",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 10,
+      "date": "2024-12-08",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 24,
+      "date": "2024-12-11",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 11,
+      "date": "2024-12-15",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 25,
+      "date": "2024-12-18",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 12,
+      "date": "2024-12-22",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 26,
+      "date": "2024-12-25",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 13,
+      "date": "2024-12-29",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    },
+    {
+      "id": 27,
+      "date": "2025-01-01",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "instance": "Amirdrassil, the Dream's Hope",
+      "optional": false,
+      "difficulty": "Mythic",
+      "status": "Planned",
+      "present_size": 4,
+      "total_size": 4
+    }
+  ]
+}
+POST
+​/v1​/raids
+Create a single raid
+
+Parameters
+Try it out
+Name	Description
+raid
+object
+(body)
+Example Value
+Model
+{
+  "date": "2024-10-01",
+  "start_time": "20:30",
+  "end_time": "23:30",
+  "instance": "Castle Nathria",
+  "entire_season": false,
+  "optional": false,
+  "difficulty": "Mythic | Heroic | Normal | Raid Finder"
+}
+Parameter content type
+
+application/json
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "id": 28,
+  "date": "2024-10-01",
+  "start_time": "20:30",
+  "end_time": "23:30",
+  "instance": "Castle Nathria",
+  "optional": false,
+  "difficulty": "Raid finder",
+  "status": "Planned",
+  "present_size": 4,
+  "total_size": 4,
+  "notes": null,
+  "selections_image": null,
+  "signups": [
+    {
+      "character": {
+        "id": 4,
+        "name": "Bexey",
+        "realm": "Stormrage",
+        "class": "Mage",
+        "role": "Ranged",
+        "guest": false
+      },
+      "status": "Present",
+      "comment": null,
+      "selected": true,
+      "class": "Mage",
+      "role": "Ranged"
+    },
+    {
+      "character": {
+        "id": 2,
+        "name": "Kormash",
+        "realm": "Stormrage",
+        "class": "Death Knight",
+        "role": "Tank",
+        "guest": false
+      },
+      "status": "Present",
+      "comment": null,
+      "selected": true,
+      "class": "Death Knight",
+      "role": "Tank"
+    },
+    {
+      "character": {
+        "id": 1,
+        "name": "Sheday",
+        "realm": "Stormrage",
+        "class": "Paladin",
+        "role": "Melee",
+        "guest": false
+      },
+      "status": "Present",
+      "comment": null,
+      "selected": true,
+      "class": "Paladin",
+      "role": "Melee"
+    },
+    {
+      "character": {
+        "id": 3,
+        "name": "Tute",
+        "realm": "Stormrage",
+        "class": "Priest",
+        "role": "Heal",
+        "guest": false
+      },
+      "status": "Present",
+      "comment": null,
+      "selected": true,
+      "class": "Priest",
+      "role": "Heal"
+    }
+  ],
+  "encounters": [
+    {
+      "name": "Shriekwing",
+      "id": 80,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Huntsman Altimor",
+      "id": 81,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Hungering Destroyer",
+      "id": 82,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Sun King's Salvation",
+      "id": 83,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Artificer Xy'mox",
+      "id": 84,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Lady Inerva Darkvein",
+      "id": 85,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "The Council of Blood",
+      "id": 86,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Sludgefist",
+      "id": 87,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Stone Legion Generals",
+      "id": 88,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Sire Denathrius",
+      "id": 89,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    }
+  ]
+}
+GET
+​/v1​/raids​/{id}
+Show a single raid with details
+
+Parameters
+Try it out
+Name	Description
+id *
+string
+(path)
+ID of the raid
+
+id - ID of the raid
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "id": 1,
+  "date": "2024-10-06",
+  "start_time": "20:30",
+  "end_time": "23:30",
+  "instance": "Amirdrassil, the Dream's Hope",
+  "optional": false,
+  "difficulty": "Mythic",
+  "status": "Planned",
+  "present_size": 0,
+  "total_size": 4,
+  "notes": null,
+  "selections_image": null,
+  "signups": [
+    {
+      "character": {
+        "id": 4,
+        "name": "Bexey",
+        "realm": "Stormrage",
+        "class": "Mage",
+        "role": "Ranged",
+        "guest": false
+      },
+      "status": "Absent",
+      "comment": null,
+      "selected": false,
+      "class": "Mage",
+      "role": "Ranged"
+    },
+    {
+      "character": {
+        "id": 2,
+        "name": "Kormash",
+        "realm": "Stormrage",
+        "class": "Death Knight",
+        "role": "Tank",
+        "guest": false
+      },
+      "status": "Tentative",
+      "comment": null,
+      "selected": true,
+      "class": "Death Knight",
+      "role": "Tank"
+    },
+    {
+      "character": {
+        "id": 1,
+        "name": "Sheday",
+        "realm": "Stormrage",
+        "class": "Paladin",
+        "role": "Melee",
+        "guest": false
+      },
+      "status": "Absent",
+      "comment": null,
+      "selected": false,
+      "class": "Paladin",
+      "role": "Melee"
+    },
+    {
+      "character": {
+        "id": 3,
+        "name": "Tute",
+        "realm": "Stormrage",
+        "class": "Priest",
+        "role": "Heal",
+        "guest": false
+      },
+      "status": "Tentative",
+      "comment": null,
+      "selected": true,
+      "class": "Priest",
+      "role": "Heal"
+    }
+  ],
+  "encounters": [
+    {
+      "name": "Gnarlroot",
+      "id": 187,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Igira the Cruel",
+      "id": 188,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Volcoross",
+      "id": 189,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Council of Dreams",
+      "id": 190,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Larodar",
+      "id": 191,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Nymue",
+      "id": 192,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Smolderon",
+      "id": 193,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Tindral Sageswift",
+      "id": 194,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Fyrakk",
+      "id": 195,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    }
+  ]
+}
+PUT
+​/v1​/raids​/{id}
+Update a single raid
+
+Parameters
+Try it out
+Name	Description
+id *
+string
+(path)
+ID of the raid
+
+id - ID of the raid
+raid
+object
+(body)
+Example Value
+Model
+{
+  "status": "Planned | Locked | Cancelled",
+  "start_time": "20:30",
+  "end_time": "23:30",
+  "optional": false,
+  "difficulty": "Mythic | Heroic | Normal | Raid Finder",
+  "enable_encounters": [
+    81,
+    82
+  ],
+  "disable_encounters": [
+    83
+  ],
+  "signup_changes": [
+    {
+      "character_id": 23,
+      "status": "Present | Absent | Tentative | Late | Standby",
+      "role": "Melee | Ranged | Heal | Tank",
+      "class": "Paladin",
+      "comment": "Hello there.",
+      "selected": true,
+      "encounter_changes": [
+        {
+          "encounter_id": 83,
+          "role": "Melee | Ranged | Heal | Tank",
+          "class": "Paladin",
+          "selected": true
+        }
+      ]
+    }
+  ]
+}
+Parameter content type
+
+application/json
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "id": 1,
+  "date": "2024-10-06",
+  "start_time": "20:30",
+  "end_time": "23:30",
+  "instance": "Amirdrassil, the Dream's Hope",
+  "optional": false,
+  "difficulty": "Raid finder",
+  "status": "Planned",
+  "present_size": 3,
+  "total_size": 4,
+  "notes": null,
+  "selections_image": null,
+  "signups": [
+    {
+      "character": {
+        "id": 4,
+        "name": "Bexey",
+        "realm": "Stormrage",
+        "class": "Mage",
+        "role": "Ranged",
+        "guest": false
+      },
+      "status": "Present",
+      "comment": null,
+      "selected": true,
+      "class": "Mage",
+      "role": "Ranged"
+    },
+    {
+      "character": {
+        "id": 2,
+        "name": "Kormash",
+        "realm": "Stormrage",
+        "class": "Death Knight",
+        "role": "Tank",
+        "guest": false
+      },
+      "status": "Absent",
+      "comment": null,
+      "selected": false,
+      "class": "Death Knight",
+      "role": "Tank"
+    },
+    {
+      "character": {
+        "id": 1,
+        "name": "Sheday",
+        "realm": "Stormrage",
+        "class": "Paladin",
+        "role": "Melee",
+        "guest": false
+      },
+      "status": "Present",
+      "comment": null,
+      "selected": true,
+      "class": "Paladin",
+      "role": "Melee"
+    },
+    {
+      "character": {
+        "id": 3,
+        "name": "Tute",
+        "realm": "Stormrage",
+        "class": "Priest",
+        "role": "Heal",
+        "guest": false
+      },
+      "status": "Present",
+      "comment": null,
+      "selected": true,
+      "class": "Priest",
+      "role": "Heal"
+    }
+  ],
+  "encounters": [
+    {
+      "name": "Gnarlroot",
+      "id": 187,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Igira the Cruel",
+      "id": 188,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Volcoross",
+      "id": 189,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Council of Dreams",
+      "id": 190,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Larodar",
+      "id": 191,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Nymue",
+      "id": 192,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Smolderon",
+      "id": 193,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Tindral Sageswift",
+      "id": 194,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    },
+    {
+      "name": "Fyrakk",
+      "id": 195,
+      "enabled": false,
+      "extra": false,
+      "notes": null
+    }
+  ]
+}
+DELETE
+​/v1​/raids​/{id}
+Delete a single raid
+
+Parameters
+Try it out
+Name	Description
+id *
+string
+(path)
+ID of the raid
+
+id - ID of the raid
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "result": "Raid deleted"
+}
+Characters
+
+GET
+​/v1​/characters
+Show all characters in the roster
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+[
+  {
+    "id": 4,
+    "name": "Bexey",
+    "realm": "Stormrage",
+    "class": "Mage",
+    "role": "Ranged",
+    "rank": "Main",
+    "status": "tracking",
+    "note": null,
+    "blizzard_id": 13345678,
+    "tracking_since": "2024-10-01T19:51:31.000Z"
+  },
+  {
+    "id": 2,
+    "name": "Kormash",
+    "realm": "Stormrage",
+    "class": "Death Knight",
+    "role": "Tank",
+    "rank": "Main",
+    "status": "tracking",
+    "note": null,
+    "blizzard_id": 52345678,
+    "tracking_since": "2024-10-01T19:51:31.000Z"
+  },
+  {
+    "id": 1,
+    "name": "Sheday",
+    "realm": "Stormrage",
+    "class": "Paladin",
+    "role": "Melee",
+    "rank": "Main",
+    "status": "tracking",
+    "note": null,
+    "blizzard_id": 12345678,
+    "tracking_since": "2024-10-01T19:51:31.000Z"
+  },
+  {
+    "id": 3,
+    "name": "Tute",
+    "realm": "Stormrage",
+    "class": "Priest",
+    "role": "Heal",
+    "rank": "Main",
+    "status": "tracking",
+    "note": null,
+    "blizzard_id": 72345678,
+    "tracking_since": "2024-10-01T19:51:31.000Z"
+  }
+]
+POST
+​/v1​/characters
+Track a single character
+
+Parameters
+Try it out
+Name	Description
+character
+object
+(body)
+Example Value
+Model
+{
+  "name": "Example",
+  "realm": "Stormrage",
+  "role": "Melee | Ranged | Heal | Tank",
+  "rank": "Main | Trial | Social | Alt",
+  "note": "Character note example."
+}
+Parameter content type
+
+application/json
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "id": 8,
+  "name": "Example",
+  "realm": "Stormrage",
+  "class": "Rogue",
+  "role": "Melee",
+  "rank": "Main",
+  "status": "pending",
+  "note": "Hello there!",
+  "blizzard_id": 87654321,
+  "tracking_since": "2024-10-01T19:51:42.000Z"
+}
+PUT
+​/v1​/characters​/{id}
+Update a single character
+
+Parameters
+Try it out
+Name	Description
+id *
+string
+(path)
+ID of the character
+
+id - ID of the character
+character
+object
+(body)
+Example Value
+Model
+{
+  "role": "Melee | Ranged | Heal | Tank",
+  "rank": "Main | Trial | Social | Alt",
+  "note": "Character note example."
+}
+Parameter content type
+
+application/json
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "result": "Character updated"
+}
+DELETE
+​/v1​/characters​/{id}
+Untrack a single character
+
+Parameters
+Try it out
+Name	Description
+id *
+string
+(path)
+ID of the character
+
+id - ID of the character
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "result": "Character is no longer being tracked"
+}
+GET
+​/v1​/historical_data
+Show all characters' activity in a given period (retrieve from /v1/period)
+
+Parameters
+Try it out
+Name	Description
+period
+integer
+(query)
+Period.
+
+978
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "period": 978,
+  "characters": [
+    {
+      "id": 4,
+      "name": "Bexey",
+      "realm": "Stormrage",
+      "data": {
+        "dungeons_done": [
+          {
+            "level": 21,
+            "dungeon": 402
+          },
+          {
+            "level": 14,
+            "dungeon": 402
+          }
+        ],
+        "world_quests_done": 45,
+        "vault_options": {
+          "raids": {
+            "option_1": 226,
+            "option_2": null,
+            "option_3": null
+          },
+          "dungeons": {
+            "option_1": 213,
+            "option_2": null,
+            "option_3": null
+          },
+          "world": {
+            "option_1": 220,
+            "option_2": null,
+            "option_3": null
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "Kormash",
+      "realm": "Stormrage",
+      "data": {
+        "dungeons_done": [
+          {
+            "level": 9,
+            "dungeon": 401
+          }
+        ],
+        "world_quests_done": 45,
+        "vault_options": {
+          "raids": {
+            "option_1": 226,
+            "option_2": null,
+            "option_3": null
+          },
+          "dungeons": {
+            "option_1": 213,
+            "option_2": null,
+            "option_3": null
+          },
+          "world": {
+            "option_1": 220,
+            "option_2": null,
+            "option_3": null
+          }
+        }
+      }
+    },
+    {
+      "id": 1,
+      "name": "Sheday",
+      "realm": "Stormrage",
+      "data": {
+        "dungeons_done": [
+          {
+            "level": 18,
+            "dungeon": 401
+          }
+        ],
+        "world_quests_done": 45,
+        "vault_options": {
+          "raids": {
+            "option_1": 226,
+            "option_2": null,
+            "option_3": null
+          },
+          "dungeons": {
+            "option_1": 213,
+            "option_2": null,
+            "option_3": null
+          },
+          "world": {
+            "option_1": 220,
+            "option_2": null,
+            "option_3": null
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "Tute",
+      "realm": "Stormrage",
+      "data": {
+        "dungeons_done": [
+          {
+            "level": 3,
+            "dungeon": 401
+          }
+        ],
+        "world_quests_done": 45,
+        "vault_options": {
+          "raids": {
+            "option_1": 226,
+            "option_2": null,
+            "option_3": null
+          },
+          "dungeons": {
+            "option_1": 213,
+            "option_2": null,
+            "option_3": null
+          },
+          "world": {
+            "option_1": 220,
+            "option_2": null,
+            "option_3": null
+          }
+        }
+      }
+    }
+  ]
+}
+GET
+​/v1​/historical_data​/{id}
+Show the entire activity history of a single character
+
+Parameters
+Try it out
+Name	Description
+id *
+string
+(path)
+ID of the character
+
+id - ID of the character
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "character": {
+    "id": 1,
+    "name": "Sheday",
+    "realm": "Stormrage"
+  },
+  "history": [
+    {
+      "dungeons_done": [],
+      "world_quests_done": 45,
+      "vault_options": {
+        "raids": {
+          "option_1": 226,
+          "option_2": null,
+          "option_3": null
+        },
+        "dungeons": {
+          "option_1": 213,
+          "option_2": null,
+          "option_3": null
+        },
+        "world": {
+          "option_1": 220,
+          "option_2": null,
+          "option_3": null
+        }
+      }
+    },
+    {
+      "dungeons_done": [
+        {
+          "level": 2,
+          "dungeon": 401
+        },
+        {
+          "level": 12,
+          "dungeon": 400
+        },
+        {
+          "level": 14,
+          "dungeon": 400
+        },
+        {
+          "level": 16,
+          "dungeon": 401
+        },
+        {
+          "level": 2,
+          "dungeon": 401
+        },
+        {
+          "level": 6,
+          "dungeon": 400
+        },
+        {
+          "level": 8,
+          "dungeon": 401
+        },
+        {
+          "level": 16,
+          "dungeon": 402
+        },
+        {
+          "level": 2,
+          "dungeon": 401
+        }
+      ],
+      "world_quests_done": 164,
+      "vault_options": {
+        "raids": {
+          "option_1": 226,
+          "option_2": 226,
+          "option_3": 226
+        },
+        "dungeons": {
+          "option_1": 226,
+          "option_2": 213,
+          "option_3": null
+        },
+        "world": {
+          "option_1": 220,
+          "option_2": null,
+          "option_3": null
+        }
+      }
+    },
+    {
+      "dungeons_done": [
+        {
+          "level": 20,
+          "dungeon": 401
+        },
+        {
+          "level": 23,
+          "dungeon": 402
+        },
+        {
+          "level": 9,
+          "dungeon": 401
+        },
+        {
+          "level": 2,
+          "dungeon": 400
+        },
+        {
+          "level": 19,
+          "dungeon": 402
+        }
+      ],
+      "world_quests_done": null,
+      "vault_options": {
+        "raids": {
+          "option_1": null,
+          "option_2": null,
+          "option_3": null
+        },
+        "dungeons": {
+          "option_1": null,
+          "option_2": null,
+          "option_3": null
+        },
+        "world": {
+          "option_1": null,
+          "option_2": null,
+          "option_3": null
+        }
+      }
+    }
+  ],
+  "best_gear": {
+    "main_hand": {
+      "ilvl": 226,
+      "id": 179330,
+      "name": "Zin'khas, Blade of the Fallen God",
+      "quality": 4
+    },
+    "off_hand": {
+      "ilvl": 220,
+      "id": 174315,
+      "name": "Chyrus's Crest of Hope",
+      "quality": 4
+    },
+    "head": {
+      "ilvl": 220,
+      "id": 175887,
+      "name": "Sinful Gladiator's Plate Helm",
+      "quality": 4
+    },
+    "neck": {
+      "ilvl": 213,
+      "id": 183039,
+      "name": "Noble's Birthstone Pendant",
+      "quality": 4
+    },
+    "shoulder": {
+      "ilvl": 220,
+      "id": 178374,
+      "name": "Sinful Gladiator's Plate Pauldrons",
+      "quality": 4
+    },
+    "back": {
+      "ilvl": 226,
+      "id": 183033,
+      "name": "Mantle of Manifest Sins",
+      "quality": 4
+    },
+    "chest": {
+      "ilvl": 226,
+      "id": 182987,
+      "name": "Breastplate of Cautious Calculation",
+      "quality": 4
+    },
+    "wrist": {
+      "ilvl": 226,
+      "id": 183018,
+      "name": "Hellhound Cuffs",
+      "quality": 4
+    },
+    "hands": {
+      "ilvl": 226,
+      "id": 178775,
+      "name": "Fleshfused Crushers",
+      "quality": 4
+    },
+    "waist": {
+      "ilvl": 226,
+      "id": 183025,
+      "name": "Stoic Guardsman's Belt",
+      "quality": 4
+    },
+    "legs": {
+      "ilvl": 235,
+      "id": 171416,
+      "name": "Tempest of the Lightbringer",
+      "quality": 5
+    },
+    "feet": {
+      "ilvl": 235,
+      "id": 171413,
+      "name": "Mad Paragon's Pursuit",
+      "quality": 5
+    },
+    "finger_1": {
+      "ilvl": 226,
+      "id": 183038,
+      "name": "Hyperlight Band",
+      "quality": 4
+    },
+    "finger_2": {
+      "ilvl": 226,
+      "id": 183037,
+      "name": "Ritualist's Treasured Ring",
+      "quality": 4
+    },
+    "trinket_1": {
+      "ilvl": 226,
+      "id": 179331,
+      "name": "Blood-Spattered Scale",
+      "quality": 4
+    },
+    "trinket_2": {
+      "ilvl": 220,
+      "id": 178386,
+      "name": "Sinful Gladiator's Insignia of Alacrity",
+      "quality": 4
+    }
+  }
+}
+GET
+​/v1​/wishlists
+Show the basic loot wishlist of all characters
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "characters": [
+    {
+      "id": 4,
+      "name": "Bexey",
+      "realm": "Stormrage",
+      "wishlists": [
+        {
+          "name": "Single target",
+          "fight_style": "Patchwerk",
+          "allow_sockets": true,
+          "weight": 1,
+          "instances": [
+            {
+              "id": 25,
+              "name": "Amirdrassil, the Dream's Hope",
+              "difficulties": [
+                {
+                  "difficulty": "mythic",
+                  "wishlist": {
+                    "wishlist": {
+                      "updated_at": {
+                        "Arcane": null,
+                        "Fire": null,
+                        "Frost": null
+                      },
+                      "report_uploaded_at": {
+                        "Arcane": null,
+                        "Fire": null,
+                        "Frost": null
+                      },
+                      "total_percentage": 0,
+                      "total_absolute": 0,
+                      "encounters": [
+                        {
+                          "name": "Gnarlroot",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Igira the Cruel",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Volcoross",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Council of Dreams",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Larodar",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Nymue",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Smolderon",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Tindral Sageswift",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Fyrakk",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Single target",
+          "fight_style": "Patchwerk",
+          "allow_sockets": true,
+          "weight": 1,
+          "instances": [
+            {
+              "id": 25,
+              "name": "Amirdrassil, the Dream's Hope",
+              "difficulties": [
+                {
+                  "difficulty": "mythic",
+                  "wishlist": {
+                    "wishlist": {
+                      "updated_at": {
+                        "Arcane": null,
+                        "Fire": null,
+                        "Frost": null
+                      },
+                      "report_uploaded_at": {
+                        "Arcane": null,
+                        "Fire": null,
+                        "Frost": null
+                      },
+                      "total_percentage": 0,
+                      "total_absolute": 0,
+                      "encounters": [
+                        {
+                          "name": "Gnarlroot",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": [
+                            {
+                              "name": "Anguished Restraints",
+                              "id": 207120,
+                              "slot": "wrists",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": null,
+                                  "percentage": 0.27,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            },
+                            {
+                              "name": "Staff of Incandescent Torment",
+                              "id": 207794,
+                              "slot": "main_hand_2h",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": null,
+                                  "percentage": 0.56,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "name": "Igira the Cruel",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": [
+                            {
+                              "name": "Elder's Volcanic Wrap",
+                              "id": 207118,
+                              "slot": "legs",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": null,
+                                  "percentage": 0.17,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            },
+                            {
+                              "name": "Signet of the Last Elder",
+                              "id": 207162,
+                              "slot": "finger",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": null,
+                                  "percentage": 0.37,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "name": "Volcoross",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": [
+                            {
+                              "name": "Lost Scholar's Belted Treads",
+                              "id": 207122,
+                              "slot": "feet",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": null,
+                                  "percentage": 0.51,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "name": "Council of Dreams",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": [
+                            {
+                              "name": "Sickle of the White Stag",
+                              "id": 207782,
+                              "slot": "one_hand",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": null,
+                                  "percentage": 0.11,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "name": "Larodar",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Nymue",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Smolderon",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Tindral Sageswift",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Fyrakk",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Overall",
+          "instances": [
+            {
+              "id": 25,
+              "name": "Amirdrassil, the Dream's Hope",
+              "difficulties": [
+                {
+                  "difficulty": "mythic",
+                  "wishlist": {
+                    "wishlist": {
+                      "updated_at": {
+                        "Arcane": null,
+                        "Fire": null,
+                        "Frost": null
+                      },
+                      "report_uploaded_at": {
+                        "Arcane": null,
+                        "Fire": null,
+                        "Frost": null
+                      },
+                      "total_percentage": 0,
+                      "total_absolute": 0,
+                      "encounters": [
+                        {
+                          "name": "Gnarlroot",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Igira the Cruel",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Volcoross",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Council of Dreams",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Larodar",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Nymue",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Smolderon",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Tindral Sageswift",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Fyrakk",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Kormash",
+      "realm": "Stormrage",
+      "wishlists": [
+        {
+          "name": "Single target",
+          "fight_style": "Patchwerk",
+          "allow_sockets": true,
+          "weight": 1,
+          "instances": [
+            {
+              "id": 25,
+              "name": "Amirdrassil, the Dream's Hope",
+              "difficulties": [
+                {
+                  "difficulty": "mythic",
+                  "wishlist": {
+                    "wishlist": {
+                      "updated_at": {
+                        "Blood": null,
+                        "Frost": null,
+                        "Unholy": null
+                      },
+                      "report_uploaded_at": {
+                        "Blood": null,
+                        "Frost": null,
+                        "Unholy": null
+                      },
+                      "total_percentage": 0,
+                      "total_absolute": 0,
+                      "encounters": [
+                        {
+                          "name": "Gnarlroot",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Igira the Cruel",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Volcoross",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Council of Dreams",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Larodar",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Nymue",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Smolderon",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Tindral Sageswift",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Fyrakk",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Single target",
+          "fight_style": "Patchwerk",
+          "allow_sockets": true,
+          "weight": 1,
+          "instances": [
+            {
+              "id": 25,
+              "name": "Amirdrassil, the Dream's Hope",
+              "difficulties": [
+                {
+                  "difficulty": "mythic",
+                  "wishlist": {
+                    "wishlist": {
+                      "updated_at": {
+                        "Blood": null,
+                        "Frost": null,
+                        "Unholy": null
+                      },
+                      "report_uploaded_at": {
+                        "Blood": null,
+                        "Frost": null,
+                        "Unholy": null
+                      },
+                      "total_percentage": 0,
+                      "total_absolute": 0,
+                      "encounters": [
+                        {
+                          "name": "Gnarlroot",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": [
+                            {
+                              "name": "Seared Ironwood Greaves",
+                              "id": 207153,
+                              "slot": "legs",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": "huge",
+                                  "percentage": null,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "name": "Igira the Cruel",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Volcoross",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": [
+                            {
+                              "name": "Lavaforged Sollerets",
+                              "id": 207148,
+                              "slot": "feet",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": null,
+                                  "percentage": 0.23,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "name": "Council of Dreams",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": [
+                            {
+                              "name": "Vigilant Protector's Bracers",
+                              "id": 210205,
+                              "slot": "wrists",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": null,
+                                  "percentage": 0.17,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "name": "Larodar",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Nymue",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Smolderon",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Tindral Sageswift",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Fyrakk",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": [
+                            {
+                              "name": "Fyrakk's Tainted Rageheart",
+                              "id": 207174,
+                              "slot": "trinket",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": null,
+                                  "percentage": 0.58,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            },
+                            {
+                              "name": "Gholak, the Final Conflagration",
+                              "id": 207786,
+                              "slot": "one_hand",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": null,
+                                  "percentage": 0.39,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Overall",
+          "instances": [
+            {
+              "id": 25,
+              "name": "Amirdrassil, the Dream's Hope",
+              "difficulties": [
+                {
+                  "difficulty": "mythic",
+                  "wishlist": {
+                    "wishlist": {
+                      "updated_at": {
+                        "Blood": null,
+                        "Frost": null,
+                        "Unholy": null
+                      },
+                      "report_uploaded_at": {
+                        "Blood": null,
+                        "Frost": null,
+                        "Unholy": null
+                      },
+                      "total_percentage": 0,
+                      "total_absolute": 0,
+                      "encounters": [
+                        {
+                          "name": "Gnarlroot",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Igira the Cruel",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Volcoross",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Council of Dreams",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Larodar",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Nymue",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Smolderon",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Tindral Sageswift",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Fyrakk",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "Sheday",
+      "realm": "Stormrage",
+      "wishlists": [
+        {
+          "name": "Single target",
+          "fight_style": "Patchwerk",
+          "allow_sockets": true,
+          "weight": 1,
+          "instances": [
+            {
+              "id": 25,
+              "name": "Amirdrassil, the Dream's Hope",
+              "difficulties": [
+                {
+                  "difficulty": "mythic",
+                  "wishlist": {
+                    "wishlist": {
+                      "updated_at": {
+                        "Holy": null,
+                        "Protection": null,
+                        "Retribution": null
+                      },
+                      "report_uploaded_at": {
+                        "Holy": null,
+                        "Protection": null,
+                        "Retribution": null
+                      },
+                      "total_percentage": 0,
+                      "total_absolute": 0,
+                      "encounters": [
+                        {
+                          "name": "Gnarlroot",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Igira the Cruel",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Volcoross",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Council of Dreams",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Larodar",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Nymue",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Smolderon",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Tindral Sageswift",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Fyrakk",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Single target",
+          "fight_style": "Patchwerk",
+          "allow_sockets": true,
+          "weight": 1,
+          "instances": [
+            {
+              "id": 25,
+              "name": "Amirdrassil, the Dream's Hope",
+              "difficulties": [
+                {
+                  "difficulty": "mythic",
+                  "wishlist": {
+                    "wishlist": {
+                      "updated_at": {
+                        "Holy": null,
+                        "Protection": null,
+                        "Retribution": "2024-10-01T19:54:14.000Z"
+                      },
+                      "report_uploaded_at": {
+                        "Holy": null,
+                        "Protection": null,
+                        "Retribution": null
+                      },
+                      "total_percentage": 0,
+                      "total_absolute": 0,
+                      "encounters": [
+                        {
+                          "name": "Gnarlroot",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": [
+                            {
+                              "name": "Seared Ironwood Greaves",
+                              "id": 207153,
+                              "slot": "legs",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": null,
+                                  "percentage": 0.63,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "name": "Igira the Cruel",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Volcoross",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Council of Dreams",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Larodar",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Nymue",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Smolderon",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Tindral Sageswift",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Fyrakk",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": [
+                            {
+                              "name": "Gholak, the Final Conflagration",
+                              "id": 207786,
+                              "slot": "one_hand",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": "small",
+                                  "percentage": null,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            },
+                            {
+                              "name": "Vakash, the Shadowed Inferno",
+                              "id": 207788,
+                              "slot": "one_hand",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": null,
+                                  "percentage": 0.21,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            },
+                            {
+                              "name": "Awakened Tempostone",
+                              "id": 217408,
+                              "slot": "miscellaneous",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": null,
+                                  "percentage": 0.97,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Overall",
+          "instances": [
+            {
+              "id": 25,
+              "name": "Amirdrassil, the Dream's Hope",
+              "difficulties": [
+                {
+                  "difficulty": "mythic",
+                  "wishlist": {
+                    "wishlist": {
+                      "updated_at": {
+                        "Holy": null,
+                        "Protection": null,
+                        "Retribution": null
+                      },
+                      "report_uploaded_at": {
+                        "Holy": null,
+                        "Protection": null,
+                        "Retribution": null
+                      },
+                      "total_percentage": 0,
+                      "total_absolute": 0,
+                      "encounters": [
+                        {
+                          "name": "Gnarlroot",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Igira the Cruel",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Volcoross",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Council of Dreams",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Larodar",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Nymue",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Smolderon",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Tindral Sageswift",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Fyrakk",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Tute",
+      "realm": "Stormrage",
+      "wishlists": [
+        {
+          "name": "Single target",
+          "fight_style": "Patchwerk",
+          "allow_sockets": true,
+          "weight": 1,
+          "instances": [
+            {
+              "id": 25,
+              "name": "Amirdrassil, the Dream's Hope",
+              "difficulties": [
+                {
+                  "difficulty": "mythic",
+                  "wishlist": {
+                    "wishlist": {
+                      "updated_at": {
+                        "Discipline": null,
+                        "Holy": null,
+                        "Shadow": null
+                      },
+                      "report_uploaded_at": {
+                        "Discipline": null,
+                        "Holy": null,
+                        "Shadow": null
+                      },
+                      "total_percentage": 0,
+                      "total_absolute": 0,
+                      "encounters": [
+                        {
+                          "name": "Gnarlroot",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Igira the Cruel",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Volcoross",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Council of Dreams",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Larodar",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Nymue",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Smolderon",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Tindral Sageswift",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Fyrakk",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Single target",
+          "fight_style": "Patchwerk",
+          "allow_sockets": true,
+          "weight": 1,
+          "instances": [
+            {
+              "id": 25,
+              "name": "Amirdrassil, the Dream's Hope",
+              "difficulties": [
+                {
+                  "difficulty": "mythic",
+                  "wishlist": {
+                    "wishlist": {
+                      "updated_at": {
+                        "Discipline": null,
+                        "Holy": null,
+                        "Shadow": null
+                      },
+                      "report_uploaded_at": {
+                        "Discipline": null,
+                        "Holy": null,
+                        "Shadow": null
+                      },
+                      "total_percentage": 0,
+                      "total_absolute": 0,
+                      "encounters": [
+                        {
+                          "name": "Gnarlroot",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Igira the Cruel",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Volcoross",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Council of Dreams",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": [
+                            {
+                              "name": "Urctos's Hibernal Dial",
+                              "id": 207119,
+                              "slot": "waist",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": null,
+                                  "percentage": 0.36,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            },
+                            {
+                              "name": "Trickster's Captivating Chime",
+                              "id": 207796,
+                              "slot": "off_hand",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": null,
+                                  "percentage": 0.02,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "name": "Larodar",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": [
+                            {
+                              "name": "Band of Burning Thorns",
+                              "id": 207159,
+                              "slot": "finger",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": null,
+                                  "percentage": 0.99,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            },
+                            {
+                              "name": "Smoldering Seedling",
+                              "id": 207170,
+                              "slot": "trinket",
+                              "percentage": 0,
+                              "absolute": 0,
+                              "wishes": [
+                                {
+                                  "specialization": "Retribution",
+                                  "timestamp": "2024-10-01T19:54:14.000Z",
+                                  "weight": 100,
+                                  "upgrade": "tiny",
+                                  "percentage": null,
+                                  "absolute": null,
+                                  "manually_edited": true,
+                                  "comment": "BIS"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "name": "Nymue",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Smolderon",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Tindral Sageswift",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Fyrakk",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Overall",
+          "instances": [
+            {
+              "id": 25,
+              "name": "Amirdrassil, the Dream's Hope",
+              "difficulties": [
+                {
+                  "difficulty": "mythic",
+                  "wishlist": {
+                    "wishlist": {
+                      "updated_at": {
+                        "Discipline": null,
+                        "Holy": null,
+                        "Shadow": null
+                      },
+                      "report_uploaded_at": {
+                        "Discipline": null,
+                        "Holy": null,
+                        "Shadow": null
+                      },
+                      "total_percentage": 0,
+                      "total_absolute": 0,
+                      "encounters": [
+                        {
+                          "name": "Gnarlroot",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Igira the Cruel",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Volcoross",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Council of Dreams",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Larodar",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Nymue",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Smolderon",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Tindral Sageswift",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        },
+                        {
+                          "name": "Fyrakk",
+                          "encounter_percentage": 0,
+                          "encounter_absolute": 0,
+                          "items": []
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+POST
+​/v1​/wishlists
+Upload a Droptimizer report
+
+Parameters
+Try it out
+Name	Description
+wishlist
+object
+(body)
+Example Value
+Model
+{
+  "report_id": "84ywk9eay1akcwS1dfY31j",
+  "character_id": 123,
+  "character_name": "Sheday",
+  "configuration_name": "Single Target",
+  "replace_manual_edits": true,
+  "clear_conduits": true
+}
+Parameter content type
+
+application/json
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "created": true
+}
+GET
+​/v1​/wishlists​/{id}
+Show the detailed loot wishlist of a single character
+
+Parameters
+Try it out
+Name	Description
+id *
+string
+(path)
+ID of the character
+
+id - ID of the character
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "id": 1,
+  "name": "Sheday",
+  "realm": "Stormrage",
+  "wishlists": [
+    {
+      "name": "Single target",
+      "fight_style": "Patchwerk",
+      "allow_sockets": true,
+      "weight": 1,
+      "instances": [
+        {
+          "id": 25,
+          "name": "Amirdrassil, the Dream's Hope",
+          "difficulties": [
+            {
+              "difficulty": "mythic",
+              "wishlist": {
+                "wishlist": {
+                  "updated_at": {
+                    "Holy": null,
+                    "Protection": null,
+                    "Retribution": null
+                  },
+                  "report_uploaded_at": {
+                    "Holy": null,
+                    "Protection": null,
+                    "Retribution": null
+                  },
+                  "total_percentage": 0,
+                  "total_absolute": 0,
+                  "encounters": [
+                    {
+                      "name": "Gnarlroot",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Igira the Cruel",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Volcoross",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Council of Dreams",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Larodar",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Nymue",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Smolderon",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Tindral Sageswift",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Fyrakk",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Single target",
+      "fight_style": "Patchwerk",
+      "allow_sockets": true,
+      "weight": 1,
+      "instances": [
+        {
+          "id": 25,
+          "name": "Amirdrassil, the Dream's Hope",
+          "difficulties": [
+            {
+              "difficulty": "mythic",
+              "wishlist": {
+                "wishlist": {
+                  "updated_at": {
+                    "Holy": null,
+                    "Protection": null,
+                    "Retribution": "2024-10-01T19:54:24.000Z"
+                  },
+                  "report_uploaded_at": {
+                    "Holy": null,
+                    "Protection": null,
+                    "Retribution": null
+                  },
+                  "total_percentage": 0,
+                  "total_absolute": 0,
+                  "encounters": [
+                    {
+                      "name": "Gnarlroot",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": [
+                        {
+                          "name": "Branch of the Tormented Ancient",
+                          "id": 207169,
+                          "slot": "trinket",
+                          "percentage": 0,
+                          "absolute": 0,
+                          "wishes": [
+                            {
+                              "specialization": "Retribution",
+                              "timestamp": "2024-10-01T19:54:24.000Z",
+                              "weight": 100,
+                              "upgrade": "huge",
+                              "percentage": null,
+                              "absolute": null,
+                              "manually_edited": true,
+                              "comment": "BIS",
+                              "outdated": null
+                            }
+                          ],
+                          "alternative": null
+                        },
+                        {
+                          "name": "Defender of the Ancient",
+                          "id": 207797,
+                          "slot": "shield",
+                          "percentage": 0,
+                          "absolute": 0,
+                          "wishes": [
+                            {
+                              "specialization": "Retribution",
+                              "timestamp": "2024-10-01T19:54:24.000Z",
+                              "weight": 100,
+                              "upgrade": null,
+                              "percentage": 0.61,
+                              "absolute": null,
+                              "manually_edited": true,
+                              "comment": "BIS",
+                              "outdated": null
+                            }
+                          ],
+                          "alternative": null
+                        }
+                      ]
+                    },
+                    {
+                      "name": "Igira the Cruel",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Volcoross",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": [
+                        {
+                          "name": "Lavaforged Sollerets",
+                          "id": 207148,
+                          "slot": "feet",
+                          "percentage": 0,
+                          "absolute": 0,
+                          "wishes": [
+                            {
+                              "specialization": "Retribution",
+                              "timestamp": "2024-10-01T19:54:24.000Z",
+                              "weight": 100,
+                              "upgrade": null,
+                              "percentage": 0.12,
+                              "absolute": null,
+                              "manually_edited": true,
+                              "comment": "BIS",
+                              "outdated": null
+                            }
+                          ],
+                          "alternative": null
+                        },
+                        {
+                          "name": "Ouroboreal Necklet",
+                          "id": 210214,
+                          "slot": "neck",
+                          "percentage": 0,
+                          "absolute": 0,
+                          "wishes": [
+                            {
+                              "specialization": "Retribution",
+                              "timestamp": "2024-10-01T19:54:24.000Z",
+                              "weight": 100,
+                              "upgrade": null,
+                              "percentage": 0.84,
+                              "absolute": null,
+                              "manually_edited": true,
+                              "comment": "BIS",
+                              "outdated": null
+                            }
+                          ],
+                          "alternative": null
+                        }
+                      ]
+                    },
+                    {
+                      "name": "Council of Dreams",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Larodar",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Nymue",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": [
+                        {
+                          "name": "Verdant Matrix Beacon",
+                          "id": 207798,
+                          "slot": "shield",
+                          "percentage": 0,
+                          "absolute": 0,
+                          "wishes": [
+                            {
+                              "specialization": "Retribution",
+                              "timestamp": "2024-10-01T19:54:24.000Z",
+                              "weight": 100,
+                              "upgrade": null,
+                              "percentage": 0.78,
+                              "absolute": null,
+                              "manually_edited": true,
+                              "comment": "BIS",
+                              "outdated": null
+                            }
+                          ],
+                          "alternative": null
+                        }
+                      ]
+                    },
+                    {
+                      "name": "Smolderon",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Tindral Sageswift",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": [
+                        {
+                          "name": "Eye of the Rising Flame",
+                          "id": 207163,
+                          "slot": "neck",
+                          "percentage": 0,
+                          "absolute": 0,
+                          "wishes": [
+                            {
+                              "specialization": "Retribution",
+                              "timestamp": "2024-10-01T19:54:24.000Z",
+                              "weight": 100,
+                              "upgrade": null,
+                              "percentage": 0.16,
+                              "absolute": null,
+                              "manually_edited": true,
+                              "comment": "BIS",
+                              "outdated": null
+                            }
+                          ],
+                          "alternative": null
+                        },
+                        {
+                          "name": "Belor'relos, the Suncaller",
+                          "id": 207172,
+                          "slot": "trinket",
+                          "percentage": 0,
+                          "absolute": 0,
+                          "wishes": [
+                            {
+                              "specialization": "Retribution",
+                              "timestamp": "2024-10-01T19:54:24.000Z",
+                              "weight": 100,
+                              "upgrade": null,
+                              "percentage": 0.12,
+                              "absolute": null,
+                              "manually_edited": true,
+                              "comment": "BIS",
+                              "outdated": null
+                            }
+                          ],
+                          "alternative": null
+                        }
+                      ]
+                    },
+                    {
+                      "name": "Fyrakk",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Overall",
+      "instances": [
+        {
+          "id": 25,
+          "name": "Amirdrassil, the Dream's Hope",
+          "difficulties": [
+            {
+              "difficulty": "mythic",
+              "wishlist": {
+                "wishlist": {
+                  "updated_at": {
+                    "Holy": null,
+                    "Protection": null,
+                    "Retribution": null
+                  },
+                  "report_uploaded_at": {
+                    "Holy": null,
+                    "Protection": null,
+                    "Retribution": null
+                  },
+                  "total_percentage": 0,
+                  "total_absolute": 0,
+                  "encounters": [
+                    {
+                      "name": "Gnarlroot",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Igira the Cruel",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Volcoross",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Council of Dreams",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Larodar",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Nymue",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Smolderon",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Tindral Sageswift",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    },
+                    {
+                      "name": "Fyrakk",
+                      "encounter_percentage": 0,
+                      "encounter_absolute": 0,
+                      "items": []
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+DELETE
+​/v1​/wishlists​/{id}
+Delete all wishlist info of a single character
+
+Parameters
+Try it out
+Name	Description
+id *
+string
+(path)
+ID of the character
+
+id - ID of the character
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "success": true
+}
+Guests
+
+GET
+​/v1​/guests
+Show all guests associated with the team
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+[
+  {
+    "id": 6,
+    "name": "Frosty",
+    "realm": "Stormrage",
+    "class": "Warrior",
+    "role": "Tank",
+    "blizzard_id": 17345672,
+    "tracking_since": "2024-10-01T19:52:12.000Z"
+  },
+  {
+    "id": 5,
+    "name": "Platepriest",
+    "realm": "Stormrage",
+    "class": "Paladin",
+    "role": "Heal",
+    "blizzard_id": 17345671,
+    "tracking_since": "2024-10-01T19:52:12.000Z"
+  },
+  {
+    "id": 7,
+    "name": "Pluffy",
+    "realm": "Stormrage",
+    "class": "Priest",
+    "role": "Ranged",
+    "blizzard_id": 17345673,
+    "tracking_since": "2024-10-01T19:52:12.000Z"
+  }
+]
+POST
+​/v1​/guests
+Add a single guest to the team (to add to single raids)
+
+Parameters
+Try it out
+Name	Description
+guest
+object
+(body)
+Example Value
+Model
+{
+  "name": "Example",
+  "realm": "Stormrage",
+  "role": "Melee | Ranged | Heal | Tank"
+}
+Parameter content type
+
+application/json
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "id": 8,
+  "name": "Example",
+  "realm": "Stormrage",
+  "class": "Rogue",
+  "role": "Melee",
+  "blizzard_id": 87654321,
+  "tracking_since": "2024-10-01T19:52:23.000Z"
+}
+DELETE
+​/v1​/guests​/{id}
+Remove a single guest from the team
+
+Parameters
+Try it out
+Name	Description
+id *
+string
+(path)
+ID of the guest
+
+id - ID of the guest
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "result": "Guest has been removed"
+}
+General
+
+GET
+​/v1​/loot_history​/{id}
+Show the entire loot history for a season, by keystone season ID (retrieve from /v1/period)
+
+Parameters
+Try it out
+Name	Description
+id *
+string
+(path)
+ID of the season
+
+id - ID of the season
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "history_items": [
+    {
+      "id": 2,
+      "rclootcouncil_id": "1715197229-1",
+      "item_id": 207149,
+      "name": "Phlegethic Girdle",
+      "icon": "inv_plate_raiddeathknightemerald_d_01_belt",
+      "slot": "Waist",
+      "quality": "epic",
+      "character_id": 2,
+      "awarded_by_character_id": 1,
+      "awarded_by_name": "Sheday-Stormrage",
+      "awarded_at": "2024-10-01T19:52:58.006Z",
+      "difficulty": "mythic",
+      "discarded": false,
+      "response_type": {
+        "id": 3,
+        "name": "Main",
+        "rgba": "rgba(0, 255, 0, 1)",
+        "excluded": false,
+        "propagated_to": {
+          "id": 1,
+          "name": "Major",
+          "rgba": "rgba(0, 255, 0, 1)",
+          "excluded": false
+        }
+      },
+      "bonus_ids": [
+        "6652",
+        "10533",
+        "7981",
+        "10340",
+        "10884",
+        "1602",
+        "8767"
+      ],
+      "old_items": [
+        {
+          "item_id": 207139,
+          "bonus_ids": [
+            "6652",
+            "10533",
+            "7981",
+            "10340",
+            "10884",
+            "1602",
+            "8767"
+          ]
+        }
+      ],
+      "same_response_amount": 3,
+      "note": "bis",
+      "wish_data": [
+        {
+          "value": 2902,
+          "spec_name": "Holy",
+          "spec_icon": "spell_holy_holybolt"
+        }
+      ],
+      "wish_value": 2902
+    },
+    {
+      "id": 1,
+      "rclootcouncil_id": "1715197229-0",
+      "item_id": 207162,
+      "name": "Signet of the Last Elder",
+      "icon": "inv_10_dungeonjewelry_explorer_ring_2_color5",
+      "slot": "Finger",
+      "quality": "epic",
+      "character_id": 2,
+      "awarded_by_character_id": 1,
+      "awarded_by_name": "Sheday-Stormrage",
+      "awarded_at": "2024-10-01T19:52:57.969Z",
+      "difficulty": "mythic",
+      "discarded": false,
+      "response_type": {
+        "id": 2,
+        "name": "Minor",
+        "rgba": "rgba(0, 255, 0, 1)",
+        "excluded": false,
+        "propagated_to": null
+      },
+      "bonus_ids": [
+        "6652",
+        "10533",
+        "7981",
+        "10340",
+        "10884",
+        "1602",
+        "8767"
+      ],
+      "old_items": [
+        {
+          "item_id": 207139,
+          "bonus_ids": [
+            "6652",
+            "10533",
+            "7981",
+            "10340",
+            "10884",
+            "1602",
+            "8767"
+          ]
+        },
+        {
+          "item_id": 202602,
+          "bonus_ids": [
+            "6652",
+            "10533",
+            "7981",
+            "10340",
+            "10884",
+            "1602",
+            "8767"
+          ]
+        }
+      ],
+      "same_response_amount": 0,
+      "note": null,
+      "wish_data": [
+        {
+          "value": 2902,
+          "spec_name": "Holy",
+          "spec_icon": "spell_holy_holybolt"
+        }
+      ],
+      "wish_value": 2902
+    }
+  ]
+}
+GET
+​/v1​/period
+Returns the current Blizzard keystone period and season (used in other endpoints)
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "current_period": 978,
+  "current_season": {
+    "id": 1,
+    "name": "Season 3",
+    "start_date": "2014-10-01",
+    "end_date": "2025-10-01",
+    "kind": "live",
+    "expansion": "Dragonflight",
+    "keystone_season_id": 11,
+    "pvp_season_id": 36,
+    "first_period_id": 933
+  }
+}
+GET
+​/v1​/team
+Show details of the current team
+
+Parameters
+Try it out
+No parameters
+
+Responses
+Response content type
+
+application/json
+Code	Description
+200	
+{
+  "name": "Test",
+  "id": 2,
+  "guild_name": "Avalerion",
+  "url": "https://wowaudit.com/eu/stormrage/avalerion/test",
+  "last_refreshed": {
+    "blizzard": "2021-03-20T14:31:30.000+00:00",
+    "percentiles": "2021-03-20T14:33:49.000+00:00",
+    "mythic_plus": "2021-03-20T14:35:54.000+00:00"
+  },
+  "raid_days": [
+    {
+      "week_day": "Sunday",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "current_instance": "Amirdrassil, the Dream's Hope",
+      "difficulty": "Mythic",
+      "active_from": "2024-10-01"
+    },
+    {
+      "week_day": "Wednesday",
+      "start_time": "20:30",
+      "end_time": "23:30",
+      "current_instance": "Amirdrassil, the Dream's Hope",
+      "difficulty": "Mythic",
+      "active_from": "2024-10-01"
+    }
+  ],
+  "wishlist_updated_at": 1727812444
+}

@@ -34,11 +34,6 @@ yarn-error.log
 # eyeballing without spinning up a server).
 /storage/dashboard-render.html
 
-# Reference docs scraped from third-party sites (raid-helper, wowaudit,
-# etc) often contain the user's own API keys in the example sections.
-# Never commit them to the repo - keep them local.
-/docs/
-
 # NOTE: /public/build is intentionally NOT ignored. Hostinger has no node,
 # so Vite output is committed and ships via git pull. See deploy.ps1.
 
