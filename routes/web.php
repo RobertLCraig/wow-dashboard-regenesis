@@ -30,6 +30,12 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     // Standalone page so heroic + mythic raiders both find it in one place.
     Route::get('/dashboard/keynight', [\App\Http\Controllers\Dashboard\KeynightController::class, 'index'])->name('dashboard.keynight');
 
+    // Searchable + filterable consolidated roster. Replaces the
+    // alt-groups + recently-inactive widgets on the General dashboard
+    // (those become deprecated link-throughs once Roster lands).
+    Route::get('/roster', [\App\Http\Controllers\Dashboard\RosterController::class, 'index'])->name('roster.index');
+    Route::get('/roster.csv', [\App\Http\Controllers\Dashboard\RosterController::class, 'csv'])->name('roster.csv');
+
     Route::get('/events', [\App\Http\Controllers\Events\EventController::class, 'index'])->name('events.index');
     Route::get('/events/new', [\App\Http\Controllers\Events\EventController::class, 'create'])->name('events.create');
     Route::post('/events', [\App\Http\Controllers\Events\EventController::class, 'store'])->name('events.store');

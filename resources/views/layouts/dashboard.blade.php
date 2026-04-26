@@ -144,14 +144,15 @@
      */
     $navPrimary = [
         ['route' => 'dashboard',              'label' => 'General',          'matches' => ['dashboard'],              'can' => 'dashboard.general.view'],
+        ['route' => 'roster.index',           'label' => 'Roster',           'matches' => ['roster.*'],               'can' => 'roster.view'],
         ['route' => 'dashboard.team.heroic',  'label' => 'Heroic Team',      'matches' => ['dashboard.team.heroic'],  'can' => 'dashboard.team.heroic.view'],
         ['route' => 'dashboard.team.mythic',  'label' => 'Mythic Team',      'matches' => ['dashboard.team.mythic'],  'can' => 'dashboard.team.mythic.view'],
         ['route' => 'dashboard.keynight',     'label' => 'Keynight (M+)',    'matches' => ['dashboard.keynight'],     'can' => 'dashboard.keynight.view'],
     ];
     $navAdmin = [
-        ['route' => 'events.index',           'label' => 'Events',           'matches' => ['events.*'],               'can' => 'events.create'],
-        ['route' => 'admin.teams.index',      'label' => 'Team mapping',     'matches' => ['admin.teams.*'],          'can' => 'settings.manage'],
-        ['route' => 'admin.sync.index',       'label' => 'Sync',             'matches' => ['admin.sync.*'],           'can' => 'settings.manage'],
+        ['route' => 'events.index',                 'label' => 'Events',         'matches' => ['events.*'],                       'can' => 'events.create'],
+        ['route' => 'admin.teams.index',            'label' => 'Team mapping',   'matches' => ['admin.teams.index', 'admin.teams.update'], 'can' => 'settings.manage'],
+        ['route' => 'admin.sync.index',             'label' => 'Sync',           'matches' => ['admin.sync.*'],                   'can' => 'settings.manage'],
     ];
     $navLink = function (array $item) {
         $active = request()->routeIs(...$item['matches']);
@@ -161,6 +162,12 @@
             : 'text-muted hover:text-ink hover:bg-line/40';
         return [$base . ' ' . $cls, $active];
     };
+    // Filter out nav items whose route name doesn't exist yet, so we
+    // can list aspirational pages (like the upcoming Roster page)
+    // without breaking the layout when their controller isn't wired
+    // up. Once the route lands, the link appears automatically.
+    $navPrimary = array_values(array_filter($navPrimary, fn ($i) => \Illuminate\Support\Facades\Route::has($i['route'])));
+    $navAdmin   = array_values(array_filter($navAdmin,   fn ($i) => \Illuminate\Support\Facades\Route::has($i['route'])));
 @endphp
 
 <div class="flex min-h-screen">
