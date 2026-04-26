@@ -35,6 +35,21 @@ function deepReportResponse(): array
         ['name' => 'Healer', 'type' => 'PRIEST', 'icon' => 'Priest-Holy', 'total' => 800_000, 'itemLevel' => 642],
     ]]]);
 
+    // Rankings: per-fight, per-role, per-character percentile rolls.
+    // Sheday parses well on the kill, Bruiser parses badly. Healer
+    // gets a healing rank. Wipe (fight 2) has no rankings.
+    $dpsRankings = json_encode(['data' => [
+        ['fightID' => 1, 'roles' => ['dps' => ['characters' => [
+            ['name' => 'Sheday',  'rankPercent' => 92.7, 'bracketPercent' => 88.2],
+            ['name' => 'Bruiser', 'rankPercent' => 14.0, 'bracketPercent' => 22.0],
+        ]]]],
+    ]]);
+    $hpsRankings = json_encode(['data' => [
+        ['fightID' => 1, 'roles' => ['healers' => ['characters' => [
+            ['name' => 'Healer', 'rankPercent' => 75.5, 'bracketPercent' => 70.0],
+        ]]]],
+    ]]);
+
     return ['data' => ['reportData' => ['report' => [
         'code' => 'rrrrrr',
         'title' => 'Tuesday Heroic',
@@ -48,6 +63,8 @@ function deepReportResponse(): array
         ],
         'damage' => $damage,
         'healing' => $healing,
+        'dpsRankings' => $dpsRankings,
+        'hpsRankings' => $hpsRankings,
     ]]]];
 }
 
@@ -111,6 +128,55 @@ it('matches the parse to a local member when names align (case-insensitive)', fu
 
     $unknown = WclActorParse::query()->where('actor_name', 'Bruiser')->first();
     expect($unknown->member_id)->toBeNull();
+});
+
+it('fills parse_percentile + bracket_percentile from the rankings blobs on the kill', function () {
+    Http::fake([
+        'wcl.test/oauth/token'   => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
+        'wcl.test/api/v2/client' => Http::response(deepReportResponse(), 200),
+    ]);
+    $report = WclReport::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'code' => 'rrrrrr', 'title' => 't',
+        'start_time' => CarbonImmutable::parse('2026-04-22 19:30'),
+        'captured_at' => now(),
+    ]);
+
+    $r = WclFightImporter::fromConfig()->backfillUnimported();
+    expect($r['parses_ranked'])->toBe(3);  // sheday + bruiser dps + healer hps on fight 1
+
+    $kill = WclFight::query()->where('wcl_report_id', $report->id)->where('fight_id', 1)->first();
+    $sheday = WclActorParse::query()->where('wcl_fight_id', $kill->id)->where('actor_name', 'Sheday')->first();
+    expect($sheday->parse_percentile)->toBe(93);   // 92.7 rounds to 93
+    expect($sheday->bracket_percentile)->toBe(88);
+
+    $bruiser = WclActorParse::query()->where('wcl_fight_id', $kill->id)->where('actor_name', 'Bruiser')->first();
+    expect($bruiser->parse_percentile)->toBe(14);
+
+    $healer = WclActorParse::query()->where('wcl_fight_id', $kill->id)->where('actor_name', 'Healer')->first();
+    expect($healer->parse_percentile)->toBe(76);   // 75.5 rounds to 76
+});
+
+it('leaves percentile null on fights with no rankings entry (e.g. wipes)', function () {
+    Http::fake([
+        'wcl.test/oauth/token'   => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
+        'wcl.test/api/v2/client' => Http::response(deepReportResponse(), 200),
+    ]);
+    $report = WclReport::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'code' => 'rrrrrr', 'title' => 't',
+        'start_time' => CarbonImmutable::parse('2026-04-22 19:30'),
+        'captured_at' => now(),
+    ]);
+
+    WclFightImporter::fromConfig()->backfillUnimported();
+
+    $wipe = WclFight::query()->where('wcl_report_id', $report->id)->where('fight_id', 2)->first();
+    $parses = WclActorParse::query()->where('wcl_fight_id', $wipe->id)->get();
+    foreach ($parses as $p) {
+        expect($p->parse_percentile)->toBeNull();
+        expect($p->bracket_percentile)->toBeNull();
+    }
 });
 
 it('skips reports that already have fights_imported_at set unless forced', function () {

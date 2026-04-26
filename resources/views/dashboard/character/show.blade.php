@@ -161,6 +161,7 @@
                                 <th class="text-left px-2 py-2">Diff</th>
                                 <th class="text-left px-2 py-2">Result</th>
                                 <th class="text-right px-2 py-2">Per second</th>
+                                <th class="text-right px-2 py-2">Parse</th>
                                 <th class="text-right px-4 py-2">Report</th>
                             </tr>
                         </thead>
@@ -184,6 +185,9 @@
                                     </td>
                                     <td class="px-2 py-1.5 font-mono text-right">
                                         {{ $p->metric_per_second !== null ? number_format($p->metric_per_second, 0) : '-' }}
+                                    </td>
+                                    <td class="px-2 py-1.5 text-right">
+                                        <x-parse-pill :percentile="$p->parse_percentile" />
                                     </td>
                                     <td class="px-4 py-1.5 text-right">
                                         @if ($f?->report)

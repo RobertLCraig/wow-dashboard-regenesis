@@ -73,6 +73,8 @@
                                     <th class="px-2 py-2">Class</th>
                                     <th class="px-2 py-2">Role</th>
                                     <th class="px-2 py-2 text-right">Per second</th>
+                                    <th class="px-2 py-2 text-right">Parse</th>
+                                    <th class="px-2 py-2 text-right">Bracket</th>
                                     <th class="px-2 py-2 text-right">ilvl</th>
                                 </tr>
                             </thead>
@@ -90,6 +92,12 @@
                                         <td class="px-2 py-1.5 text-muted text-xs">{{ ucfirst($p->role ?? '-') }}</td>
                                         <td class="px-2 py-1.5 font-mono text-right">
                                             {{ $p->metric_per_second !== null ? number_format($p->metric_per_second, 0) : '-' }}
+                                        </td>
+                                        <td class="px-2 py-1.5 text-right">
+                                            <x-parse-pill :percentile="$p->parse_percentile" />
+                                        </td>
+                                        <td class="px-2 py-1.5 text-right">
+                                            <x-parse-pill :percentile="$p->bracket_percentile" />
                                         </td>
                                         <td class="px-2 py-1.5 font-mono text-right">{{ $p->item_level ?? '-' }}</td>
                                     </tr>
