@@ -8,7 +8,10 @@ use App\Models\MemberSnapshot;
 use App\Models\RaidEvent;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
+use App\Models\WclActorParse;
 use App\Services\Teams\TeamScheduleResolver;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 /**
@@ -59,7 +62,50 @@ class TeamDashboardController extends Controller
             'roster' => $this->teamRoster($guildKey, $members),
             'raidSummary' => $this->teamRaidSummary($guildKey, $members),
             'upcomingEvents' => $this->teamUpcomingEvents($preset['channel_id'] ?? null),
+            'topParses' => $this->topParses($members, days: 14),
         ]);
+    }
+
+    /**
+     * Best parse_percentile per member in the last `days` days, joined
+     * back to the fight + report so the widget can show what / when /
+     * where. Members with no parses in the window are dropped.
+     *
+     * @param  \Illuminate\Support\Collection<int, Member>  $members
+     * @return Collection<int, array{member: Member, parse: WclActorParse}>
+     */
+    private function topParses($members, int $days): Collection
+    {
+        if ($members->isEmpty()) {
+            return collect();
+        }
+
+        $since = CarbonImmutable::now()->subDays($days);
+
+        // One query: every parse for any of the team's members in the
+        // window, ordered so the first row per member is their best.
+        $parses = WclActorParse::query()
+            ->whereIn('member_id', $members->pluck('id'))
+            ->whereNotNull('parse_percentile')
+            ->whereHas('fight', fn ($q) => $q->where('start_time', '>=', $since))
+            ->with(['fight:id,wcl_report_id,name,difficulty,kill,start_time', 'fight.report:id,code,title'])
+            ->orderByDesc('parse_percentile')
+            ->orderByDesc('id')
+            ->get();
+
+        $byMember = [];
+        foreach ($parses as $p) {
+            // Keep only the first (highest-percentile) row per member.
+            if (! isset($byMember[$p->member_id])) {
+                $byMember[$p->member_id] = $p;
+            }
+        }
+
+        return $members
+            ->filter(fn ($m) => isset($byMember[$m->id]))
+            ->map(fn ($m) => ['member' => $m, 'parse' => $byMember[$m->id]])
+            ->sortByDesc(fn ($row) => $row['parse']->parse_percentile)
+            ->values();
     }
 
     /**

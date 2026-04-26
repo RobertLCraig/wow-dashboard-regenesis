@@ -25,4 +25,8 @@
             @include('dashboard.widgets.upcoming-events', ['upcomingEvents' => $upcomingEvents])
         </div>
     </div>
+
+    <div class="mt-6">
+        @include('dashboard.widgets.team-top-parses', ['topParses' => $topParses])
+    </div>
 @endsection

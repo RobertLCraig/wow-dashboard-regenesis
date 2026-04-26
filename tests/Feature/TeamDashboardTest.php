@@ -177,3 +177,94 @@ it('team page renders cleanly with no roster data', function () {
     $resp->assertOk()
         ->assertSee('No members on this team yet');
 });
+
+it('team page shows top parses (last 14 days) sorted by percentile desc', function () {
+    $h1 = teamMember('Healer-Silvermoon', TeamMapping::TEAM_HEROIC);
+    $h2 = teamMember('Tank-Silvermoon', TeamMapping::TEAM_HEROIC);
+    $h3 = teamMember('Dps-Silvermoon', TeamMapping::TEAM_HEROIC);
+    teamMember('Ignored-Silvermoon', TeamMapping::TEAM_MYTHIC); // off-team, must not appear
+
+    $report = \App\Models\WclReport::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'code' => 'rrrrrr', 'title' => 'Tuesday Heroic',
+        'start_time' => now()->subDays(2),
+        'captured_at' => now(),
+    ]);
+    $fight = \App\Models\WclFight::query()->create([
+        'wcl_report_id' => $report->id, 'fight_id' => 1,
+        'encounter_id' => 100, 'name' => 'Plexus Sentinel',
+        'difficulty' => \App\Models\WclFight::DIFFICULTY_HEROIC,
+        'kill' => true, 'best_percentage' => 0,
+        'start_time' => now()->subDays(2),
+    ]);
+    \App\Models\WclActorParse::query()->create([
+        'wcl_fight_id' => $fight->id, 'member_id' => $h1->id,
+        'actor_name' => 'Healer', 'role' => 'healer', 'parse_percentile' => 99,
+    ]);
+    \App\Models\WclActorParse::query()->create([
+        'wcl_fight_id' => $fight->id, 'member_id' => $h2->id,
+        'actor_name' => 'Tank', 'role' => 'dps', 'parse_percentile' => 80,
+    ]);
+    \App\Models\WclActorParse::query()->create([
+        'wcl_fight_id' => $fight->id, 'member_id' => $h3->id,
+        'actor_name' => 'Dps', 'role' => 'dps', 'parse_percentile' => null,  // unranked dropped
+    ]);
+
+    $resp = $this->actingAs(teamOfficer())->get('/dashboard/heroic');
+    $resp->assertOk()
+        ->assertSee('Best parses')
+        ->assertSee('Healer-Silvermoon')
+        ->assertSee('Tank-Silvermoon')
+        // Off-team member never appears at all.
+        ->assertDontSee('Ignored-Silvermoon');
+
+    // Widget header counts ranked members only - Dps-Silvermoon (null
+    // percentile) and Ignored (off-team) excluded.
+    $body = $resp->getContent();
+    expect($body)->toContain('2 members ranked');
+
+    // Healer (99) should appear before Tank (80) in the parses widget.
+    // The roster widget at the top shows them alphabetically (Dps,
+    // Healer, Tank) so we slice the body from "Best parses" onward.
+    $parsesSection = substr($body, strpos($body, 'Best parses'));
+    expect(strpos($parsesSection, 'Healer-Silvermoon'))->toBeLessThan(strpos($parsesSection, 'Tank-Silvermoon'));
+});
+
+it('team top-parses widget shows the empty state when no parses are in the window', function () {
+    teamMember('Active-Silvermoon', TeamMapping::TEAM_HEROIC);
+
+    $this->actingAs(teamOfficer())
+        ->get('/dashboard/heroic')
+        ->assertOk()
+        ->assertSee('No ranked parses yet');
+});
+
+it('team top-parses widget excludes parses older than 14 days', function () {
+    $h = teamMember('Healer-Silvermoon', TeamMapping::TEAM_HEROIC);
+
+    $report = \App\Models\WclReport::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'code' => 'rrrrrr', 'title' => 'Old report',
+        'start_time' => now()->subDays(30),
+        'captured_at' => now(),
+    ]);
+    $fight = \App\Models\WclFight::query()->create([
+        'wcl_report_id' => $report->id, 'fight_id' => 1,
+        'encounter_id' => 100, 'name' => 'Plexus Sentinel',
+        'difficulty' => 4, 'kill' => true,
+        'start_time' => now()->subDays(30),
+    ]);
+    \App\Models\WclActorParse::query()->create([
+        'wcl_fight_id' => $fight->id, 'member_id' => $h->id,
+        'actor_name' => 'Healer', 'role' => 'healer', 'parse_percentile' => 99,
+    ]);
+
+    // Member's name still appears via the roster widget; only the
+    // parses widget should treat them as having no recent parses.
+    $this->actingAs(teamOfficer())
+        ->get('/dashboard/heroic')
+        ->assertOk()
+        ->assertSee('No ranked parses yet')
+        // Old 99% pill must not appear in the rendered HTML.
+        ->assertDontSee('text-orange-300', false);
+});
