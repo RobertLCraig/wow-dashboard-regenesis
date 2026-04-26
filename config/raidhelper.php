@@ -66,18 +66,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Default channel for announcement / reminder pings
-    |--------------------------------------------------------------------------
-    |
-    | Channel name (no leading #) the create form pre-fills for new
-    | announcement rows. Should be a channel where the officers/raiders
-    | get notified. Used in both the API call and the /quickcreate
-    | command preview.
-    */
-    'default_announcement_channel' => env('RAIDHELPER_DEFAULT_ANNOUNCE_CHANNEL', 'moderator-officer'),
-
-    /*
-    |--------------------------------------------------------------------------
     | Default reminder offsets
     |--------------------------------------------------------------------------
     |
@@ -98,18 +86,17 @@ return [
     | Templates to offer in the dropdown
     |--------------------------------------------------------------------------
     |
-    | Raid-Helper has a long list of built-in templates; we curate a
-    | subset relevant to retail WoW raiding. Override per-environment if
-    | you ever switch to Classic / SoD. Template IDs are documented at
-    | https://raid-helper.xyz/documentation/reference - or run
-    | /quickcreate in Discord and copy the template number.
+    | Raid-Helper templates control how members sign up (not event size).
+    | We surface the two we actually use: 9 for raids (role + spec
+    | picker) and 1 for social events (accept / maybe / decline). Other
+    | templates exist (2-5: class picker; 6: role picker; 7: role +
+    | support; 8: yes-only) - add them here if you ever need them. The
+    | order here is the order in the form dropdown; first entry is the
+    | one new officers see selected by default.
     */
     'templates' => [
-        ['id' => '1', 'label' => 'Mythic+ Group'],
-        ['id' => '2', 'label' => 'Raid (10-man)'],
-        ['id' => '3', 'label' => 'Raid (20-man)'],
-        ['id' => '4', 'label' => 'Raid (30-man)'],
-        ['id' => '5', 'label' => 'Meeting / Hangout'],
+        ['id' => '9', 'label' => 'Raid event (role + spec)'],
+        ['id' => '1', 'label' => 'Social event (accept / maybe / decline)'],
     ],
 
     /*

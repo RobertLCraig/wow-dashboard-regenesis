@@ -24,15 +24,20 @@
         ->addDay()
         ->setTime($defH, $defM);
 
-    // Initial announcements: either the user's most recent submission
-    // (on validation failure) or the configured defaults.
+    // Reminder pings always get posted into the same Discord channel as
+    // the event signup itself, so derive the default name from the
+    // currently selected signup channel. Falls back to empty if the
+    // officer pasted an arbitrary ID we don't have a name for.
+    $defaultAnnouncementChannelName = collect($channels ?? [])
+        ->firstWhere('id', $oldChannelId)['name'] ?? '';
+
     $oldAnnouncements = old('announcements');
     $initialAnnouncements = is_array($oldAnnouncements) && count($oldAnnouncements) > 0
         ? $oldAnnouncements
         : array_map(fn ($a) => [
             'minutes' => $a['minutes'],
             'message' => $a['message'],
-            'channel' => $defaultAnnouncementChannel,
+            'channel' => $defaultAnnouncementChannelName,
         ], $defaultAnnouncements);
 @endphp
 <div class="max-w-2xl mx-auto">
@@ -61,11 +66,19 @@
               startsAt: @json(old("starts_at", $startsAtDefault->format("Y-m-d\TH:i"))),
               durationMinutes: @json(old("duration_minutes", 180)),
               endsAt: @json(old("ends_at", "")),
-              templateId: @json(old("template_id", "2")),
+              templateId: @json(old("template_id", "9")),
               leaderId: @json(old("leader_id", $leaderId)),
               announcements: @json($initialAnnouncements),
-              defaultAnnouncementChannel: @json($defaultAnnouncementChannel),
-              addAnnouncement() { this.announcements.push({ minutes: 60, message: "Event starting in 1 hour!", channel: this.defaultAnnouncementChannel }); },
+              init() {
+                  // Keep announcement rows pointed at the signup channel.
+                  // The x-data attribute is wrapped in single quotes, so
+                  // no apostrophes in this comment block.
+                  this.$watch("effectiveChannelName", (next) => {
+                      if (!next) return;
+                      this.announcements = this.announcements.map(a => ({ ...a, channel: next }));
+                  });
+              },
+              addAnnouncement() { this.announcements.push({ minutes: 60, message: "Event starting in 1 hour!", channel: this.effectiveChannelName || "" }); },
               removeAnnouncement(i) { this.announcements.splice(i, 1); },
               get effectiveChannelId() { return this.channelMode === "preset" ? this.channelPreset : this.channelOther; },
               get effectiveChannelName() {
@@ -182,6 +195,23 @@
                     <option value="{{ $tpl['id'] }}">{{ $tpl['label'] }}</option>
                 @endforeach
             </select>
+            <details class="mt-2 text-xs text-muted">
+                <summary class="cursor-pointer hover:text-ink">What's a template? (signup mechanics reference)</summary>
+                <p class="mt-2">
+                    Templates set <em>how members sign up</em>, not event size. Raid-Helper's own docs only formally describe the premium custom-template flow (IDs 17+); the built-in IDs below are what we've observed in our own events, not guaranteed Raid-Helper canon. Verify before adding a new one to the dropdown.
+                </p>
+                <ul class="mt-2 space-y-1 list-disc list-inside">
+                    <li><strong>1</strong>: Accept / Maybe / Decline. We use this for socials.</li>
+                    <li><strong>2-5</strong>: Class picker + bench / late / tentative / absence (game-specific variants we haven't confirmed).</li>
+                    <li><strong>6</strong>: Role picker (tank / melee / ranged / healer) + the usual bench / late / tentative / absence.</li>
+                    <li><strong>7</strong>: Same as 6 plus a Support role.</li>
+                    <li><strong>8</strong>: Yes-only + bench / late / tentative / absence.</li>
+                    <li><strong>9</strong>: Role + spec + bench / late / tentative / absence. We use this for raids.</li>
+                </ul>
+                <p class="mt-2">
+                    To expose another template, add it to <code class="text-[11px]">config/raidhelper.php</code> under <code class="text-[11px]">templates</code>. Test it on a throwaway event in a private channel first.
+                </p>
+            </details>
         </div>
 
         <div>
@@ -266,7 +296,7 @@
             </div>
             <p class="text-xs text-muted mt-1">
                 <strong>Minutes</strong> = how long before event start to ping.
-                <strong>Channel</strong> = the channel name (no leading #) to post the reminder in.
+                <strong>Channel</strong> auto-tracks the signup channel above (change the signup channel and these follow).
                 Empty rows are ignored on submit.
             </p>
         </div>

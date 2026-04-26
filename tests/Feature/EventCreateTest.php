@@ -17,6 +17,12 @@ beforeEach(function () {
             ['id' => '1430231966686511124', 'label' => 'social-events'],
             ['id' => '1247281653777301714', 'label' => 'heroic-raid-signup'],
         ],
+        // Pin the templates the controller validates against, independent
+        // of whatever the production config currently exposes.
+        'raidhelper.templates' => [
+            ['id' => '2', 'label' => 'Test class picker'],
+            ['id' => '9', 'label' => 'Test role + spec'],
+        ],
         'discord.guild_id' => '1247256415542841416',
         'discord.role_cache_ttl_minutes' => 5,
     ]);
@@ -149,6 +155,12 @@ it('rejects end_time before starts_at', function () {
         ->assertSessionHasErrors('ends_at');
 });
 
+it('rejects a template id that is not in the configured allowlist', function () {
+    $this->actingAs(officer())
+        ->post(route('events.store'), basePayload(['template_id' => '99']))
+        ->assertSessionHasErrors('template_id');
+});
+
 it('rejects a channel id that is not a numeric snowflake', function () {
     $this->actingAs(officer())
         ->post(route('events.store'), basePayload(['channel_id' => 'not-a-snowflake']))
@@ -180,7 +192,7 @@ it('humanises a Raid-Helper 404 with a channel-access hint', function () {
     $errors = session('errors')->get('raidhelper');
     expect($errors[0])
         ->toContain('Endpoint POST')
-        ->toContain('channel 999888777666555444')
+        ->toContain('Channel 999888777666555444')
         ->toContain('Send Messages');
 });
 
@@ -225,8 +237,8 @@ it('sends announcements to the API as both array and singular fields', function 
     $this->actingAs(officer())
         ->post(route('events.store'), basePayload([
             'announcements' => [
-                ['minutes' => 30, 'message' => '30 mins!', 'channel' => 'moderator-officer'],
-                ['minutes' => 1,  'message' => 'Starting now!', 'channel' => 'moderator-officer'],
+                ['minutes' => 30, 'message' => '30 mins!', 'channel' => 'heroic-raid-signup'],
+                ['minutes' => 1,  'message' => 'Starting now!', 'channel' => 'heroic-raid-signup'],
             ],
         ]))
         ->assertRedirect();
@@ -236,7 +248,7 @@ it('sends announcements to the API as both array and singular fields', function 
             && count($r['announcements']) === 2
             && $r['announcements'][0]['minutesBefore'] === 30
             && $r['announcements'][0]['message'] === '30 mins!'
-            && $r['announcements'][0]['channel'] === 'moderator-officer'
+            && $r['announcements'][0]['channel'] === 'heroic-raid-signup'
             && ($r['announcement']['minutesBefore'] ?? null) === 30; // first one mirrored as singular
     });
 });
@@ -248,7 +260,7 @@ it('strips empty announcement rows before validation', function () {
         ->post(route('events.store'), basePayload([
             'announcements' => [
                 ['minutes' => '', 'message' => '', 'channel' => ''],
-                ['minutes' => 60, 'message' => 'an hour!', 'channel' => 'moderator-officer'],
+                ['minutes' => 60, 'message' => 'an hour!', 'channel' => 'heroic-raid-signup'],
                 ['minutes' => '', 'message' => '', 'channel' => ''],
             ],
         ]))

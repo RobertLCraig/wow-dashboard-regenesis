@@ -39,7 +39,6 @@ class EventController extends Controller
             'defaultChannel' => config('raidhelper.default_channel_id'),
             'leaderId' => auth()->user()?->discord_id,
             'defaultAnnouncements' => config('raidhelper.default_announcements', []),
-            'defaultAnnouncementChannel' => config('raidhelper.default_announcement_channel', ''),
         ]);
     }
 
@@ -68,12 +67,13 @@ class EventController extends Controller
             'duration_mode' => ['required', 'in:duration,end_time,default'],
             'duration_minutes' => ['nullable', 'required_if:duration_mode,duration', 'integer', 'min:15', 'max:1440'],
             'ends_at' => ['nullable', 'required_if:duration_mode,end_time', 'date', 'after:starts_at'],
-            'template_id' => ['required', 'string'],
+            'template_id' => ['required', 'string', \Illuminate\Validation\Rule::in(
+                array_column(config('raidhelper.templates', []), 'id')
+            )],
             // Channel can come from the dropdown OR a pasted ID via the
             // "Other..." path, hence the looser validation here.
             'channel_id' => ['required', 'string', 'regex:/^\d{15,25}$/'],
             'leader_id' => ['required', 'string'],
-            'mentions' => ['nullable', 'string', 'max:200'],
             // Reminder pings. Each row: minutes before the event +
             // message + channel-name (no leading #) where the ping goes.
             // Empty rows from the form are stripped before validation
@@ -272,7 +272,7 @@ class EventController extends Controller
         $msg = "Raid-Helper rejected the request ({$resp->status()}): {$reason}";
 
         if ($resp->status() === 404) {
-            $msg .= " — channel {$channelId} likely isn't accessible. Check the ID is right (right-click channel in Discord with Developer Mode on -> Copy ID), and make sure the Raid-Helper bot has Send Messages + Embed Links + Add Reactions permissions in that channel.";
+            $msg .= ". Channel {$channelId} likely isn't accessible: check the ID is right (right-click channel in Discord with Developer Mode on -> Copy ID), and make sure the Raid-Helper bot has Send Messages + Embed Links + Add Reactions permissions in that channel.";
         }
 
         return $msg;
