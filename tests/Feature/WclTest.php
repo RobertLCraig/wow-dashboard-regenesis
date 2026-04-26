@@ -166,14 +166,34 @@ it('wcl:pull command short-circuits when credentials are missing', function () {
         ->assertExitCode(0);
 });
 
-it('wcl:pull command runs the importer end-to-end', function () {
+it('wcl:pull command runs the reports importer end-to-end (fights skipped via flag)', function () {
     Http::fake([
         'wcl.test/oauth/token' => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
         'wcl.test/api/v2/client' => Http::response(fakeReportsResponse(), 200),
     ]);
 
+    $this->artisan('wcl:pull', ['--no-fights' => true])
+        ->expectsOutputToContain('Reports: fetched 2, 2 new')
+        ->assertExitCode(0);
+});
+
+it('wcl:pull also backfills fights for newly inserted reports by default', function () {
+    Http::fake([
+        'wcl.test/oauth/token' => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
+        // First call: report list. Subsequent: empty deep-report nodes
+        // (we just want the command to wire up the second importer).
+        'wcl.test/api/v2/client' => Http::sequence()
+            ->push(fakeReportsResponse(), 200)
+            ->whenEmpty(Http::response(['data' => ['reportData' => ['report' => [
+                'code' => 'x', 'title' => 'x', 'fights' => [],
+                'damage' => '{"data":{"entries":[]}}',
+                'healing' => '{"data":{"entries":[]}}',
+            ]]]], 200)),
+    ]);
+
     $this->artisan('wcl:pull')
-        ->expectsOutputToContain('Fetched 2 reports: 2 new')
+        ->expectsOutputToContain('Reports: fetched 2, 2 new')
+        ->expectsOutputToContain('Fights: processed 2 reports')
         ->assertExitCode(0);
 });
 

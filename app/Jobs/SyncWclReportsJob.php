@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Services\Sync\SyncStatus;
+use App\Services\Wcl\WclFightImporter;
 use App\Services\Wcl\WclReportImporter;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -41,13 +42,17 @@ class SyncWclReportsJob implements ShouldQueue
 
         try {
             $result = WclReportImporter::fromConfig()->pull();
+            // Best-effort fights backfill; cap is generous for the
+            // background path since the wall-clock budget is bigger
+            // than the foreground HTTP request.
+            $fights = WclFightImporter::fromConfig()->backfillUnimported(maxReports: 5);
 
             SyncStatus::set(SyncStatus::SOURCE_WCL, [
                 'status' => SyncStatus::DONE,
                 'started_at' => SyncStatus::get(SyncStatus::SOURCE_WCL)['started_at'] ?? now()->toIso8601String(),
                 'started_by_user_id' => $this->startedByUserId,
                 'finished_at' => now()->toIso8601String(),
-                'summary' => $result,
+                'summary' => array_merge($result, ['fights' => $fights]),
                 'error' => null,
             ]);
         } catch (\Throwable $e) {
