@@ -117,6 +117,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Reminder offsets for our outbound webhook dispatcher
+    |--------------------------------------------------------------------------
+    |
+    | Distinct from default_announcements (which configures Raid-Helper's
+    | own in-channel announcements). This is the schedule the dashboard
+    | uses to post to event_reminder webhooks. Each entry is the minutes
+    | before start_time at which to fire the reminder; the dispatcher
+    | runs every 5 min so offsets within ~5 min of each other dedupe to
+    | the closest tick.
+    */
+    'reminder_offsets' => [60, 30, 5],
+
+    /*
+    |--------------------------------------------------------------------------
     | Templates to offer in the dropdown
     |--------------------------------------------------------------------------
     |

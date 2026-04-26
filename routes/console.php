@@ -68,3 +68,12 @@ Schedule::command('wcl:pull')
     ->timezone(config('raidhelper.timezone', 'Europe/London'))
     ->onOneServer()
     ->withoutOverlapping();
+
+// Pre-raid reminder pings to the event_reminder webhooks. Idempotent
+// via event_reminder_log so a 5-minute tick that catches the same
+// (event, offset) twice doesn't double-post. No-op when no event
+// matches an offset window.
+Schedule::command('events:dispatch-reminders')
+    ->everyFiveMinutes()
+    ->onOneServer()
+    ->withoutOverlapping();
