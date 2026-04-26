@@ -133,6 +133,66 @@
         }
         body.mode-high-clarity em,
         body.mode-high-clarity i { font-style: normal; font-weight: 600; }
+
+        /* Clarity-tabular: tables that opt-in to the stacked-card render
+           in high-clarity mode. Standard mode leaves the table alone.
+           Each row becomes a bordered card; each cell becomes a labelled
+           line with the column name pulled from data-label. */
+        body.mode-high-clarity table.clarity-tabular,
+        body.mode-high-clarity table.clarity-tabular thead,
+        body.mode-high-clarity table.clarity-tabular tbody,
+        body.mode-high-clarity table.clarity-tabular tr,
+        body.mode-high-clarity table.clarity-tabular td,
+        body.mode-high-clarity table.clarity-tabular th {
+            display: block;
+            border: none;
+            text-align: left !important;
+        }
+        body.mode-high-clarity table.clarity-tabular thead { display: none; }
+        body.mode-high-clarity table.clarity-tabular tbody tr[data-row] {
+            border: 2px solid #2a2a35;
+            border-radius: 0.5rem;
+            padding: 0.85rem 1rem;
+            margin: 0 0.75rem 0.85rem;
+            background: rgba(0,0,0,0.15);
+        }
+        body.mode-high-clarity table.clarity-tabular tbody tr[data-row]:first-child { margin-top: 0.85rem; }
+        body.mode-high-clarity table.clarity-tabular tbody tr[data-card-title]::before {
+            content: attr(data-card-title);
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #e6e6f0;
+            margin-bottom: 0.4rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 1px solid #2a2a35;
+        }
+        body.mode-high-clarity table.clarity-tabular tbody td {
+            padding: 0.2rem 0;
+            font-size: 0.875rem;
+        }
+        body.mode-high-clarity table.clarity-tabular tbody td[data-label]::before {
+            content: attr(data-label) ":";
+            display: inline-block;
+            min-width: 9ch;
+            color: #7a7a8c;
+            font-weight: 500;
+            margin-right: 0.5rem;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+        /* The empty-message row is purely a search-no-match indicator;
+           it should look like an inline note, not a card. */
+        body.mode-high-clarity table.clarity-tabular tbody tr[data-empty-message] {
+            border: none;
+            background: none;
+            margin: 0;
+            padding: 0.5rem 0;
+            font-style: italic;
+            color: #7a7a8c;
+        }
+        body.mode-high-clarity table.clarity-tabular tbody tr[data-empty-message]::before { content: none; }
+        body.mode-high-clarity table.clarity-tabular tbody tr[data-empty-message] td::before { content: none; }
     </style>
     {{-- WoW class colours, used by the timeline + inactive list. --}}
     <style>
