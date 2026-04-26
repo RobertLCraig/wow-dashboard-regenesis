@@ -5,6 +5,7 @@ use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
 use App\Models\User;
+use App\Services\Sync\SyncStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -154,7 +155,7 @@ it('officer can trigger an on-demand RIO sync', function () {
 
     $this->actingAs($user)
         ->post('/admin/raiderio/sync')
-        ->assertRedirect('/admin/teams')
+        ->assertRedirect('/admin/sync')
         ->assertSessionHas('status');
 
     expect(Snapshot::query()->where('source', Snapshot::SOURCE_RAIDERIO)->count())->toBe(1);
@@ -169,10 +170,10 @@ it('officer-trigger is rate-limited to once per hour', function () {
     ]);
     Http::fake(['*' => Http::response(['name' => 'x', 'realm' => 'Silvermoon'], 200)]);
 
-    $this->actingAs($user)->post('/admin/raiderio/sync')->assertRedirect('/admin/teams');
+    $this->actingAs($user)->post('/admin/raiderio/sync')->assertRedirect('/admin/sync');
     $this->actingAs($user)
         ->post('/admin/raiderio/sync')
-        ->assertRedirect('/admin/teams')
+        ->assertRedirect('/admin/sync')
         ->assertSessionHasErrors('raiderio');
 });
 
@@ -194,7 +195,7 @@ it('short-circuits when a fresh snapshot already exists (within last minute)', f
 
     $this->actingAs($user)
         ->post('/admin/raiderio/sync')
-        ->assertRedirect('/admin/teams')
+        ->assertRedirect('/admin/sync')
         ->assertSessionHas('status', fn ($status) => str_contains($status, 'already fresh'));
 
     // No HTTP calls were made because we returned the cached summary.
@@ -231,9 +232,11 @@ it('runs the importer when the most recent snapshot is older than the freshness 
 
     $this->actingAs($user)
         ->post('/admin/raiderio/sync')
-        ->assertRedirect('/admin/teams')
-        ->assertSessionHas('status', fn ($s) => str_contains($s, 'sync done'));
+        ->assertRedirect('/admin/sync')
+        ->assertSessionHas('status', fn ($s) => str_contains($s, 'sync started'));
 
+    // afterResponse() runs the dispatched job inline at end-of-request
+    // in the test harness, so the snapshot should already exist.
     Http::assertSentCount(1);
     expect(Snapshot::query()->where('source', Snapshot::SOURCE_RAIDERIO)->count())->toBe(2);
 });
@@ -243,15 +246,15 @@ it('rejects a concurrent press while another sync is running', function () {
     Http::fake();
 
     // Pretend another worker is already inside the importer by holding
-    // the lock manually before the request runs.
-    $lock = Cache::lock('raiderio-sync:running', 60);
+    // the mutex manually before the request runs.
+    $lock = Cache::lock(SyncStatus::raiderioMutexKey(), 60);
     expect($lock->get())->toBeTrue();
 
     $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
 
     $this->actingAs($user)
         ->post('/admin/raiderio/sync')
-        ->assertRedirect('/admin/teams')
+        ->assertRedirect('/admin/sync')
         ->assertSessionHas('status', fn ($s) => str_contains($s, 'already running'));
 
     // The blocked caller didn't burn an HTTP call OR a rate-limit token.

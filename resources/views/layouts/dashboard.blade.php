@@ -13,6 +13,92 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>[x-cloak] { display: none !important; }</style>
+    {{-- Reusable Alpine factory for sortable + searchable tables.
+         Wrap a table region with x-data="sortableTable()", mark data rows with
+         data-row, give each sortable cell data-sort-key="X" and (optionally)
+         data-sort-value="..." for a non-text sort key. Headers call sortBy('X')
+         and render an indicator with sortIcon('X'). Bind a no-name search
+         input via x-model="search". Trailing rows that should never sort or
+         hide (e.g. "add new" rows) get data-table-trailing. --}}
+    <script>
+        function sortableTable() {
+            return {
+                search: '',
+                sortKey: null,
+                sortDir: 'asc',
+                init() {
+                    this.$watch('search', () => this.applyFilter());
+                },
+                rowText(row) {
+                    const parts = [row.textContent];
+                    row.querySelectorAll('input, select, textarea').forEach(el => {
+                        if (el.type === 'hidden' || el.type === 'checkbox' || el.type === 'submit') return;
+                        if (el.tagName === 'SELECT') {
+                            parts.push(el.options[el.selectedIndex]?.text || '');
+                        } else {
+                            parts.push(el.value);
+                        }
+                    });
+                    return parts.join(' ').toLowerCase();
+                },
+                applyFilter() {
+                    const q = this.search.trim().toLowerCase();
+                    const rows = this.$root.querySelectorAll('tbody tr[data-row]');
+                    let visible = 0;
+                    rows.forEach(r => {
+                        const match = q === '' || this.rowText(r).includes(q);
+                        r.style.display = match ? '' : 'none';
+                        if (match) visible++;
+                    });
+                    const empty = this.$root.querySelector('[data-empty-message]');
+                    if (empty) empty.style.display = (visible === 0 && q !== '' && rows.length > 0) ? '' : 'none';
+                },
+                coerce(raw) {
+                    const t = (raw ?? '').toString().trim();
+                    if (t === '') return '';
+                    const n = Number(t);
+                    return Number.isNaN(n) ? t.toLowerCase() : n;
+                },
+                cellValue(row, key) {
+                    const cell = row.querySelector(`[data-sort-key="${key}"]`);
+                    if (!cell) return '';
+                    if (cell.dataset.sortValue !== undefined) return this.coerce(cell.dataset.sortValue);
+                    const inp = cell.querySelector('input:not([type=hidden]):not([type=checkbox]), select, textarea');
+                    if (inp) return this.coerce(inp.value);
+                    return this.coerce(cell.textContent);
+                },
+                sortBy(key) {
+                    if (this.sortKey === key) {
+                        this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        this.sortKey = key;
+                        this.sortDir = 'asc';
+                    }
+                    const tbody = this.$root.querySelector('tbody');
+                    if (!tbody) return;
+                    const all = Array.from(tbody.children);
+                    const dataRows = all.filter(r => r.matches('tr[data-row]'));
+                    const trailing = all.filter(r => r.matches('tr[data-table-trailing], tr[data-empty-message]'));
+                    const others = all.filter(r => !r.matches('tr[data-row], tr[data-table-trailing], tr[data-empty-message]'));
+                    const dir = this.sortDir === 'asc' ? 1 : -1;
+                    dataRows.sort((a, b) => {
+                        const av = this.cellValue(a, key);
+                        const bv = this.cellValue(b, key);
+                        if (av === '' && bv !== '') return 1;
+                        if (bv === '' && av !== '') return -1;
+                        if (av < bv) return -1 * dir;
+                        if (av > bv) return 1 * dir;
+                        return 0;
+                    });
+                    tbody.replaceChildren(...others, ...dataRows, ...trailing);
+                },
+                sortIcon(key) {
+                    if (this.sortKey !== key) return '↕';
+                    return this.sortDir === 'asc' ? '▲' : '▼';
+                },
+            };
+        }
+    </script>
     <script>
         tailwind.config = {
             theme: {
@@ -45,6 +131,7 @@
         .cls-WARLOCK     { color: #8788EE; }
         .cls-WARRIOR     { color: #C69B6D; }
     </style>
+    @stack('head')
 </head>
 <body class="bg-bg text-ink font-sans antialiased min-h-screen">
 <header class="border-b border-line">
@@ -57,6 +144,8 @@
                 <a href="{{ route('events.index') }}" class="hover:text-ink">Events</a>
                 <span class="text-line">|</span>
                 <a href="{{ route('admin.teams.index') }}" class="hover:text-ink">Team mapping</a>
+                <span class="text-line">|</span>
+                <a href="{{ route('admin.sync.index') }}" class="hover:text-ink">Sync</a>
                 <span class="text-line">|</span>
                 <span class="text-line">Roster (soon)</span>
             </nav>

@@ -38,6 +38,12 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     // On-demand Raider.IO refresh. Same logic as the scheduled
     // raiderio:pull command; rate-limited per officer.
     Route::post('/admin/raiderio/sync', [\App\Http\Controllers\Admin\RaiderioSyncController::class, 'store'])->name('admin.raiderio.sync');
+
+    // Dedicated sync dashboard: per-source status panels + GRM file
+    // upload + on-demand sync triggers. Auto-refreshes while a sync
+    // is in progress so officers can see results without reloading.
+    Route::get('/admin/sync', [\App\Http\Controllers\Admin\SyncDashboardController::class, 'index'])->name('admin.sync.index');
+    Route::post('/admin/sync/grm', [\App\Http\Controllers\Admin\SyncDashboardController::class, 'uploadGrm'])->name('admin.sync.grm.upload');
 });
 
 // .ics download for a single event. Signed via HMAC(ics_uid|ics_sequence)
