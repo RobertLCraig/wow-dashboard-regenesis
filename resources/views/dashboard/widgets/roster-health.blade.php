@@ -3,7 +3,7 @@
     $deltaClass = $delta > 0 ? 'text-emerald-400' : ($delta < 0 ? 'text-rose-400' : 'text-muted');
     $deltaLabel = ($delta > 0 ? '+' : '') . $delta;
 @endphp
-<section class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<section class="grid grid-cols-2 md:grid-cols-4 gap-4 clarity-keep-grid">
     <div class="bg-panel border border-line rounded-lg p-4" x-data="{ explain: false }">
         <div class="text-xs uppercase tracking-wider text-muted flex items-center gap-1.5">
             <span>Active members</span>

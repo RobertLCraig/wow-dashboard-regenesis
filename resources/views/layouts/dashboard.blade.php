@@ -191,8 +191,11 @@
 
         /* Force every responsive grid to single-column so adjacent
            widgets stack instead of sitting side-by-side. The grid still
-           lays out as flow, just one item per row with generous gap. */
-        body.mode-high-clarity .grid {
+           lays out as flow, just one item per row with generous gap.
+           Opt-out: any widget whose internal grid is small enough to
+           genuinely belong on one line (e.g. a row of 4 KPI cards)
+           can wear .clarity-keep-grid to skip the override. */
+        body.mode-high-clarity .grid:not(.clarity-keep-grid) {
             display: flex !important;
             flex-direction: column;
             gap: 1.75rem;

@@ -5,14 +5,12 @@
 @section('content')
     <h1 class="text-xl font-semibold mb-6">General Guild Management</h1>
 
-    {{-- Single responsive grid for the whole dashboard. Each widget
-         declares its own col-span via its wrapper. Defaults below md
-         collapse to one column for free. --}}
+    {{-- Single responsive grid for the whole dashboard. DOM order is
+         priority order: it's what High-clarity mode flattens to when
+         it overrides the grid into single-column flow. Standard mode
+         pairs widgets into rows via per-widget col-span hints below. --}}
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        <div class="col-span-full">
-            @include('dashboard.widgets.roster-health', ['health' => $health])
-        </div>
-
+        {{-- Row 1: today's decisions + what's coming --}}
         <div class="col-span-full xl:col-span-2">
             @include('dashboard.widgets.action-queue', ['actionQueue' => $actionQueue])
         </div>
@@ -20,6 +18,24 @@
             @include('dashboard.widgets.upcoming-events', ['upcomingEvents' => $upcomingEvents])
         </div>
 
+        {{-- Row 2: at-a-glance roster KPIs (keeps its internal 4-up
+             grid even in High mode via clarity-keep-grid). --}}
+        <div class="col-span-full">
+            @include('dashboard.widgets.roster-health', ['health' => $health])
+        </div>
+
+        {{-- Row 3: people-focus trio --}}
+        <div>
+            @include('dashboard.widgets.recently-inactive', ['inactive' => $inactive])
+        </div>
+        <div>
+            @include('dashboard.widgets.anniversaries', ['anniversaries' => $anniversaries])
+        </div>
+        <div>
+            @include('dashboard.widgets.alt-groups', ['altGroups' => $altGroups])
+        </div>
+
+        {{-- Row 4: team composition snapshot --}}
         <div class="col-span-full xl:col-span-2">
             @include('dashboard.widgets.team-progression', ['teamProgression' => $teamProgression])
         </div>
@@ -27,20 +43,12 @@
             @include('dashboard.widgets.rank-distribution', ['rankDistribution' => $rankDistribution])
         </div>
 
+        {{-- Row 5: activity feed --}}
         <div class="col-span-full">
             @include('dashboard.widgets.log-timeline', ['timeline' => $timeline])
         </div>
 
-        <div>
-            @include('dashboard.widgets.recently-inactive', ['inactive' => $inactive])
-        </div>
-        <div>
-            @include('dashboard.widgets.alt-groups', ['altGroups' => $altGroups])
-        </div>
-        <div>
-            @include('dashboard.widgets.anniversaries', ['anniversaries' => $anniversaries])
-        </div>
-
+        {{-- Row 6: long-tail reference --}}
         <div>
             @include('dashboard.widgets.bans', ['bans' => $bans])
         </div>
