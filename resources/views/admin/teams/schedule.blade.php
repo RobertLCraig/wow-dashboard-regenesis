@@ -16,8 +16,8 @@
         <div>
             <h1 class="text-2xl font-semibold">Team schedule</h1>
             <p class="text-sm text-muted mt-1">
-                Per-team raid days and times. Drives the "Next Tue / Next Thu" pills on the
-                quick-create panels and any future scheduled-events views. Overrides apply
+                Per-team event days and start time. Drives the "Next Tue / Next Thu" pills on
+                the quick-create panels and any future scheduled-events views. Overrides apply
                 immediately; reset returns to the static <code class="text-ink">config/raidhelper.php</code> defaults.
             </p>
         </div>
@@ -81,7 +81,7 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <div class="md:col-span-2">
-                            <label class="block text-xs uppercase tracking-wider text-muted mb-2">Raid days</label>
+                            <label class="block text-xs uppercase tracking-wider text-muted mb-2">Event days</label>
                             <div class="flex flex-wrap gap-1.5">
                                 @foreach ($weekdays as $iso => $label)
                                     @php $isOn = in_array($iso, $selected, false); @endphp
@@ -99,11 +99,11 @@
                                     </label>
                                 @endforeach
                             </div>
-                            <p class="text-xs text-muted mt-2">Click days to toggle. Empty list = no scheduled raid nights.</p>
+                            <p class="text-xs text-muted mt-2">Click days to toggle. Empty list = no scheduled event nights.</p>
                         </div>
 
                         <div>
-                            <label class="block text-xs uppercase tracking-wider text-muted mb-2" for="time-{{ $slug }}">Raid time</label>
+                            <label class="block text-xs uppercase tracking-wider text-muted mb-2" for="time-{{ $slug }}">Start time</label>
                             <input id="time-{{ $slug }}" type="time"
                                    name="teams[{{ $slug }}][raid_time]"
                                    value="{{ $time }}"
