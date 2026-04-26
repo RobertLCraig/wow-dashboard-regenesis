@@ -46,7 +46,8 @@
                                 <th class="px-2 py-2">Character</th>
                                 <th class="px-2 py-2 text-right">RIO</th>
                                 <th class="px-2 py-2 text-right">Weekly key</th>
-                                <th class="px-4 py-2 text-right">ilvl</th>
+                                <th class="px-2 py-2 text-right">ilvl</th>
+                                <th class="px-4 py-2 text-right">Links</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -63,7 +64,10 @@
                                     <td class="px-2 py-2 font-mono text-right">
                                         {{ $snap->mplus_keystone !== null ? '+' . $snap->mplus_keystone : '-' }}
                                     </td>
-                                    <td class="px-4 py-2 font-mono text-right">{{ $snap->ilvl ?? '-' }}</td>
+                                    <td class="px-2 py-2 font-mono text-right">{{ $snap->ilvl ?? '-' }}</td>
+                                    <td class="px-4 py-2 text-right">
+                                        <x-character-links :member="$snap->member" />
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>

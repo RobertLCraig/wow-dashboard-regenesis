@@ -37,7 +37,8 @@
                         <th class="px-2 py-2 font-medium text-right">ilvl</th>
                         <th class="px-2 py-2 font-medium text-right">RIO</th>
                         <th class="px-2 py-2 font-medium text-right">Key</th>
-                        <th class="px-4 py-2 font-medium">Raid</th>
+                        <th class="px-2 py-2 font-medium">Raid</th>
+                        <th class="px-4 py-2 font-medium text-right">Links</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -66,8 +67,11 @@
                             <td class="px-2 py-2 font-mono text-right">
                                 {{ $snap?->mplus_keystone !== null ? '+' . $snap->mplus_keystone : '-' }}
                             </td>
-                            <td class="px-4 py-2 font-mono text-xs">
+                            <td class="px-2 py-2 font-mono text-xs">
                                 {{ $row['raid_summary'] ?? '-' }}
+                            </td>
+                            <td class="px-4 py-2 text-right">
+                                <x-character-links :member="$m" />
                             </td>
                         </tr>
                     @endforeach

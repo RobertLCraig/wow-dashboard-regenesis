@@ -37,6 +37,7 @@
                     <th class="px-4 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('lastseen')">
                         Last seen <span class="text-muted" x-text="sortIcon('lastseen')"></span>
                     </th>
+                    <th class="px-4 py-2 font-medium text-right">Links</th>
                 </tr>
             </thead>
             <tbody>
@@ -61,10 +62,13 @@
                                 <span class="text-rose-400 ml-1 text-xs">({{ floor($days) }}d)</span>
                             @endif
                         </td>
+                        <td class="px-4 py-2 text-right">
+                            <x-character-links :member="$m" />
+                        </td>
                     </tr>
                 @endforeach
                 <tr data-empty-message style="display:none">
-                    <td colspan="3" class="px-4 py-4 text-center text-muted text-xs italic">No matches.</td>
+                    <td colspan="4" class="px-4 py-4 text-center text-muted text-xs italic">No matches.</td>
                 </tr>
             </tbody>
         </table>
