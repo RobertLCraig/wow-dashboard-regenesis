@@ -238,7 +238,7 @@
             <span class="w-5"></span>
         </header>
 
-        <main class="flex-1 px-6 py-8 max-w-6xl w-full">
+        <main class="flex-1 px-6 py-8 max-w-screen-2xl w-full">
             @yield('content')
         </main>
 

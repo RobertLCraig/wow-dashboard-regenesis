@@ -5,37 +5,48 @@
 @section('content')
     <h1 class="text-xl font-semibold mb-6">General Guild Management</h1>
 
-    @include('dashboard.widgets.roster-health', ['health' => $health])
+    {{-- Single responsive grid for the whole dashboard. Each widget
+         declares its own col-span via its wrapper. Defaults below md
+         collapse to one column for free. --}}
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div class="col-span-full">
+            @include('dashboard.widgets.roster-health', ['health' => $health])
+        </div>
 
-    <div class="mt-6">
-        @include('dashboard.widgets.team-progression', ['teamProgression' => $teamProgression])
-    </div>
+        <div class="col-span-full xl:col-span-2">
+            @include('dashboard.widgets.action-queue', ['actionQueue' => $actionQueue])
+        </div>
+        <div class="col-span-full md:col-span-2 xl:col-span-1">
+            @include('dashboard.widgets.upcoming-events', ['upcomingEvents' => $upcomingEvents])
+        </div>
 
-    <div class="mt-6">
-        @include('dashboard.widgets.upcoming-events', ['upcomingEvents' => $upcomingEvents])
-    </div>
+        <div class="col-span-full xl:col-span-2">
+            @include('dashboard.widgets.team-progression', ['teamProgression' => $teamProgression])
+        </div>
+        <div>
+            @include('dashboard.widgets.rank-distribution', ['rankDistribution' => $rankDistribution])
+        </div>
 
-    <div class="mt-6">
-        @include('dashboard.widgets.action-queue', ['actionQueue' => $actionQueue])
-    </div>
+        <div class="col-span-full">
+            @include('dashboard.widgets.log-timeline', ['timeline' => $timeline])
+        </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        @include('dashboard.widgets.anniversaries', ['anniversaries' => $anniversaries])
-        @include('dashboard.widgets.recently-inactive', ['inactive' => $inactive])
-    </div>
+        <div>
+            @include('dashboard.widgets.recently-inactive', ['inactive' => $inactive])
+        </div>
+        <div>
+            @include('dashboard.widgets.alt-groups', ['altGroups' => $altGroups])
+        </div>
+        <div>
+            @include('dashboard.widgets.anniversaries', ['anniversaries' => $anniversaries])
+        </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        @include('dashboard.widgets.alt-groups', ['altGroups' => $altGroups])
-        @include('dashboard.widgets.log-timeline', ['timeline' => $timeline])
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        @include('dashboard.widgets.bans', ['bans' => $bans])
-        @include('dashboard.widgets.rank-distribution', ['rankDistribution' => $rankDistribution])
-    </div>
-
-    <div class="mt-6">
-        @include('dashboard.widgets.churn', ['churn' => $churn])
+        <div>
+            @include('dashboard.widgets.bans', ['bans' => $bans])
+        </div>
+        <div class="col-span-full xl:col-span-2">
+            @include('dashboard.widgets.churn', ['churn' => $churn])
+        </div>
     </div>
 
     @if (! $lastSnapshot)
