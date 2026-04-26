@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Dashboard') | Regenesis</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('img/brand/phoenix-mark.png') }}">
     {{-- Tailwind via CDN keeps the deploy story simple while widgets
          are still being added. We'll move to a proper Vite build once
          the structure stabilises (probably when we add the event
@@ -328,7 +330,10 @@
         :class="navOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
     >
         <div class="px-5 py-4 border-b border-line flex items-center justify-between">
-            <a href="{{ route('dashboard') }}" class="font-semibold text-lg">Regenesis</a>
+            <a href="{{ route('dashboard') }}" class="font-semibold text-lg flex items-center gap-2">
+                <x-icon kind="brand" name="phoenix-mark" :size="28" alt="Regenesis" />
+                <span>Regenesis</span>
+            </a>
             <button type="button" class="md:hidden text-muted hover:text-ink" @click="navOpen = false" aria-label="Close menu">×</button>
         </div>
 
@@ -362,7 +367,27 @@
         <div class="px-4 py-3 border-t border-line text-xs text-muted space-y-2">
             <div class="truncate">{{ auth()->user()->discord_username }}</div>
             <div class="flex items-center justify-between">
-                <span class="uppercase text-[10px] tracking-wider">{{ auth()->user()->tier }}</span>
+                @php
+                    // big6 doesn't have a dedicated badge yet (see
+                    // accessibility/brand notes in next-session.md
+                    // section 6.5); alias to officer for now so the
+                    // sidebar always shows something rather than a
+                    // broken image.
+                    $tierName = auth()->user()->tier;
+                    $tierBadge = match ($tierName) {
+                        'gm'        => 'gm',
+                        'officer'   => 'officer',
+                        'big6'      => 'officer',
+                        'moderator' => 'moderator',
+                        default     => null,
+                    };
+                @endphp
+                <span class="flex items-center gap-1.5">
+                    @if ($tierBadge)
+                        <x-icon kind="guild-role" :name="$tierBadge" :size="16" />
+                    @endif
+                    <span class="uppercase text-[10px] tracking-wider">{{ $tierName }}</span>
+                </span>
                 <form method="POST" action="{{ route('logout') }}">@csrf
                     <button class="text-accent hover:underline">Sign out</button>
                 </form>
