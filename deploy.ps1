@@ -85,10 +85,16 @@ if (-not $SkipTest) {
 # ── 2/3. Build frontend assets ───────────────────────────────────────
 if (-not $SkipBuild) {
     Write-Step "[2/6]" "Installing/updating node modules..."
+    $hasLock = Test-Path 'package-lock.json'
     if (-not (Test-Path 'node_modules')) {
-        Write-Host "       node_modules missing, running npm ci..."
-        if (-not $DryRun) { npm ci; if ($LASTEXITCODE -ne 0) { throw "npm ci failed." } }
-    } else {
+        if ($hasLock) {
+            Write-Host "       node_modules missing, running npm ci..."
+            if (-not $DryRun) { npm ci; if ($LASTEXITCODE -ne 0) { throw "npm ci failed." } }
+        } else {
+            Write-Host "       node_modules and package-lock.json missing, running npm install..."
+            if (-not $DryRun) { npm install; if ($LASTEXITCODE -ne 0) { throw "npm install failed." } }
+        }
+    } elseif ($hasLock) {
         $lockTime    = (Get-Item 'package-lock.json').LastWriteTime
         $modulesTime = (Get-Item 'node_modules').LastWriteTime
         if ($lockTime -gt $modulesTime) {
@@ -97,6 +103,8 @@ if (-not $SkipBuild) {
         } else {
             Write-Host "       node_modules up to date."
         }
+    } else {
+        Write-Host "       node_modules present but no package-lock.json - skipping reinstall."
     }
 
     Write-Step "[3/6]" "Building assets with Vite..."
