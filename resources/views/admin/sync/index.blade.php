@@ -107,8 +107,16 @@
                     @endif
 
                     <div class="flex items-center gap-3 pt-1">
-                        @if ($key === 'raiderio' && $src['has_button'])
-                            <form method="POST" action="{{ route('admin.raiderio.sync') }}">
+                        @php
+                            $syncRoute = match ($key) {
+                                'raiderio' => 'admin.raiderio.sync',
+                                'wowaudit' => 'admin.wowaudit.sync',
+                                default => null,
+                            };
+                        @endphp
+
+                        @if ($src['has_button'] && $syncRoute)
+                            <form method="POST" action="{{ route($syncRoute) }}">
                                 @csrf
                                 <button type="submit"
                                         @disabled($running)

@@ -39,6 +39,9 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     // raiderio:pull command; rate-limited per officer.
     Route::post('/admin/raiderio/sync', [\App\Http\Controllers\Admin\RaiderioSyncController::class, 'store'])->name('admin.raiderio.sync');
 
+    // On-demand wowaudit refresh. Same shape as raiderio.sync.
+    Route::post('/admin/wowaudit/sync', [\App\Http\Controllers\Admin\WowauditSyncController::class, 'store'])->name('admin.wowaudit.sync');
+
     // Dedicated sync dashboard: per-source status panels + GRM file
     // upload + on-demand sync triggers. Auto-refreshes while a sync
     // is in progress so officers can see results without reloading.

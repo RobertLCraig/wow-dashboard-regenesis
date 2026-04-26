@@ -46,6 +46,11 @@ class SyncStatus
         return 'sync:mutex:raiderio';
     }
 
+    public static function wowauditMutexKey(): string
+    {
+        return 'sync:mutex:wowaudit';
+    }
+
     /**
      * @return array<string,mixed>|null
      */

@@ -51,7 +51,7 @@ class SyncDashboardController extends Controller
                 'snapshot' => $this->latestSnapshot($guildKey, Snapshot::SOURCE_WOWAUDIT),
                 'state' => SyncStatus::get(SyncStatus::SOURCE_WOWAUDIT),
                 'cadence' => 'Pull: hourly.',
-                'has_button' => false,
+                'has_button' => true,
                 'has_upload' => false,
             ],
             SyncStatus::SOURCE_RAIDERIO => [

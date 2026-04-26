@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\SyncRaiderioSnapshotJob;
+use App\Jobs\SyncWowauditSnapshotJob;
 use App\Models\Member;
 use App\Models\Snapshot;
 use App\Models\User;
@@ -184,6 +185,56 @@ it('GRM upload rejects a malformed .lua file with a clean error', function () {
 
     $state = SyncStatus::get(SyncStatus::SOURCE_GRM);
     expect($state['status'])->toBe('failed');
+});
+
+it('clicking wowaudit sync dispatches the job afterResponse and writes queued state', function () {
+    config(['wowaudit.api_key' => 'test-key', 'wowaudit.base_url' => 'https://wowaudit.test/v1']);
+    Bus::fake();
+
+    $this->actingAs(syncOfficer())
+        ->post('/admin/wowaudit/sync')
+        ->assertRedirect('/admin/sync');
+
+    Bus::assertDispatchedAfterResponse(SyncWowauditSnapshotJob::class);
+
+    $state = SyncStatus::get(SyncStatus::SOURCE_WOWAUDIT);
+    expect($state['status'])->toBe('queued');
+});
+
+it('refuses wowaudit sync when WOWAUDIT_API_KEY is empty', function () {
+    config(['wowaudit.api_key' => '']);
+
+    $this->actingAs(syncOfficer())
+        ->post('/admin/wowaudit/sync')
+        ->assertRedirect('/admin/sync')
+        ->assertSessionHasErrors('wowaudit');
+
+    expect(SyncStatus::get(SyncStatus::SOURCE_WOWAUDIT))->toBeNull();
+});
+
+it('non-officer is 403d from the wowaudit sync route', function () {
+    $u = User::factory()->create(['tier' => null, 'last_role_check_at' => now()]);
+    $this->actingAs($u)->post('/admin/wowaudit/sync')->assertStatus(403);
+});
+
+it('wowaudit short-circuits when a fresh snapshot already exists', function () {
+    config(['wowaudit.api_key' => 'test-key']);
+    Bus::fake();
+
+    Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now()->subMinute(),
+        'source' => Snapshot::SOURCE_WOWAUDIT,
+        'payload_hash' => 'fresh',
+        'member_count' => 22,
+    ]);
+
+    $this->actingAs(syncOfficer())
+        ->post('/admin/wowaudit/sync')
+        ->assertRedirect('/admin/sync')
+        ->assertSessionHas('status', fn ($s) => str_contains($s, 'already fresh'));
+
+    Bus::assertNotDispatchedAfterResponse(SyncWowauditSnapshotJob::class);
 });
 
 it('GRM upload deduplicates a second upload of the same file', function () {
