@@ -80,14 +80,7 @@ class DiscordWebhookController extends Controller
     {
         abort_unless(auth()->user()?->isOfficerTier(), 403);
 
-        $msg = sprintf(
-            "Test ping from Regenesis dashboard - %s (%s%s).",
-            $webhook->label,
-            DiscordWebhook::purposeLabel($webhook->purpose),
-            $webhook->team_slug ? " / {$webhook->team_slug}" : '',
-        );
-
-        $r = (new DiscordWebhookPoster($webhook->url))->post($msg);
+        $r = (new DiscordWebhookPoster($webhook->url))->post($this->pingMessage($webhook));
         if ($r['error']) {
             return redirect()
                 ->route('admin.webhooks.index')
@@ -96,6 +89,56 @@ class DiscordWebhookController extends Controller
         return redirect()
             ->route('admin.webhooks.index')
             ->with('status', "Test ping sent to \"{$webhook->label}\".");
+    }
+
+    /**
+     * Bulk-ping every enabled webhook in one click. Useful after
+     * editing several rows or migrating from the legacy env var to
+     * confirm the whole set is wired.
+     */
+    public function testAll(): RedirectResponse
+    {
+        abort_unless(auth()->user()?->isOfficerTier(), 403);
+
+        $hooks = DiscordWebhook::query()->enabled()->get();
+        if ($hooks->isEmpty()) {
+            return redirect()
+                ->route('admin.webhooks.index')
+                ->with('status', 'No enabled webhooks to test.');
+        }
+
+        $ok = 0;
+        $failed = [];
+        foreach ($hooks as $hook) {
+            $r = (new DiscordWebhookPoster($hook->url))->post($this->pingMessage($hook));
+            if ($r['error']) {
+                $failed[] = "\"{$hook->label}\" ({$r['error']})";
+                continue;
+            }
+            $ok++;
+        }
+
+        if ($failed === []) {
+            return redirect()
+                ->route('admin.webhooks.index')
+                ->with('status', "Test ping sent to {$ok} webhook(s).");
+        }
+        $failedList = implode('; ', $failed);
+        return redirect()
+            ->route('admin.webhooks.index')
+            ->withErrors([
+                'webhook' => "Test ping reached {$ok} webhook(s) but failed for: {$failedList}",
+            ]);
+    }
+
+    private function pingMessage(DiscordWebhook $webhook): string
+    {
+        return sprintf(
+            "Test ping from Regenesis dashboard - %s (%s%s).",
+            $webhook->label,
+            DiscordWebhook::purposeLabel($webhook->purpose),
+            $webhook->team_slug ? " / {$webhook->team_slug}" : '',
+        );
     }
 
     private function validatePayload(Request $request, bool $isUpdate = false): array

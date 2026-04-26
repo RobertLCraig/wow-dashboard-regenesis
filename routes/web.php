@@ -101,6 +101,7 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::put('/admin/webhooks/{webhook}',       [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'update'])->name('admin.webhooks.update');
     Route::delete('/admin/webhooks/{webhook}',    [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'destroy'])->name('admin.webhooks.destroy');
     Route::post('/admin/webhooks/{webhook}/test', [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'test'])->name('admin.webhooks.test');
+    Route::post('/admin/webhooks/test-all',        [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'testAll'])->name('admin.webhooks.test-all');
 });
 
 // .ics download for a single event. Signed via HMAC(ics_uid|ics_sequence)

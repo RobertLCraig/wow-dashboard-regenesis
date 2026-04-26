@@ -7,11 +7,21 @@
         <div>
             <h1 class="text-2xl font-semibold">Discord webhooks</h1>
             <p class="text-sm text-muted mt-1">
-                One row per webhook URL. The senders (weekly digest, future event
-                announcer, etc.) read this table to decide where to post. URLs are
-                encrypted at rest.
+                One row per webhook URL. The senders (weekly digest, event
+                announcer, event reminders) read this table to decide where to
+                post. URLs are encrypted at rest.
             </p>
         </div>
+        @if ($webhooks->isNotEmpty())
+            <form method="POST" action="{{ route('admin.webhooks.test-all') }}" class="shrink-0">
+                @csrf
+                <button type="submit"
+                        class="text-sm px-3 py-2 rounded border border-line bg-bg hover:bg-panel"
+                        title="Send a test ping to every enabled webhook">
+                    Test all
+                </button>
+            </form>
+        @endif
     </div>
 
     @if (session('status'))

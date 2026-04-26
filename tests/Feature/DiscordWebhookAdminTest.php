@@ -199,3 +199,51 @@ it('admin test posts a ping to the webhook URL', function () {
         && str_contains($req['content'], 'Test ping')
     );
 });
+
+it('admin test-all pings every enabled webhook and skips disabled ones', function () {
+    Http::fake(['discord.com/*' => Http::response('', 204)]);
+    makeWebhook(['label' => 'A', 'url' => 'https://discord.com/api/webhooks/1/aaa']);
+    makeWebhook(['label' => 'B', 'url' => 'https://discord.com/api/webhooks/2/bbb']);
+    makeWebhook(['label' => 'C-disabled', 'url' => 'https://discord.com/api/webhooks/3/ccc', 'enabled' => false]);
+
+    $this->actingAs(webhookOfficer())
+        ->post('/admin/webhooks/test-all')
+        ->assertRedirect('/admin/webhooks')
+        ->assertSessionHas('status', fn ($s) => str_contains($s, '2 webhook'));
+
+    Http::assertSentCount(2);
+    foreach (Http::recorded() as [$req]) {
+        expect($req->url())->not->toContain('webhooks/3/');
+    }
+});
+
+it('admin test-all reports a clean message when no enabled webhooks exist', function () {
+    Http::fake();
+    makeWebhook(['enabled' => false]);
+
+    $this->actingAs(webhookOfficer())
+        ->post('/admin/webhooks/test-all')
+        ->assertRedirect('/admin/webhooks')
+        ->assertSessionHas('status', fn ($s) => str_contains($s, 'No enabled webhooks'));
+
+    Http::assertNothingSent();
+});
+
+it('admin test-all surfaces failures while still reporting successes', function () {
+    Http::fake([
+        'discord.com/api/webhooks/1/*' => Http::response('', 204),         // OK
+        'discord.com/api/webhooks/2/*' => Http::response('forbidden', 403), // failed
+    ]);
+    makeWebhook(['label' => 'OK',     'url' => 'https://discord.com/api/webhooks/1/aaa']);
+    makeWebhook(['label' => 'Broken', 'url' => 'https://discord.com/api/webhooks/2/bbb']);
+
+    $this->actingAs(webhookOfficer())
+        ->post('/admin/webhooks/test-all')
+        ->assertRedirect('/admin/webhooks')
+        ->assertSessionHasErrors(['webhook']);
+});
+
+it('non-officer is 403d from test-all', function () {
+    $u = User::factory()->create(['tier' => null, 'last_role_check_at' => now()]);
+    $this->actingAs($u)->post('/admin/webhooks/test-all')->assertStatus(403);
+});
