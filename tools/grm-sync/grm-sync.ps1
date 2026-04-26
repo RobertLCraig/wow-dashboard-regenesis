@@ -124,6 +124,13 @@ $psi.RedirectStandardOutput = $true
 $psi.RedirectStandardError = $true
 $psi.UseShellExecute = $false
 $psi.CreateNoWindow = $true
+# extract.php emits UTF-8 (JSON_UNESCAPED_UNICODE keeps non-ASCII player
+# names as raw UTF-8 bytes). Without these, ReadToEnd() decodes via the
+# system code page (cp1252/cp437 on Windows), turning UTF-8 byte pairs
+# into Unicode chars that we then re-encode to UTF-8 on line ~146 -
+# producing the classic 'Adéék' -> 'Ad├®├®k' double-encoding bug.
+$psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8
+$psi.StandardErrorEncoding = [System.Text.Encoding]::UTF8
 $proc = [System.Diagnostics.Process]::Start($psi)
 $stdout = $proc.StandardOutput.ReadToEnd()
 $stderr = $proc.StandardError.ReadToEnd()
