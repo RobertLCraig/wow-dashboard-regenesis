@@ -62,6 +62,40 @@ return [
         ['id' => '1430231966686511124', 'name' => 'social-events',       'label' => '📅 social-events'],
         ['id' => '1247281653777301714', 'name' => 'heroic-raid-signup',  'label' => '✍ heroic-raid-signup'],
         ['id' => '1423413329954603039', 'name' => 'mythic-raid-signup',  'label' => '✍ mythic-raid-signup'],
+        ['id' => '1341149654045429962', 'name' => 'keynight-signup',     'label' => '✍ keynight-signup'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Per-team event presets
+    |--------------------------------------------------------------------------
+    |
+    | Drives the quick-create panels on the team dashboard pages
+    | (/dashboard/heroic, /dashboard/mythic, /dashboard/keynight). Each
+    | team has a signup channel and a list of weekday integers (1=Mon ..
+    | 7=Sun, ISO-8601 / Carbon::dayOfWeekIso) that the form pre-fills as
+    | "Next Tue / Next Thu / ..." pills. Template id is the Raid-Helper
+    | template the quick create posts with.
+    */
+    'teams' => [
+        'heroic' => [
+            'label' => 'Heroic Raid',
+            'channel_id' => '1247281653777301714', // heroic-raid-signup
+            'raid_days' => [2, 4],                 // Tue, Thu
+            'template_id' => '9',                  // role + spec
+        ],
+        'mythic' => [
+            'label' => 'Mythic Raid',
+            'channel_id' => '1423413329954603039', // mythic-raid-signup
+            'raid_days' => [3, 7],                 // Wed, Sun
+            'template_id' => '9',
+        ],
+        'keynight' => [
+            'label' => 'Keynight (M+)',
+            'channel_id' => '1341149654045429962', // keynight-signup
+            'raid_days' => [1],                    // Mon
+            'template_id' => '9',
+        ],
     ],
 
     /*

@@ -1,24 +1,18 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Dashboard')
+@section('title', 'General')
 
 @section('content')
+    <h1 class="text-xl font-semibold mb-6">General Guild Management</h1>
+
     @include('dashboard.widgets.roster-health', ['health' => $health])
 
     <div class="mt-6">
         @include('dashboard.widgets.team-progression', ['teamProgression' => $teamProgression])
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+    <div class="mt-6">
         @include('dashboard.widgets.upcoming-events', ['upcomingEvents' => $upcomingEvents])
-        @include('dashboard.widgets.attendance', ['attendance' => $attendance])
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-        <div class="lg:col-span-2">
-            @include('dashboard.widgets.vault-progress', ['wowaudit' => $wowaudit])
-        </div>
-        @include('dashboard.widgets.mplus-this-week', ['wowaudit' => $wowaudit])
     </div>
 
     <div class="mt-6">

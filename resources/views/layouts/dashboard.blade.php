@@ -133,52 +133,123 @@
     </style>
     @stack('head')
 </head>
-<body class="bg-bg text-ink font-sans antialiased min-h-screen">
-<header class="border-b border-line">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-6">
+<body class="bg-bg text-ink font-sans antialiased min-h-screen" x-data="{ navOpen: false }">
+@php
+    /**
+     * Sidebar nav model. Primary items are the four section pages
+     * (General + the three team pages). Admin items are utility pages
+     * an officer touches occasionally (event list, mapping, sync).
+     * Each item carries the route name(s) it should match for the
+     * "active" highlight + the gate ability that gates the link.
+     */
+    $navPrimary = [
+        ['route' => 'dashboard',              'label' => 'General',          'matches' => ['dashboard'],              'can' => 'dashboard.general.view'],
+        ['route' => 'dashboard.team.heroic',  'label' => 'Heroic Team',      'matches' => ['dashboard.team.heroic'],  'can' => 'dashboard.team.heroic.view'],
+        ['route' => 'dashboard.team.mythic',  'label' => 'Mythic Team',      'matches' => ['dashboard.team.mythic'],  'can' => 'dashboard.team.mythic.view'],
+        ['route' => 'dashboard.keynight',     'label' => 'Keynight (M+)',    'matches' => ['dashboard.keynight'],     'can' => 'dashboard.keynight.view'],
+    ];
+    $navAdmin = [
+        ['route' => 'events.index',           'label' => 'Events',           'matches' => ['events.*'],               'can' => 'events.create'],
+        ['route' => 'admin.teams.index',      'label' => 'Team mapping',     'matches' => ['admin.teams.*'],          'can' => 'settings.manage'],
+        ['route' => 'admin.sync.index',       'label' => 'Sync',             'matches' => ['admin.sync.*'],           'can' => 'settings.manage'],
+    ];
+    $navLink = function (array $item) {
+        $active = request()->routeIs(...$item['matches']);
+        $base = 'block px-3 py-2 rounded text-sm transition';
+        $cls = $active
+            ? 'bg-accent/15 text-ink border-l-2 border-accent pl-[10px]'
+            : 'text-muted hover:text-ink hover:bg-line/40';
+        return [$base . ' ' . $cls, $active];
+    };
+@endphp
+
+<div class="flex min-h-screen">
+    {{-- Sidebar. Fixed width on desktop; slides in from the left on mobile
+         when the hamburger is toggled. The mobile overlay is a sibling
+         div (not a wrapper) so the sidebar can stay sticky. --}}
+    <aside
+        class="fixed inset-y-0 left-0 z-30 w-60 bg-panel border-r border-line flex flex-col transform transition-transform md:translate-x-0 md:sticky md:top-0 md:h-screen"
+        :class="navOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
+    >
+        <div class="px-5 py-4 border-b border-line flex items-center justify-between">
             <a href="{{ route('dashboard') }}" class="font-semibold text-lg">Regenesis</a>
-            <nav class="hidden md:flex items-center gap-4 text-sm text-muted">
-                <a href="{{ route('dashboard') }}" class="hover:text-ink">Dashboard</a>
-                <span class="text-line">|</span>
-                <a href="{{ route('events.index') }}" class="hover:text-ink">Events</a>
-                <span class="text-line">|</span>
-                <a href="{{ route('admin.teams.index') }}" class="hover:text-ink">Team mapping</a>
-                <span class="text-line">|</span>
-                <a href="{{ route('admin.sync.index') }}" class="hover:text-ink">Sync</a>
-                <span class="text-line">|</span>
-                <span class="text-line">Roster (soon)</span>
-            </nav>
+            <button type="button" class="md:hidden text-muted hover:text-ink" @click="navOpen = false" aria-label="Close menu">×</button>
         </div>
-        <div class="flex items-center gap-3 text-sm text-muted">
-            <span>{{ auth()->user()->discord_username }} <span class="text-line">/</span> <span class="uppercase text-xs tracking-wider">{{ auth()->user()->tier }}</span></span>
-            <form method="POST" action="{{ route('logout') }}">@csrf
-                <button class="text-accent hover:underline">Sign out</button>
-            </form>
+
+        <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-6 text-sm">
+            <div class="space-y-1">
+                @foreach ($navPrimary as $item)
+                    @can($item['can'])
+                        @php([$cls, $active] = $navLink($item))
+                        <a href="{{ route($item['route']) }}" class="{{ $cls }}" @if ($active) aria-current="page" @endif>{{ $item['label'] }}</a>
+                    @endcan
+                @endforeach
+            </div>
+
+            <div>
+                <div class="px-3 mb-2 text-[10px] uppercase tracking-wider text-muted/70">Admin</div>
+                <div class="space-y-1">
+                    @foreach ($navAdmin as $item)
+                        @can($item['can'])
+                            @php([$cls, $active] = $navLink($item))
+                            <a href="{{ route($item['route']) }}" class="{{ $cls }}" @if ($active) aria-current="page" @endif>{{ $item['label'] }}</a>
+                        @endcan
+                    @endforeach
+                </div>
+            </div>
+        </nav>
+
+        <div class="px-4 py-3 border-t border-line text-xs text-muted">
+            <div class="truncate">{{ auth()->user()->discord_username }}</div>
+            <div class="flex items-center justify-between mt-1">
+                <span class="uppercase text-[10px] tracking-wider">{{ auth()->user()->tier }}</span>
+                <form method="POST" action="{{ route('logout') }}">@csrf
+                    <button class="text-accent hover:underline">Sign out</button>
+                </form>
+            </div>
         </div>
-    </div>
-</header>
+    </aside>
 
-<main class="max-w-7xl mx-auto px-6 py-8">
-    @yield('content')
-</main>
+    {{-- Mobile backdrop. Only renders when nav is open on small screens. --}}
+    <div
+        class="fixed inset-0 z-20 bg-black/50 md:hidden"
+        x-show="navOpen" x-cloak
+        @click="navOpen = false"
+    ></div>
 
-<footer class="border-t border-line mt-16">
-    <div class="max-w-7xl mx-auto px-6 py-4 text-xs text-muted flex items-center justify-between">
-        <span>Regenesis-Silvermoon (EU)</span>
-        @isset($lastSnapshot)
-            <span>
-                Last sync:
-                @if ($lastSnapshot)
-                    {{ $lastSnapshot->captured_at->diffForHumans() }}
-                    <span class="text-line">/</span>
-                    {{ $lastSnapshot->member_count }} members tracked
-                @else
-                    no data yet
-                @endif
-            </span>
-        @endisset
+    <div class="flex-1 flex flex-col min-w-0">
+        {{-- Mobile-only header strip with the hamburger. Desktop hides it
+             entirely since the sidebar is permanently visible. --}}
+        <header class="md:hidden border-b border-line px-4 py-3 flex items-center justify-between">
+            <button type="button" class="text-muted hover:text-ink" @click="navOpen = true" aria-label="Open menu">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <span class="font-semibold">Regenesis</span>
+            <span class="w-5"></span>
+        </header>
+
+        <main class="flex-1 px-6 py-8 max-w-6xl w-full">
+            @yield('content')
+        </main>
+
+        <footer class="border-t border-line mt-16">
+            <div class="px-6 py-4 text-xs text-muted flex items-center justify-between">
+                <span>Regenesis-Silvermoon (EU)</span>
+                @isset($lastSnapshot)
+                    <span>
+                        Last sync:
+                        @if ($lastSnapshot)
+                            {{ $lastSnapshot->captured_at->diffForHumans() }}
+                            <span class="text-line">/</span>
+                            {{ $lastSnapshot->member_count }} members tracked
+                        @else
+                            no data yet
+                        @endif
+                    </span>
+                @endisset
+            </div>
+        </footer>
     </div>
-</footer>
+</div>
 </body>
 </html>

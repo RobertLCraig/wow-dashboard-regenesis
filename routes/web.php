@@ -20,6 +20,16 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\Dashboard\DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/members/{member}/actions', [\App\Http\Controllers\Dashboard\MemberActionController::class, 'store'])->name('dashboard.member.actions.store');
 
+    // Team-scoped dashboards. Same widgets as /dashboard but filtered to
+    // the team's members + the team's raid signup channel, plus a
+    // quick-create panel for raid leaders.
+    Route::get('/dashboard/heroic', [\App\Http\Controllers\Dashboard\TeamDashboardController::class, 'heroic'])->name('dashboard.team.heroic');
+    Route::get('/dashboard/mythic', [\App\Http\Controllers\Dashboard\TeamDashboardController::class, 'mythic'])->name('dashboard.team.mythic');
+
+    // Keynight (organised M+) is its own activity, not a raid team page.
+    // Standalone page so heroic + mythic raiders both find it in one place.
+    Route::get('/dashboard/keynight', [\App\Http\Controllers\Dashboard\KeynightController::class, 'index'])->name('dashboard.keynight');
+
     Route::get('/events', [\App\Http\Controllers\Events\EventController::class, 'index'])->name('events.index');
     Route::get('/events/new', [\App\Http\Controllers\Events\EventController::class, 'create'])->name('events.create');
     Route::post('/events', [\App\Http\Controllers\Events\EventController::class, 'store'])->name('events.store');

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\AltGroup;
-use App\Models\AttendanceStat;
 use App\Models\LogEvent;
 use App\Models\Member;
 use App\Models\MemberAction;
@@ -19,13 +18,18 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
- * Top-level dashboard. Gathers the data for every v1 widget in one
- * controller; views are pure presentation.
+ * General guild management dashboard at /dashboard. Guild-wide rollups
+ * (roster health, action queue, churn, anniversaries, all-team
+ * progression overview, all-channel upcoming events). Team-detail
+ * widgets (per-team attendance, vault, M+ this week) live on the
+ * per-team pages under TeamDashboardController.
  */
 class DashboardController extends Controller
 {
     public function index(): View
     {
+        abort_unless(auth()->user()?->can('dashboard.general.view'), 403);
+
         $guildKey = (string) config('grm.guild_key');
         $inactiveDays = (int) config('grm.inactive_days', 30);
 
@@ -44,8 +48,6 @@ class DashboardController extends Controller
             'rankDistribution' => $this->rankDistribution($guildKey),
             'churn' => $this->churn($guildKey),
             'upcomingEvents' => $this->upcomingEvents(),
-            'attendance' => $this->attendance($guildKey),
-            'wowaudit' => $this->wowauditCurrentPeriod($guildKey),
             'teamProgression' => $this->teamProgression($guildKey),
         ]);
     }
@@ -140,34 +142,6 @@ class DashboardController extends Controller
     }
 
     /**
-     * Latest wowaudit snapshot for the current period: per-member ilvl,
-     * vault progress, M+ keystone. Empty when no wowaudit data has been
-     * pulled yet (WOWAUDIT_API_KEY not set, or first cron not run).
-     *
-     * @return array{captured_at: ?\Carbon\CarbonInterface, members: \Illuminate\Support\Collection}
-     */
-    private function wowauditCurrentPeriod(string $guildKey): array
-    {
-        $latest = Snapshot::query()
-            ->where('guild_key', $guildKey)
-            ->where('source', Snapshot::SOURCE_WOWAUDIT)
-            ->latest('captured_at')
-            ->first();
-
-        if (! $latest) {
-            return ['captured_at' => null, 'members' => collect()];
-        }
-
-        $rows = MemberSnapshot::query()
-            ->where('snapshot_id', $latest->id)
-            ->with('member')
-            ->get()
-            ->filter(fn ($s) => $s->member !== null && $s->member->status === Member::STATUS_ACTIVE);
-
-        return ['captured_at' => $latest->captured_at, 'members' => $rows];
-    }
-
-    /**
      * @return \Illuminate\Support\Collection<int, RaidEvent>
      */
     private function upcomingEvents(): \Illuminate\Support\Collection
@@ -177,31 +151,6 @@ class DashboardController extends Controller
             ->withCount('signups')
             ->limit(10)
             ->get();
-    }
-
-    /**
-     * @return array{captured_at: ?\Carbon\CarbonInterface, rows: \Illuminate\Support\Collection}
-     */
-    private function attendance(string $guildKey): array
-    {
-        $latestCapture = AttendanceStat::query()
-            ->where('guild_key', $guildKey)
-            ->latest('captured_at')
-            ->value('captured_at');
-
-        if (! $latestCapture) {
-            return ['captured_at' => null, 'rows' => collect()];
-        }
-
-        return [
-            'captured_at' => $latestCapture,
-            'rows' => AttendanceStat::query()
-                ->where('guild_key', $guildKey)
-                ->where('captured_at', $latestCapture)
-                ->orderByDesc('attendance_pct')
-                ->limit(50)
-                ->get(),
-        ];
     }
 
     private function rosterHealth(string $guildKey, int $inactiveDays): array
