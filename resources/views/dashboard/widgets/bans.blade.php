@@ -1,8 +1,19 @@
 <section class="bg-panel border border-line rounded-lg overflow-hidden">
-    <header class="px-4 py-3 border-b border-line flex items-center justify-between">
-        <h2 class="text-sm font-semibold uppercase tracking-wider">Ban list</h2>
-        <span class="text-xs text-muted">{{ $bans->count() }}</span>
-    </header>
+    <div x-data="{ explain: false }">
+        <header class="px-4 py-3 border-b border-line flex items-center justify-between">
+            <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                <span>Ban list</span>
+                <x-explainer-toggle />
+            </h2>
+            <span class="text-xs text-muted">{{ $bans->count() }}</span>
+        </header>
+        <x-explainer-panel title="Ban list">
+            Names recorded as banned, either flagged in the GRM addon or via the
+            dashboard. Reason and date shown when set. Use as a quick reference before
+            re-inviting someone you don't recognise, or before vouching for a returning
+            player. Bans without a reason should be back-filled when you spot them.
+        </x-explainer-panel>
+    </div>
     @if ($bans->isEmpty())
         <div class="p-8 text-center text-muted text-sm">No bans on record.</div>
     @else

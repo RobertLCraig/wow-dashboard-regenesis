@@ -1,8 +1,19 @@
 <section class="bg-panel border border-line rounded-lg overflow-hidden">
-    <header class="px-4 py-3 border-b border-line flex items-center justify-between">
-        <h2 class="text-sm font-semibold uppercase tracking-wider">Anniversaries this week</h2>
-        <span class="text-xs text-muted">{{ $anniversaries->count() }}</span>
-    </header>
+    <div x-data="{ explain: false }">
+        <header class="px-4 py-3 border-b border-line flex items-center justify-between">
+            <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                <span>Anniversaries this week</span>
+                <x-explainer-toggle />
+            </h2>
+            <span class="text-xs text-muted">{{ $anniversaries->count() }}</span>
+        </header>
+        <x-explainer-panel title="Anniversaries this week">
+            Members hitting a guild-join anniversary (1y, 2y, 5y, etc.) within the next
+            7 days, calculated from GRM's recorded join date. A free reason to ping
+            someone in Discord, shout them out on raid night, or just notice that a
+            long-timer is coming up on their decade. Disappears once the date passes.
+        </x-explainer-panel>
+    </div>
     @if ($anniversaries->isEmpty())
         <div class="p-8 text-center text-muted text-sm">No guild anniversaries this week.</div>
     @else

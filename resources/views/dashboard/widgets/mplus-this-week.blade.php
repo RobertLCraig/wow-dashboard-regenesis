@@ -12,10 +12,22 @@
         ->values();
 @endphp
 <section class="bg-panel border border-line rounded-lg overflow-hidden">
-    <header class="px-4 py-3 border-b border-line flex items-center justify-between">
-        <h2 class="text-sm font-semibold uppercase tracking-wider">Mythic+ this week</h2>
-        <span class="text-xs text-muted">top {{ $rows->count() }}</span>
-    </header>
+    <div x-data="{ explain: false }">
+        <header class="px-4 py-3 border-b border-line flex items-center justify-between">
+            <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                <span>Mythic+ this week</span>
+                <x-explainer-toggle />
+            </h2>
+            <span class="text-xs text-muted">top {{ $rows->count() }}</span>
+        </header>
+        <x-explainer-panel title="Mythic+ this week">
+            Top 20 keystone runs this reset, sorted by key level. Each row is the
+            highest key that character has timed (or completed) since weekly reset.
+            Sourced from wowaudit's dungeons_done history. Useful for finding M+ groups,
+            picking trial keys to push, and spotting raiders who haven't done their
+            weekly chores. +20 or above goes amber, +15-19 green.
+        </x-explainer-panel>
+    </div>
     @if ($rows->isEmpty())
         <div class="p-8 text-center text-muted text-sm">
             No M+ data yet (or no one has run a key this week).

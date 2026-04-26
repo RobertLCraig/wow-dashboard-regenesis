@@ -17,10 +17,22 @@
     ];
 @endphp
 <section class="bg-panel border border-line rounded-lg overflow-hidden">
-    <header class="px-4 py-3 border-b border-line flex items-center justify-between">
-        <h2 class="text-sm font-semibold uppercase tracking-wider">Recent activity</h2>
-        <span class="text-xs text-muted">{{ count($timeline) }} events</span>
-    </header>
+    <div x-data="{ explain: false }">
+        <header class="px-4 py-3 border-b border-line flex items-center justify-between">
+            <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                <span>Recent activity</span>
+                <x-explainer-toggle />
+            </h2>
+            <span class="text-xs text-muted">{{ count($timeline) }} events</span>
+        </header>
+        <x-explainer-panel title="Recent activity">
+            Time-ordered guild log: promotions, demotions, joins, leaves, kicks, bans,
+            level ups, name changes, returns from inactivity, anniversaries, officer
+            notes. Pulled from GRM SavedVariables on each sync, so it's only as fresh as
+            the last upload. Skim it at the start of an officer session to catch up on
+            what's happened between log-ins without having to scroll Discord.
+        </x-explainer-panel>
+    </div>
     @if ($timeline->isEmpty())
         <div class="p-8 text-center text-muted text-sm">No log entries yet.</div>
     @else

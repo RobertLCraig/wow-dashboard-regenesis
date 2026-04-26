@@ -1,8 +1,19 @@
 <section class="bg-panel border border-line rounded-lg overflow-hidden">
-    <header class="px-4 py-3 border-b border-line flex items-center justify-between">
-        <h2 class="text-sm font-semibold uppercase tracking-wider">Upcoming events</h2>
-        <a href="{{ route('events.create') }}" class="text-xs text-accent hover:underline">+ Create</a>
-    </header>
+    <div x-data="{ explain: false }">
+        <header class="px-4 py-3 border-b border-line flex items-center justify-between">
+            <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                <span>Upcoming events</span>
+                <x-explainer-toggle />
+            </h2>
+            <a href="{{ route('events.create') }}" class="text-xs text-accent hover:underline">+ Create</a>
+        </header>
+        <x-explainer-panel title="Upcoming events">
+            Next few events scheduled in Raid-Helper, with the current signup count
+            pulled live from the bot. Click an event title to see the full lineup
+            (tank / heal / DPS, late, absent, tentative) or use the Discord arrow to
+            jump straight to the post in the channel for last-minute pings.
+        </x-explainer-panel>
+    </div>
     @if ($upcomingEvents->isEmpty())
         <div class="p-8 text-center text-muted text-sm">
             No upcoming events. <a href="{{ route('events.create') }}" class="text-accent hover:underline">Create one</a>.

@@ -1,8 +1,20 @@
 <section class="bg-panel border border-line rounded-lg overflow-hidden">
-    <header class="px-4 py-3 border-b border-line flex items-center justify-between">
-        <h2 class="text-sm font-semibold uppercase tracking-wider">Rank distribution</h2>
-        <span class="text-xs text-muted">{{ collect($rankDistribution)->sum('count') }} active</span>
-    </header>
+    <div x-data="{ explain: false }">
+        <header class="px-4 py-3 border-b border-line flex items-center justify-between">
+            <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                <span>Rank distribution</span>
+                <x-explainer-toggle />
+            </h2>
+            <span class="text-xs text-muted">{{ collect($rankDistribution)->sum('count') }} active</span>
+        </header>
+        <x-explainer-panel title="Rank distribution">
+            Active members grouped by their current guild rank. Useful for spotting rank
+            inflation (too many officers, no recruits flowing through), for
+            sanity-checking promotions before they happen, and for confirming the shape
+            of the guild matches what the GM thinks it is. Doesn't include inactive
+            members.
+        </x-explainer-panel>
+    </div>
     <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
         <div>
             <canvas id="rank-chart" width="220" height="220"></canvas>

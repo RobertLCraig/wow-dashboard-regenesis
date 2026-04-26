@@ -7,10 +7,24 @@
     $totalQueued = collect($actionQueue)->sum(fn ($l) => $l->count());
 @endphp
 <section class="bg-panel border border-line rounded-lg overflow-hidden" x-data="{ tab: 'promote' }">
-    <header class="px-4 py-3 border-b border-line flex items-center justify-between">
-        <h2 class="text-sm font-semibold uppercase tracking-wider">Action queue</h2>
-        <span class="text-xs text-muted">{{ $totalQueued }} waiting review</span>
-    </header>
+    <div x-data="{ explain: false }">
+        <header class="px-4 py-3 border-b border-line flex items-center justify-between">
+            <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                <span>Action queue</span>
+                <x-explainer-toggle />
+            </h2>
+            <span class="text-xs text-muted">{{ $totalQueued }} waiting review</span>
+        </header>
+        <x-explainer-panel title="Action queue">
+            Officer review queue. Members are auto-flagged for promote, demote or kick
+            by ranking rules (e.g. capped at the next rank's level threshold, inactive
+            beyond the rank's tolerance). Accept records the decision in the audit log;
+            Dismiss removes the suggestion until something changes; Snooze hides it for
+            7 days. Important: nothing here auto-applies to the in-game roster. The
+            actual promote / demote / kick still has to happen through the GRM addon in
+            WoW. This is the queue, not the trigger.
+        </x-explainer-panel>
+    </div>
     <div class="border-b border-line flex text-sm">
         @foreach ($tabs as $key => $tab)
             <button type="button"

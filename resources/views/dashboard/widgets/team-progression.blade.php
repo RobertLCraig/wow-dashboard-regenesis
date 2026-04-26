@@ -25,16 +25,30 @@
 @endphp
 
 <section class="bg-panel border border-line rounded-lg overflow-hidden">
-    <header class="px-4 py-3 border-b border-line flex items-center justify-between">
-        <h2 class="text-sm font-semibold uppercase tracking-wider">Team progression</h2>
-        <span class="text-xs text-muted">
-            @if ($teamProgression['captured_at'])
-                raider.io {{ $teamProgression['captured_at']->diffForHumans() }}
-            @else
-                no raider.io data yet
-            @endif
-        </span>
-    </header>
+    <div x-data="{ explain: false }">
+        <header class="px-4 py-3 border-b border-line flex items-center justify-between">
+            <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                <span>Team progression</span>
+                <x-explainer-toggle />
+            </h2>
+            <span class="text-xs text-muted">
+                @if ($teamProgression['captured_at'])
+                    raider.io {{ $teamProgression['captured_at']->diffForHumans() }}
+                @else
+                    no raider.io data yet
+                @endif
+            </span>
+        </header>
+        <x-explainer-panel title="Team progression">
+            Per-team rollup of the latest Raider.IO snapshot. Best raid progression,
+            average item level, top mythic+ score and top weekly key for each team
+            (Mythic, Mythic Trial, Heroic, Heroic Trial). Use it to compare how teams
+            are pacing through the current tier and to spot a team that's fallen behind
+            on gear or RIO before it becomes a problem on raid night. Team membership
+            comes from the GRM rank-to-team mapping under Team mapping; RIO numbers come
+            from the periodic raider.io sync.
+        </x-explainer-panel>
+    </div>
 
     @if (empty($teamProgression['teams']))
         <div class="p-8 text-center text-muted text-sm">

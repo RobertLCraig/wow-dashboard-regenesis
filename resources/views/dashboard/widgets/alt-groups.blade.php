@@ -1,10 +1,23 @@
 <section class="bg-panel border border-line rounded-lg overflow-hidden" x-data="{ search: '' }">
-    <header class="px-4 py-3 border-b border-line flex items-center justify-between gap-3">
-        <h2 class="text-sm font-semibold uppercase tracking-wider whitespace-nowrap">Alt groups</h2>
-        <input x-model="search" type="search" placeholder="Filter by name..."
-               class="bg-bg border border-line rounded px-2 py-1 text-sm flex-1 max-w-xs">
-        <span class="text-xs text-muted whitespace-nowrap">{{ $altGroups->count() }} groups</span>
-    </header>
+    <div x-data="{ explain: false }">
+        <header class="px-4 py-3 border-b border-line flex items-center justify-between gap-3">
+            <h2 class="text-sm font-semibold uppercase tracking-wider whitespace-nowrap flex items-center gap-2">
+                <span>Alt groups</span>
+                <x-explainer-toggle />
+            </h2>
+            <input x-model="search" type="search" placeholder="Filter by name..."
+                   class="bg-bg border border-line rounded px-2 py-1 text-sm flex-1 max-w-xs">
+            <span class="text-xs text-muted whitespace-nowrap">{{ $altGroups->count() }} groups</span>
+        </header>
+        <x-explainer-panel title="Alt groups">
+            Characters that have been linked together as the same player. The "main"
+            tag is taken from GRM officer notes when set, otherwise the first character
+            in the group. Click a row to expand and see each alt's last-online time. Use
+            it to avoid double counting one player across multiple ranks, to find a
+            player's main when only an alt has logged in, and to spot mains that have
+            been quiet even though their alts are active.
+        </x-explainer-panel>
+    </div>
     @if ($altGroups->isEmpty())
         <div class="p-8 text-center text-muted text-sm">No alt groups recorded.</div>
     @else
