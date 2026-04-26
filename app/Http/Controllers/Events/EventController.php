@@ -38,12 +38,24 @@ class EventController extends Controller
             'channels' => config('raidhelper.channels', []),
             'defaultChannel' => config('raidhelper.default_channel_id'),
             'leaderId' => auth()->user()?->discord_id,
+            'defaultAnnouncements' => config('raidhelper.default_announcements', []),
+            'defaultAnnouncementChannel' => config('raidhelper.default_announcement_channel', ''),
         ]);
     }
 
     public function store(Request $request, RaidHelperClient $client, EventUpserter $upserter): RedirectResponse
     {
         abort_unless(auth()->user()?->can('events.create'), 403);
+
+        // Drop empty announcement rows before validation runs so the
+        // integer/regex rules don't trip on placeholder blanks the form
+        // submits when the user adds a row but doesn't fill it in.
+        $request->merge([
+            'announcements' => collect($request->input('announcements', []))
+                ->filter(fn ($a) => is_array($a) && ! empty($a['message']) && ! empty($a['minutes']))
+                ->values()
+                ->all(),
+        ]);
 
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:200'],
@@ -62,9 +74,21 @@ class EventController extends Controller
             'channel_id' => ['required', 'string', 'regex:/^\d{15,25}$/'],
             'leader_id' => ['required', 'string'],
             'mentions' => ['nullable', 'string', 'max:200'],
+            // Reminder pings. Each row: minutes before the event +
+            // message + channel-name (no leading #) where the ping goes.
+            // Empty rows from the form are stripped before validation
+            // by prepareForValidation below.
+            // Empties were stripped by the merge() above, so each row
+            // here is guaranteed to have all three values - hence plain
+            // required rules without required_with conditionals.
+            'announcements' => ['nullable', 'array', 'max:10'],
+            'announcements.*.minutes' => ['required', 'integer', 'min:1', 'max:43200'],
+            'announcements.*.message' => ['required', 'string', 'max:500'],
+            'announcements.*.channel' => ['required', 'string', 'max:100', 'regex:/^[\w\-]+$/'],
         ], [
             'channel_id.regex' => 'Channel ID must be the numeric Discord snowflake (15-25 digits).',
             'ends_at.after' => 'End time must be after the start time.',
+            'announcements.*.channel.regex' => 'Announcement channel must be the channel name (letters, digits, dashes, underscores only - no leading #).',
         ]);
 
         $startsAt = CarbonImmutable::parse($validated['starts_at'], config('raidhelper.timezone'));
@@ -95,6 +119,28 @@ class EventController extends Controller
         ];
         if (! empty($advancedSettings)) {
             $payload['advancedSettings'] = $advancedSettings;
+        }
+
+        // Announcements. The Raid-Helper API docs describe a single
+        // `announcement` object; the /quickcreate slash command supports
+        // multiples via repeated [announcement: ...] tokens. We send an
+        // `announcements` array (best-guess plural) AND a singular
+        // `announcement` object for the first one, so whichever the API
+        // accepts, we're covered. The /quickcreate command preview on
+        // the form is the always-correct fallback the user can copy
+        // into Discord if the API rejects.
+        if (! empty($validated['announcements'])) {
+            $payload['announcements'] = array_map(fn ($a) => [
+                'channel' => $a['channel'],
+                'minutesBefore' => (int) $a['minutes'],
+                'message' => $a['message'],
+            ], $validated['announcements']);
+            $first = $validated['announcements'][0];
+            $payload['announcement'] = [
+                'channel' => $first['channel'],
+                'minutesBefore' => (int) $first['minutes'],
+                'message' => $first['message'],
+            ];
         }
 
         $resp = $client->createEvent($validated['channel_id'], $payload);

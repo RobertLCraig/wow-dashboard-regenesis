@@ -59,9 +59,38 @@ return [
     | just the ones used most often.
     */
     'channels' => [
-        ['id' => '1430231966686511124', 'label' => '📅 social-events'],
-        ['id' => '1247281653777301714', 'label' => '✍ heroic-raid-signup'],
-        ['id' => '1423413329954603039', 'label' => '✍ mythic-raid-signup'],
+        ['id' => '1430231966686511124', 'name' => 'social-events',       'label' => '📅 social-events'],
+        ['id' => '1247281653777301714', 'name' => 'heroic-raid-signup',  'label' => '✍ heroic-raid-signup'],
+        ['id' => '1423413329954603039', 'name' => 'mythic-raid-signup',  'label' => '✍ mythic-raid-signup'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default channel for announcement / reminder pings
+    |--------------------------------------------------------------------------
+    |
+    | Channel name (no leading #) the create form pre-fills for new
+    | announcement rows. Should be a channel where the officers/raiders
+    | get notified. Used in both the API call and the /quickcreate
+    | command preview.
+    */
+    'default_announcement_channel' => env('RAIDHELPER_DEFAULT_ANNOUNCE_CHANNEL', 'moderator-officer'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default reminder offsets
+    |--------------------------------------------------------------------------
+    |
+    | Pre-populates the announcements section of the create form so
+    | officers don't have to type these every time. Each entry is
+    | [minutes_before, message]. Officers can add/remove rows on the
+    | form before submitting.
+    */
+    'default_announcements' => [
+        ['minutes' => 1,   'message' => 'Event starting now!'],
+        ['minutes' => 30,  'message' => 'Event starting in 30 minutes!'],
+        ['minutes' => 120, 'message' => 'Event starting in 2 hours!'],
+        ['minutes' => 240, 'message' => 'Event starting in 4 hours!'],
     ],
 
     /*

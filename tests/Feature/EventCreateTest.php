@@ -219,6 +219,62 @@ it('sync is rate-limited to one call per hour per user', function () {
         ->assertSessionHasErrors('raidhelper');
 });
 
+it('sends announcements to the API as both array and singular fields', function () {
+    Http::fake(['raid-helper.xyz/*' => Http::response(fakeRaidHelperEvent(), 200)]);
+
+    $this->actingAs(officer())
+        ->post(route('events.store'), basePayload([
+            'announcements' => [
+                ['minutes' => 30, 'message' => '30 mins!', 'channel' => 'moderator-officer'],
+                ['minutes' => 1,  'message' => 'Starting now!', 'channel' => 'moderator-officer'],
+            ],
+        ]))
+        ->assertRedirect();
+
+    Http::assertSent(function ($r) {
+        return is_array($r['announcements'] ?? null)
+            && count($r['announcements']) === 2
+            && $r['announcements'][0]['minutesBefore'] === 30
+            && $r['announcements'][0]['message'] === '30 mins!'
+            && $r['announcements'][0]['channel'] === 'moderator-officer'
+            && ($r['announcement']['minutesBefore'] ?? null) === 30; // first one mirrored as singular
+    });
+});
+
+it('strips empty announcement rows before validation', function () {
+    Http::fake(['raid-helper.xyz/*' => Http::response(fakeRaidHelperEvent(), 200)]);
+
+    $this->actingAs(officer())
+        ->post(route('events.store'), basePayload([
+            'announcements' => [
+                ['minutes' => '', 'message' => '', 'channel' => ''],
+                ['minutes' => 60, 'message' => 'an hour!', 'channel' => 'moderator-officer'],
+                ['minutes' => '', 'message' => '', 'channel' => ''],
+            ],
+        ]))
+        ->assertRedirect();
+
+    Http::assertSent(fn ($r) => count($r['announcements'] ?? []) === 1);
+});
+
+it('rejects an announcement channel containing a leading #', function () {
+    $this->actingAs(officer())
+        ->post(route('events.store'), basePayload([
+            'announcements' => [['minutes' => 60, 'message' => 'x', 'channel' => '#bad-name']],
+        ]))
+        ->assertSessionHasErrors('announcements.0.channel');
+});
+
+it('omits announcements from API payload when none provided', function () {
+    Http::fake(['raid-helper.xyz/*' => Http::response(fakeRaidHelperEvent(), 200)]);
+
+    $this->actingAs(officer())
+        ->post(route('events.store'), basePayload(['announcements' => []]))
+        ->assertRedirect();
+
+    Http::assertSent(fn ($r) => ! isset($r['announcements']) && ! isset($r['announcement']));
+});
+
 it('humanises a Raid-Helper non-404 error using the title field', function () {
     Http::fake([
         'raid-helper.xyz/*' => Http::response([
