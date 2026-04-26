@@ -19,6 +19,9 @@ class User extends Authenticatable
     public const TIER_BIG6 = 'big6';
     public const TIER_OFFICER = 'officer';
 
+    public const DISPLAY_STANDARD = 'standard';
+    public const DISPLAY_HIGH_CLARITY = 'high_clarity';
+
     protected $fillable = [
         'name',
         'email',
@@ -28,6 +31,7 @@ class User extends Authenticatable
         'avatar_url',
         'tier',
         'team',
+        'display_mode',
         'discord_refresh_token',
         'last_role_check_at',
         'calendar_token',

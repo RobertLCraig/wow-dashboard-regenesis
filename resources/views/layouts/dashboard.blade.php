@@ -115,6 +115,25 @@
             },
         };
     </script>
+    {{-- High-clarity display mode (per-user pref on users.display_mode).
+         Phase A wires the body class + the always-on overrides (motion
+         off, italics neutralised, single-column main, max line length).
+         Widget-level changes (table -> stacked cards, charts -> lists)
+         arrive in Phase B as widgets adopt the <x-clarity-table>
+         component. --}}
+    <style>
+        body.mode-high-clarity { line-height: 1.7; letter-spacing: 0.005em; }
+        body.mode-high-clarity main { max-width: 56rem; }
+        body.mode-high-clarity *,
+        body.mode-high-clarity *::before,
+        body.mode-high-clarity *::after {
+            animation-duration: 0.001ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.001ms !important;
+        }
+        body.mode-high-clarity em,
+        body.mode-high-clarity i { font-style: normal; font-weight: 600; }
+    </style>
     {{-- WoW class colours, used by the timeline + inactive list. --}}
     <style>
         .cls-DEATHKNIGHT { color: #C41E3A; }
@@ -133,7 +152,11 @@
     </style>
     @stack('head')
 </head>
-<body class="bg-bg text-ink font-sans antialiased min-h-screen" x-data="{ navOpen: false }">
+@php
+    $displayMode = auth()->user()?->display_mode ?? \App\Models\User::DISPLAY_STANDARD;
+    $bodyMode = $displayMode === \App\Models\User::DISPLAY_HIGH_CLARITY ? 'mode-high-clarity' : 'mode-standard';
+@endphp
+<body class="bg-bg text-ink font-sans antialiased min-h-screen {{ $bodyMode }}" x-data="{ navOpen: false }">
 @php
     /**
      * Sidebar nav model. Primary items are the four section pages
@@ -190,7 +213,9 @@
             <div class="space-y-1">
                 @foreach ($navPrimary as $item)
                     @can($item['can'])
-                        @php([$cls, $active] = $navLink($item))
+                        @php
+                            [$cls, $active] = $navLink($item);
+                        @endphp
                         <a href="{{ route($item['route']) }}" class="{{ $cls }}" @if ($active) aria-current="page" @endif>{{ $item['label'] }}</a>
                     @endcan
                 @endforeach
@@ -201,7 +226,9 @@
                 <div class="space-y-1">
                     @foreach ($navAdmin as $item)
                         @can($item['can'])
-                            @php([$cls, $active] = $navLink($item))
+                            @php
+                            [$cls, $active] = $navLink($item);
+                        @endphp
                             <a href="{{ route($item['route']) }}" class="{{ $cls }}" @if ($active) aria-current="page" @endif>{{ $item['label'] }}</a>
                         @endcan
                     @endforeach
@@ -209,14 +236,34 @@
             </div>
         </nav>
 
-        <div class="px-4 py-3 border-t border-line text-xs text-muted">
+        <div class="px-4 py-3 border-t border-line text-xs text-muted space-y-2">
             <div class="truncate">{{ auth()->user()->discord_username }}</div>
-            <div class="flex items-center justify-between mt-1">
+            <div class="flex items-center justify-between">
                 <span class="uppercase text-[10px] tracking-wider">{{ auth()->user()->tier }}</span>
                 <form method="POST" action="{{ route('logout') }}">@csrf
                     <button class="text-accent hover:underline">Sign out</button>
                 </form>
             </div>
+            {{-- High-clarity toggle. Single-form POST per click; no JS.
+                 The label flips to "Standard view" once high-clarity is
+                 active so the action reads as the destination, not the
+                 current state. --}}
+            <form method="POST" action="{{ route('preferences.display') }}" class="pt-2 border-t border-line/60">
+                @csrf
+                @php
+                    $hc = $displayMode === \App\Models\User::DISPLAY_HIGH_CLARITY;
+                @endphp
+                <input type="hidden" name="display_mode"
+                       value="{{ $hc ? \App\Models\User::DISPLAY_STANDARD : \App\Models\User::DISPLAY_HIGH_CLARITY }}">
+                <button type="submit"
+                        class="w-full text-left text-[11px] text-muted hover:text-ink transition flex items-center justify-between"
+                        title="{{ $hc ? 'Switch back to the default dashboard layout' : 'Single-column, big spacing, no motion' }}">
+                    <span>{{ $hc ? 'Standard view' : 'High-clarity view' }}</span>
+                    <span class="text-[10px] uppercase tracking-wider {{ $hc ? 'text-emerald-300' : 'text-muted/60' }}">
+                        {{ $hc ? 'on' : 'off' }}
+                    </span>
+                </button>
+            </form>
         </div>
     </aside>
 
