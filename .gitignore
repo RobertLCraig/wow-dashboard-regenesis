@@ -34,6 +34,10 @@ yarn-error.log
 # eyeballing without spinning up a server).
 /storage/dashboard-render.html
 
+# Local scratch directory: transcript dumps, one-off extract scripts,
+# raw API-call traces. Never belongs in git.
+/.tmp/
+
 # NOTE: /public/build is intentionally NOT ignored. Hostinger has no node,
 # so Vite output is committed and ships via git pull. See deploy.ps1.
 
