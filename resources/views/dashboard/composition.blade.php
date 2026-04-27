@@ -6,7 +6,13 @@
     <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
         <h1 class="text-xl font-semibold">
             {{ $teamLabel }} Composition
-            <span class="text-muted text-sm font-normal ml-2">{{ $memberCount }} on roster</span>
+            @if ($event)
+                <span class="text-muted text-sm font-normal ml-2">
+                    {{ $memberCount }} of {{ $signedUpCount }} signed up
+                </span>
+            @else
+                <span class="text-muted text-sm font-normal ml-2">{{ $memberCount }} on roster</span>
+            @endif
         </h1>
         <a href="{{ route('dashboard.team.' . $teamSlug) }}"
            class="text-xs text-muted hover:text-ink underline-offset-2 hover:underline">
@@ -17,6 +23,18 @@
     {{-- Filter bar. Plain form GETs so the URL is shareable. --}}
     <form method="GET" action="{{ route('composition.show', $teamSlug) }}"
           class="flex flex-wrap items-center gap-3 mb-6 text-sm">
+        <label class="flex items-center gap-2">
+            <span class="text-muted text-xs uppercase tracking-wider">Event</span>
+            <select name="event" onchange="this.form.submit()"
+                    class="bg-bg border border-line rounded px-2 py-1 text-xs">
+                <option value="">Whole roster</option>
+                @foreach ($upcomingEvents as $opt)
+                    <option value="{{ $opt->id }}" {{ $event?->id === $opt->id ? 'selected' : '' }}>
+                        {{ $opt->starts_at->format('D d M H:i') }} | {{ \Illuminate\Support\Str::limit($opt->title, 40) }}
+                    </option>
+                @endforeach
+            </select>
+        </label>
         <label class="flex items-center gap-2">
             <span class="text-muted text-xs uppercase tracking-wider">Window</span>
             <select name="days" onchange="this.form.submit()"
@@ -41,14 +59,25 @@
         </noscript>
     </form>
 
+    @if ($event && $signedUpCount > $memberCount)
+        <div class="text-xs text-muted mb-4">
+            Showing the {{ $memberCount }} {{ $teamLabel }} member{{ $memberCount === 1 ? '' : 's' }}
+            of the {{ $signedUpCount }} total signed up. Cross-team raiders not on the {{ $teamLabel }} roster aren't shown here, see the
+            <a href="{{ $event->discordJumpUrl() }}" target="_blank" rel="noopener" class="text-accent hover:underline">event in Discord</a>
+            for the full list.
+        </div>
+    @endif
+
     @php
-        // "No parses" empty state when nothing landed in a role bucket;
-        // having only the 'unknown' bucket counts as empty since it
-        // means we have members but no WCL signal to classify them.
         $hasClassifiedBucket = collect(\App\Services\Composition\SpecRoleMap::orderedRoles())
             ->some(fn ($r) => ! empty($buckets[$r] ?? []));
+        $hasUnknownBucket = ! empty($buckets['unknown'] ?? []);
     @endphp
-    @if (! $hasClassifiedBucket)
+    @if ($event && $memberCount === 0)
+        <div class="bg-panel border border-line rounded-lg p-8 text-center text-muted text-sm">
+            No {{ $teamLabel }} members signed up to this event.
+        </div>
+    @elseif (! $hasClassifiedBucket && ! $hasUnknownBucket)
         <div class="bg-panel border border-line rounded-lg p-8 text-center text-muted text-sm">
             No parses recorded for this team in the last {{ $days }} days.
             Try a wider window, or run a WCL sync from

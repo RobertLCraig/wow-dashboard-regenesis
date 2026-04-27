@@ -1,6 +1,8 @@
 <?php
 
+use App\Models\EventSignup;
 use App\Models\Member;
+use App\Models\RaidEvent;
 use App\Models\TeamMapping;
 use App\Models\User;
 use App\Models\WclActorParse;
@@ -212,13 +214,21 @@ it('falls back to a sensible window when days is bogus', function () {
     expect($resp->getContent())->toContain('value="14" selected');
 });
 
-it('renders the empty state when there are no parses', function () {
+it('renders the empty state when no members are on the team at all', function () {
+    $this->actingAs(compOfficer())
+        ->get('/composition/heroic')
+        ->assertOk()
+        ->assertSee('No parses recorded for this team');
+});
+
+it('shows the Unclassified footer when members exist but have no parses', function () {
     compMember('Active', TeamMapping::TEAM_HEROIC, 'MAGE');
 
     $this->actingAs(compOfficer())
         ->get('/composition/heroic')
         ->assertOk()
-        ->assertSee('No parses recorded for this team');
+        ->assertSee('Unclassified')
+        ->assertSee('Active');
 });
 
 it('404s on an unknown team slug', function () {
@@ -246,4 +256,135 @@ it('only includes members on the requested team', function () {
     $resp->assertOk()
         ->assertSee('OnTeam')
         ->assertDontSee('OffTeam');
+});
+
+// ----------------------------------------------------------------------------
+// Event-filtered composition (?event=<id>)
+// ----------------------------------------------------------------------------
+
+function compEvent(string $channelId, int $hoursFromNow = 24): RaidEvent
+{
+    return RaidEvent::query()->create([
+        'raidhelper_event_id' => (string) random_int(1000000, 9999999),
+        'server_id' => 'GUILD',
+        'channel_id' => $channelId,
+        'title' => 'Tonight - Test Raid',
+        'starts_at' => now()->addHours($hoursFromNow),
+        'ics_uid' => 'uid-' . uniqid('', true),
+    ]);
+}
+
+function compSignup(RaidEvent $event, string $name, string $status = 'primary'): EventSignup
+{
+    return EventSignup::query()->create([
+        'raid_event_id' => $event->id,
+        'raidhelper_signup_id' => (string) random_int(1, 999999),
+        'name' => $name,
+        'status' => $status,
+    ]);
+}
+
+it('lists upcoming events for the team channel in the picker', function () {
+    $event = compEvent('CH-H', hoursFromNow: 24);
+    compEvent('CH-M', hoursFromNow: 24); // off-channel; must NOT appear
+
+    $resp = $this->actingAs(compOfficer())->get('/composition/heroic');
+    $resp->assertOk();
+    $body = $resp->getContent();
+    expect($body)->toContain('Tonight - Test Raid');
+    // Off-channel mythic event shouldn't be in the dropdown for heroic.
+    expect(substr_count($body, 'Tonight - Test Raid'))->toBe(1);
+});
+
+it('filters composition to members signed up for the picked event', function () {
+    $signedUp = compMember('Aaron-Silvermoon', TeamMapping::TEAM_HEROIC, 'MAGE');
+    $alsoSignedUp = compMember('Beth-Silvermoon', TeamMapping::TEAM_HEROIC, 'PRIEST');
+    $notSignedUp = compMember('Carl-Silvermoon', TeamMapping::TEAM_HEROIC, 'WARRIOR');
+
+    $event = compEvent('CH-H');
+    compSignup($event, 'Aaron');           // RaidHelper often drops realm
+    compSignup($event, 'Beth-Silvermoon'); // sometimes includes it
+
+    $resp = $this->actingAs(compOfficer())->get("/composition/heroic?event={$event->id}");
+    $resp->assertOk()
+        ->assertSee('Aaron-Silvermoon')
+        ->assertSee('Beth-Silvermoon')
+        ->assertDontSee('Carl-Silvermoon');
+});
+
+it('excludes signups with non-attending statuses (bench / declined / absent)', function () {
+    compMember('Coming-Silvermoon', TeamMapping::TEAM_HEROIC, 'MAGE');
+    compMember('Bench-Silvermoon', TeamMapping::TEAM_HEROIC, 'MAGE');
+    compMember('Declined-Silvermoon', TeamMapping::TEAM_HEROIC, 'MAGE');
+    compMember('Absent-Silvermoon', TeamMapping::TEAM_HEROIC, 'MAGE');
+
+    $event = compEvent('CH-H');
+    compSignup($event, 'Coming', 'primary');
+    compSignup($event, 'Bench', 'bench');
+    compSignup($event, 'Declined', 'declined');
+    compSignup($event, 'Absent', 'absent');
+
+    $resp = $this->actingAs(compOfficer())->get("/composition/heroic?event={$event->id}");
+    $resp->assertOk()
+        ->assertSee('Coming-Silvermoon')
+        ->assertDontSee('Bench-Silvermoon')
+        ->assertDontSee('Declined-Silvermoon')
+        ->assertDontSee('Absent-Silvermoon');
+});
+
+it('excludes fake signups', function () {
+    compMember('Real-Silvermoon', TeamMapping::TEAM_HEROIC, 'MAGE');
+    compMember('Fake-Silvermoon', TeamMapping::TEAM_HEROIC, 'MAGE');
+
+    $event = compEvent('CH-H');
+    compSignup($event, 'Real');
+    EventSignup::query()->create([
+        'raid_event_id' => $event->id,
+        'raidhelper_signup_id' => 'fake-1',
+        'name' => 'Fake',
+        'status' => 'primary',
+        'is_fake' => true,
+    ]);
+
+    $resp = $this->actingAs(compOfficer())->get("/composition/heroic?event={$event->id}");
+    $resp->assertOk()
+        ->assertSee('Real-Silvermoon')
+        ->assertDontSee('Fake-Silvermoon');
+});
+
+it('shows the cross-team note when more raiders signed up than are on this team', function () {
+    compMember('TeamRaider-Silvermoon', TeamMapping::TEAM_HEROIC, 'MAGE');
+    // Two cross-team signups (members not on the heroic team roster).
+    $event = compEvent('CH-H');
+    compSignup($event, 'TeamRaider');
+    compSignup($event, 'OffTeamA');
+    compSignup($event, 'OffTeamB');
+
+    $resp = $this->actingAs(compOfficer())->get("/composition/heroic?event={$event->id}");
+    $resp->assertOk()
+        ->assertSee('1 of 3 signed up')
+        ->assertSee('Cross-team raiders not on the Heroic roster');
+});
+
+it('shows an empty-state message when nobody on the team signed up', function () {
+    compMember('Nobody-Silvermoon', TeamMapping::TEAM_HEROIC, 'MAGE');
+    $event = compEvent('CH-H');
+    compSignup($event, 'StrangerNotOnTeam');
+
+    $resp = $this->actingAs(compOfficer())->get("/composition/heroic?event={$event->id}");
+    $resp->assertOk()
+        ->assertSee('No Heroic members signed up to this event');
+});
+
+it('ignores an ?event= id that belongs to a different team channel', function () {
+    compMember('Member-Silvermoon', TeamMapping::TEAM_HEROIC, 'MAGE');
+    $mythicEvent = compEvent('CH-M');
+    compSignup($mythicEvent, 'Member');
+
+    // We're on /composition/heroic but referring to a mythic-channel event.
+    // It shouldn't apply the filter; should fall back to whole-roster.
+    $resp = $this->actingAs(compOfficer())->get("/composition/heroic?event={$mythicEvent->id}");
+    $resp->assertOk()
+        ->assertSee('1 on roster')
+        ->assertDontSee('1 of 1 signed up');
 });
