@@ -73,6 +73,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Stale-ilvl recency window (days)
+    |--------------------------------------------------------------------------
+    |
+    | Raider.IO returns the last gear blob it observed for a character,
+    | which is only as fresh as the character's last login - and even
+    | then RIO sometimes holds onto an older gear sample for months. A
+    | parked alt or a poorly-refreshed profile ends up showing TWW-era
+    | 700+ ilvls on a Midnight roster.
+    |
+    | We drop the ilvl when either signal says the data is stale:
+    |   - GRM's last_online_at is older than the window, OR
+    |   - RIO's gear `created_at` is older than the window.
+    |
+    | Both are relative durations so this self-adjusts across squishes
+    | and patches without anyone touching config. Set to 0 to disable.
+    */
+    'stale_ilvl_window_days' => (int) env('RAIDERIO_STALE_ILVL_WINDOW_DAYS', 90),
+
+    /*
+    |--------------------------------------------------------------------------
     | Default realm
     |--------------------------------------------------------------------------
     |

@@ -209,7 +209,7 @@ class RaiderioSnapshotImporter
                         'recommend_demote' => $member->recommend_demote,
                         'recommend_kick' => $member->recommend_kick,
                         'raw_json' => $body,
-                        'ilvl' => $this->equippedIlvl($body),
+                        'ilvl' => $this->equippedIlvl($body, $member),
                         'raid_progression_json' => $body['raid_progression'] ?? null,
                         'mplus_score' => $this->currentSeasonScore($body),
                         'mplus_keystone' => $this->highestWeeklyKeystone($body),
@@ -245,15 +245,57 @@ class RaiderioSnapshotImporter
      * an int (matches the wowaudit pathway). Round to nearest, not floor,
      * so 642.7 -> 643.
      *
+     * The freshness gate drops the ilvl when either signal says the
+     * gear sample is stale: GRM hasn't seen the char online within the
+     * window, or RIO's gear `created_at` predates the window. Both are
+     * relative durations so the gate doesn't need re-tuning each squish
+     * or content tier.
+     *
      * @param  array<string,mixed>  $body
      */
-    private function equippedIlvl(array $body): ?int
+    private function equippedIlvl(array $body, Member $member): ?int
     {
-        $v = $body['gear']['item_level_equipped'] ?? null;
+        $gear = is_array($body['gear'] ?? null) ? $body['gear'] : null;
+        $v = $gear['item_level_equipped'] ?? null;
         if (! is_numeric($v) || $v <= 0) {
             return null;
         }
+        if (! $this->ilvlSampleIsFresh($gear, $member)) {
+            return null;
+        }
         return (int) round((float) $v);
+    }
+
+    /**
+     * @param  array<string,mixed>  $gear
+     */
+    private function ilvlSampleIsFresh(array $gear, Member $member): bool
+    {
+        $windowDays = (int) (config('raiderio.stale_ilvl_window_days') ?? 0);
+        if ($windowDays <= 0) {
+            return true;
+        }
+        $cutoff = CarbonImmutable::now()->subDays($windowDays);
+
+        // GRM-side: trust only if the char has been seen in-game recently.
+        $lastOnline = $member->last_online_at;
+        if ($lastOnline === null || $lastOnline->lt($cutoff)) {
+            return false;
+        }
+
+        // RIO-side: trust only if RIO's gear sample itself is recent.
+        // Catches the case where the char has been online (so GRM passes)
+        // but RIO is still serving a months-old cached gear blob.
+        $createdAt = $gear['created_at'] ?? null;
+        if (! is_string($createdAt) || $createdAt === '') {
+            return false;
+        }
+        try {
+            $observed = CarbonImmutable::parse($createdAt);
+        } catch (\Throwable) {
+            return false;
+        }
+        return $observed->greaterThanOrEqualTo($cutoff);
     }
 
     /**

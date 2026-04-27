@@ -42,6 +42,9 @@ function makeMember(string $name, array $overrides = []): Member
         'status' => Member::STATUS_ACTIVE,
         'first_seen_at' => now(),
         'last_seen_at' => now(),
+        // Default to "logged in today" so the recency gate on RIO ilvl
+        // doesn't drop fixture rows. Tests covering parked alts override.
+        'last_online_at' => now(),
     ], $overrides));
 }
 
@@ -50,7 +53,14 @@ function rioProfile(array $overrides = []): array
     return array_replace_recursive([
         'name' => 'Sheday',
         'realm' => 'Silvermoon',
-        'gear' => ['item_level_equipped' => 642.7, 'item_level_total' => 645.3],
+        // Default gear sample is dated to "now" so the freshness gate
+        // doesn't drop fixture rows. Tests covering stale RIO data
+        // override `created_at` explicitly.
+        'gear' => [
+            'item_level_equipped' => 282.4,
+            'item_level_total' => 285.0,
+            'created_at' => now()->toIso8601ZuluString(),
+        ],
         'raid_progression' => [
             'manaforge-omega' => [
                 'summary' => '8/8 H',
@@ -95,11 +105,11 @@ it('importer pulls profile per active member and writes a snapshot', function ()
     Http::fake([
         'raider.io.test/api/v1/characters/profile?*name=Sheday*' => Http::response(rioProfile([
             'name' => 'Sheday', 'realm' => 'Silvermoon',
-            'gear' => ['item_level_equipped' => 642.7],
+            'gear' => ['item_level_equipped' => 282.7],
         ]), 200),
         'raider.io.test/api/v1/characters/profile?*name=Tute*' => Http::response(rioProfile([
             'name' => 'Tute', 'realm' => 'Twisting Nether',
-            'gear' => ['item_level_equipped' => 638.2],
+            'gear' => ['item_level_equipped' => 278.2],
             'mythic_plus_scores_by_season' => [['scores' => ['all' => 980.0]]],
         ]), 200),
     ]);
@@ -126,15 +136,123 @@ it('importer pulls profile per active member and writes a snapshot', function ()
         ->keyBy(fn ($s) => $s->member->name);
 
     expect($snaps)->toHaveCount(2);
-    expect($snaps['Sheday-Silvermoon']->ilvl)->toBe(643);  // 642.7 rounds to 643
+    expect($snaps['Sheday-Silvermoon']->ilvl)->toBe(283);  // 282.7 rounds to 283
     expect($snaps['Sheday-Silvermoon']->mplus_score)->toBe(1234.5);
     expect($snaps['Sheday-Silvermoon']->mplus_keystone)->toBe(14);
     expect($snaps['Sheday-Silvermoon']->raid_progression_json['manaforge-omega']['summary'])
         ->toBe('8/8 H');
     expect($snaps['Sheday-Silvermoon']->raid_progression_json['manaforge-omega']['heroic_bosses_killed'])
         ->toBe(8);
-    expect($snaps['Tute-TwistingNether']->ilvl)->toBe(638);
+    expect($snaps['Tute-TwistingNether']->ilvl)->toBe(278);
     expect($snaps['Tute-TwistingNether']->mplus_score)->toBe(980.0);
+});
+
+it('drops ilvl for parked alts whose last login is outside the recency window', function () {
+    config(['raiderio.stale_ilvl_window_days' => 90]);
+    makeMember('Parked-Silvermoon', ['last_online_at' => now()->subDays(120)]);
+
+    Http::fake([
+        '*' => Http::response(rioProfile([
+            'gear' => ['item_level_equipped' => 739],
+        ]), 200),
+    ]);
+
+    (new RaiderioSnapshotImporter(
+        client: RaiderioClient::fromConfig(),
+        guildKey: 'Regenesis-Silvermoon',
+        requestDelayMs: 0,
+    ))->pull();
+
+    expect(MemberSnapshot::query()->first()->ilvl)->toBeNull();
+});
+
+it('drops ilvl when RIO gear created_at is outside the window even if the char is active', function () {
+    // Recently-active char but RIO is still serving a months-old gear
+    // sample. Without the RIO-side check we'd surface the stale ilvl.
+    config(['raiderio.stale_ilvl_window_days' => 90]);
+    makeMember('Refresh-Silvermoon', ['last_online_at' => now()->subDays(10)]);
+
+    Http::fake([
+        '*' => Http::response(rioProfile([
+            'gear' => [
+                'item_level_equipped' => 497,
+                'created_at' => now()->subDays(200)->toIso8601ZuluString(),
+            ],
+        ]), 200),
+    ]);
+
+    (new RaiderioSnapshotImporter(
+        client: RaiderioClient::fromConfig(),
+        guildKey: 'Regenesis-Silvermoon',
+        requestDelayMs: 0,
+    ))->pull();
+
+    expect(MemberSnapshot::query()->first()->ilvl)->toBeNull();
+});
+
+it('keeps ilvl when both the char and the RIO gear sample are within the window', function () {
+    config(['raiderio.stale_ilvl_window_days' => 90]);
+    makeMember('Active-Silvermoon', ['last_online_at' => now()->subDays(30)]);
+
+    Http::fake([
+        '*' => Http::response(rioProfile([
+            'gear' => [
+                'item_level_equipped' => 282,
+                'created_at' => now()->subDays(20)->toIso8601ZuluString(),
+            ],
+        ]), 200),
+    ]);
+
+    (new RaiderioSnapshotImporter(
+        client: RaiderioClient::fromConfig(),
+        guildKey: 'Regenesis-Silvermoon',
+        requestDelayMs: 0,
+    ))->pull();
+
+    expect(MemberSnapshot::query()->first()->ilvl)->toBe(282);
+});
+
+it('drops ilvl when last_online_at is unknown', function () {
+    // last_online_at is null for chars GRM has never seen online.
+    // Defensive: don't trust RIO when we can't corroborate recency.
+    config(['raiderio.stale_ilvl_window_days' => 90]);
+    makeMember('Unknown-Silvermoon', ['last_online_at' => null]);
+
+    Http::fake([
+        '*' => Http::response(rioProfile([
+            'gear' => ['item_level_equipped' => 282],
+        ]), 200),
+    ]);
+
+    (new RaiderioSnapshotImporter(
+        client: RaiderioClient::fromConfig(),
+        guildKey: 'Regenesis-Silvermoon',
+        requestDelayMs: 0,
+    ))->pull();
+
+    expect(MemberSnapshot::query()->first()->ilvl)->toBeNull();
+});
+
+it('skips the recency gate entirely when window is set to 0', function () {
+    config(['raiderio.stale_ilvl_window_days' => 0]);
+    makeMember('Ancient-Silvermoon', ['last_online_at' => now()->subYears(2)]);
+
+    Http::fake([
+        '*' => Http::response(rioProfile([
+            'gear' => [
+                'item_level_equipped' => 282,
+                'created_at' => now()->subYears(2)->toIso8601ZuluString(),
+            ],
+        ]), 200),
+    ]);
+
+    (new RaiderioSnapshotImporter(
+        client: RaiderioClient::fromConfig(),
+        guildKey: 'Regenesis-Silvermoon',
+        requestDelayMs: 0,
+    ))->pull();
+
+    expect(MemberSnapshot::query()->first()->ilvl)->toBe(282);
 });
 
 it('skips inactive members and members below the level floor', function () {
