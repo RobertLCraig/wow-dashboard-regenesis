@@ -30,6 +30,12 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     // Standalone page so heroic + mythic raiders both find it in one place.
     Route::get('/dashboard/keynight', [\App\Http\Controllers\Dashboard\KeynightController::class, 'index'])->name('dashboard.keynight');
 
+    // Composition planner per team. Aggregates the WCL parse data into
+    // a role-grouped view (tank / healer / melee / ranged) so a raid
+    // lead can see who their strongest at each role over a window.
+    Route::get('/composition/{team}', [\App\Http\Controllers\Dashboard\CompositionController::class, 'show'])
+        ->where('team', 'heroic|mythic')->name('composition.show');
+
     // Searchable + filterable consolidated roster. Replaces the
     // alt-groups + recently-inactive widgets on the General dashboard
     // (those become deprecated link-throughs once Roster lands).
