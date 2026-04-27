@@ -115,26 +115,85 @@ class BisComparisonService
     }
 
     /**
-     * Resolve the default-hero-talent BiS profile for a member based
-     * on their class and the active_spec_name in a RIO payload. Pure-
-     * function-shaped (no member-side state mutation), but does still
-     * hit the DB for the BisProfile lookup. Bulk callers should prefer
-     * pre-loading profiles and using compareWithData() directly.
+     * Resolve the best-matching BiS profile for a member based on their
+     * class and active spec. When multiple profiles exist for the same
+     * class+spec (one default + N hero-talent variants), score each by
+     * item-id overlap with the actual RIO gear and pick the highest.
+     * Tie goes to the default (hero_talent IS NULL) profile.
+     *
+     * Bulk callers should prefer pre-loading the candidates and passing
+     * them in so we don't N+1 across the whole roster.
      *
      * @param  array<string,mixed>  $rioRaw
+     * @param  \Illuminate\Support\Collection<int,BisProfile>|null  $candidates
      */
-    public function resolveProfileFor(Member $member, array $rioRaw): ?BisProfile
+    public function resolveProfileFor(Member $member, array $rioRaw, ?\Illuminate\Support\Collection $candidates = null): ?BisProfile
     {
-        $class = self::CLASS_NORMALISE[strtoupper((string) $member->class)] ?? null;
-        $spec = $this->normaliseSpec($rioRaw['active_spec_name'] ?? null);
-        if ($class === null || $spec === null) {
+        if ($candidates === null) {
+            $class = $this->classKey($member);
+            $spec = $this->normaliseSpec($rioRaw['active_spec_name'] ?? null);
+            if ($class === null || $spec === null) {
+                return null;
+            }
+            $candidates = BisProfile::query()
+                ->where('class', $class)
+                ->where('spec', $spec)
+                ->get();
+        }
+        return $this->pickBestProfile($candidates, $rioRaw);
+    }
+
+    /**
+     * Score each candidate profile by exact item-id overlap with the
+     * player's actual gear. Highest score wins; ties prefer the default
+     * profile so a player with no clearly-aligned variant still gets a
+     * sensible fallback.
+     *
+     * @param  \Illuminate\Support\Collection<int,BisProfile>  $candidates
+     * @param  array<string,mixed>  $rioRaw
+     */
+    public function pickBestProfile(\Illuminate\Support\Collection $candidates, array $rioRaw): ?BisProfile
+    {
+        if ($candidates->isEmpty()) {
             return null;
         }
-        return BisProfile::query()
-            ->where('class', $class)
-            ->where('spec', $spec)
-            ->whereNull('hero_talent')
-            ->first();
+        if ($candidates->count() === 1) {
+            return $candidates->first();
+        }
+
+        $default = $candidates->first(fn (BisProfile $p) => $p->hero_talent === null);
+        $actualGear = $this->extractActualGear($rioRaw);
+        if ($actualGear === []) {
+            // No gear to score against; prefer the default profile.
+            return $default ?? $candidates->first();
+        }
+
+        $bestScore = -1;
+        $best = $default ?? $candidates->first();
+        foreach ($candidates as $candidate) {
+            $bisGear = is_array($candidate->parsed_data['gear'] ?? null) ? $candidate->parsed_data['gear'] : [];
+            $score = 0;
+            foreach ($actualGear as $slot => $actual) {
+                if (($bisGear[$slot]['item_id'] ?? null) === ($actual['item_id'] ?? null)) {
+                    $score++;
+                }
+            }
+            if ($score > $bestScore
+                || ($score === $bestScore && $candidate->hero_talent === null)) {
+                $bestScore = $score;
+                $best = $candidate;
+            }
+        }
+        return $best;
+    }
+
+    /**
+     * Public access for bulk callers building their own (class|spec)
+     * lookup keys.
+     */
+    public function classKey(Member $member): ?string
+    {
+        return self::CLASS_NORMALISE[strtoupper((string) $member->class)] ?? null;
     }
 
     /**
@@ -222,7 +281,7 @@ class BisComparisonService
         return is_array($raw) ? $raw : null;
     }
 
-    private function normaliseSpec(mixed $value): ?string
+    public function normaliseSpec(mixed $value): ?string
     {
         if (! is_string($value) || $value === '') {
             return null;

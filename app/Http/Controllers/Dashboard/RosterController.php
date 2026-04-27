@@ -167,10 +167,10 @@ class RosterController extends Controller
     }
 
     /**
-     * Bulk BiS issue counts. One BisProfile load up front (~50 rows for
-     * a current tier), then a pure in-memory comparison per member with
-     * a RIO snapshot. Returns one entry per member where we could
-     * resolve the comparison; missing entries mean "no data, render -".
+     * Bulk BiS issue counts. One BisProfile load up front (all rows,
+     * including hero-talent variants), then a pure in-memory comparison
+     * per member - the service picks whichever variant best matches
+     * the player's actual gear. Missing entries mean "no data, render -".
      *
      * @param  EloquentCollection<int, Member>  $members
      * @param  Collection<int, MemberSnapshot>  $snapsByMember
@@ -182,11 +182,12 @@ class RosterController extends Controller
             return collect();
         }
 
-        $profilesByKey = BisProfile::query()
-            ->whereNull('hero_talent')
+        // Group all profiles by class|spec so the service can pick the
+        // best-matching variant for each member without an N+1.
+        $profilesByClassSpec = BisProfile::query()
             ->get()
-            ->keyBy(fn (BisProfile $p) => $p->class . '|' . $p->spec);
-        if ($profilesByKey->isEmpty()) {
+            ->groupBy(fn (BisProfile $p) => $p->class . '|' . $p->spec);
+        if ($profilesByClassSpec->isEmpty()) {
             return collect();
         }
 
@@ -201,7 +202,13 @@ class RosterController extends Controller
             if ($raw === null) {
                 continue;
             }
-            $profile = $service->resolveProfileFor($member, $raw);
+            $class = $service->classKey($member);
+            $spec = $service->normaliseSpec($raw['active_spec_name'] ?? null);
+            if ($class === null || $spec === null) {
+                continue;
+            }
+            $candidates = $profilesByClassSpec->get($class . '|' . $spec, collect());
+            $profile = $service->pickBestProfile($candidates, $raw);
             if ($profile === null) {
                 continue;
             }

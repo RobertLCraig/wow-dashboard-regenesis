@@ -210,7 +210,32 @@ it('translates RIO singular slot names to SimC plural ones', function () {
     expect($result['slots']['main_hand']['actual_item_id'])->toBe(300);
 });
 
-it('falls back to default profile (hero_talent IS NULL) instead of variants', function () {
+it('picks the hero-talent variant when its BiS gear overlaps the player more than the default', function () {
+    // Default profile and a Rider variant with different item ids.
+    // Player's gear matches Rider's items, so Rider should win on score.
+    $m = bisMember();
+    bisProfileFor('death_knight', 'frost', [
+        'head' => ['slot' => 'head', 'name' => 'default_head', 'item_id' => 100, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+        'neck' => ['slot' => 'neck', 'name' => 'default_neck', 'item_id' => 200, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+    ]);
+    bisProfileFor('death_knight', 'frost', [
+        'head' => ['slot' => 'head', 'name' => 'rider_head', 'item_id' => 900, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+        'neck' => ['slot' => 'neck', 'name' => 'rider_neck', 'item_id' => 901, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+    ], heroTalent: 'rider');
+    rioSnapshotFor($m, [
+        'active_spec_name' => 'Frost',
+        'gear' => ['items' => [
+            'head' => ['item_id' => 900, 'name' => 'rio_head', 'enchants' => [], 'gems' => []],
+            'neck' => ['item_id' => 901, 'name' => 'rio_neck', 'enchants' => [], 'gems' => []],
+        ]],
+    ]);
+
+    $result = (new BisComparisonService())->compareForMember($m);
+    expect($result['profile_name'])->toBe('MID1_death_knight_frost_rider');
+    expect($result['slots']['head']['bis_item_name'])->toBe('rider_head');
+});
+
+it('falls back to default profile (hero_talent IS NULL) when the player matches it best', function () {
     $m = bisMember();
     // Both default and a variant exist; we pick the default.
     bisProfileFor('death_knight', 'frost', [
@@ -242,6 +267,42 @@ it('normalises multi-word spec names to underscore form', function () {
     $result = (new BisComparisonService())->compareForMember($m);
     expect($result)->not->toBeNull();
     expect($result['spec'])->toBe('beast_mastery');
+});
+
+it('breaks ties by preferring the default profile over variants', function () {
+    // Both default and variant have the same single matched item (tie).
+    // Tie-break should land on the default.
+    $m = bisMember();
+    bisProfileFor('death_knight', 'frost', [
+        'head' => ['slot' => 'head', 'name' => 'default_head', 'item_id' => 1, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+    ]);
+    bisProfileFor('death_knight', 'frost', [
+        'head' => ['slot' => 'head', 'name' => 'rider_head', 'item_id' => 1, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+    ], heroTalent: 'rider');
+    rioSnapshotFor($m, [
+        'active_spec_name' => 'Frost',
+        'gear' => ['items' => ['head' => ['item_id' => 1, 'name' => 'rio', 'enchants' => [], 'gems' => []]]],
+    ]);
+
+    $result = (new BisComparisonService())->compareForMember($m);
+    expect($result['profile_name'])->toBe('MID1_death_knight_frost');
+});
+
+it('falls back to default when the player has no actual gear data to score against', function () {
+    $m = bisMember();
+    bisProfileFor('death_knight', 'frost', [
+        'head' => ['slot' => 'head', 'name' => 'default_head', 'item_id' => 1, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+    ]);
+    bisProfileFor('death_knight', 'frost', [
+        'head' => ['slot' => 'head', 'name' => 'rider_head', 'item_id' => 99, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+    ], heroTalent: 'rider');
+    rioSnapshotFor($m, [
+        'active_spec_name' => 'Frost',
+        'gear' => ['items' => []],  // empty gear - no scoring signal
+    ]);
+
+    $result = (new BisComparisonService())->compareForMember($m);
+    expect($result['profile_name'])->toBe('MID1_death_knight_frost');
 });
 
 it('countIssues totals missing and wrong enchants + gems separately', function () {
