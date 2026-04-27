@@ -186,6 +186,44 @@ it('renders the alt cohort empty-state when the member is a singleton', function
         ->assertSee('No linked alts');
 });
 
+it('shows the latest attendance stat for the character (looked up by member_name)', function () {
+    $m = characterMember('Sheday-Silvermoon');
+
+    \App\Models\AttendanceStat::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now()->subDays(2),
+        'member_name' => 'Sheday-Silvermoon',
+        'attendance_pct' => 87.5,
+        'attended_count' => 14,
+        'total_count' => 16,
+    ]);
+    // Older row for the same character; should NOT win.
+    \App\Models\AttendanceStat::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now()->subWeeks(3),
+        'member_name' => 'Sheday-Silvermoon',
+        'attendance_pct' => 50.0,
+        'attended_count' => 8,
+        'total_count' => 16,
+    ]);
+    // Different character; should not appear here.
+    \App\Models\AttendanceStat::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now()->subDays(1),
+        'member_name' => 'Other-Silvermoon',
+        'attendance_pct' => 99.9,
+        'attended_count' => 16,
+        'total_count' => 16,
+    ]);
+
+    $resp = $this->actingAs(characterOfficer())->get('/character/Sheday-Silvermoon');
+    $resp->assertOk();
+    // The latest row's percentage is what should surface.
+    $resp->assertSee('87.5');
+    // The older row's percentage shouldn't appear.
+    $resp->assertDontSee('50.0');
+});
+
 it('still renders the character page even when the BiS comparison service throws', function () {
     characterMember('Crash-Silvermoon');
 

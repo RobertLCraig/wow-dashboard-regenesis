@@ -42,7 +42,7 @@ class CharacterController extends Controller
         $recentEvents = $this->recentMemberEvents($member->id, limit: 20);
         $actionHistory = $this->recentActions($member->id, limit: 10);
         $altCohort = $this->altCohort($guildKey, $member);
-        $attendance = $this->attendanceFor($guildKey, $member->id);
+        $attendance = $this->attendanceFor($guildKey, $member->name);
         // BiS comparison is a nice-to-have - a 500 here shouldn't take
         // out the rest of the page (the snapshot cards / parses /
         // attendance / alts are the load-bearing content). On error log
@@ -154,13 +154,19 @@ class CharacterController extends Controller
     }
 
     /**
-     * @return ?AttendanceStat
+     * Latest attendance row for this character. attendance_stats is
+     * keyed by member_name (mirrors the SyncRaidHelperAttendance writer
+     * which only ever has a Discord user-name + guild scope, never our
+     * local Member.id), so we look up by name. SQLite is lenient about
+     * non-existent columns and returns no rows; MySQL errors with
+     * SQLSTATE 42S22 when the column is missing - which is what bit us
+     * in production when the controller previously queried `member_id`.
      */
-    private function attendanceFor(string $guildKey, int $memberId): ?AttendanceStat
+    private function attendanceFor(string $guildKey, string $memberName): ?AttendanceStat
     {
         return AttendanceStat::query()
             ->where('guild_key', $guildKey)
-            ->where('member_id', $memberId)
+            ->where('member_name', $memberName)
             ->latest('captured_at')
             ->first();
     }
