@@ -12,6 +12,7 @@ use App\Models\MemberSnapshot;
 use App\Models\RaidEvent;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
+use App\Services\Dashboard\WidgetOrderResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -33,11 +34,7 @@ class DashboardController extends Controller
         $guildKey = (string) config('grm.guild_key');
         $inactiveDays = (int) config('grm.inactive_days', 30);
 
-        return view('dashboard.index', [
-            'lastSnapshot' => Snapshot::query()
-                ->where('guild_key', $guildKey)
-                ->latest('captured_at')
-                ->first(),
+        $widgetData = [
             'health' => $this->rosterHealth($guildKey, $inactiveDays),
             'inactive' => $this->recentlyInactive($guildKey, $inactiveDays),
             'timeline' => $this->recentLogTimeline($guildKey),
@@ -49,6 +46,20 @@ class DashboardController extends Controller
             'churn' => $this->churn($guildKey),
             'upcomingEvents' => $this->upcomingEvents(),
             'teamProgression' => $this->teamProgression($guildKey),
+        ];
+
+        $widgets = WidgetOrderResolver::resolve(
+            available: (array) config('dashboard.widgets', []),
+            userOrder: auth()->user()?->dashboard_layout,
+        );
+
+        return view('dashboard.index', [
+            'lastSnapshot' => Snapshot::query()
+                ->where('guild_key', $guildKey)
+                ->latest('captured_at')
+                ->first(),
+            'widgets' => $widgets,
+            'widgetData' => $widgetData,
         ]);
     }
 

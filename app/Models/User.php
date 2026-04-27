@@ -48,6 +48,7 @@ class User extends Authenticatable
         'team',
         'display_mode',
         'theme',
+        'dashboard_layout',
         'discord_refresh_token',
         'last_role_check_at',
         'calendar_token',
@@ -65,6 +66,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'last_role_check_at' => 'datetime',
             'password' => 'hashed',
+            'dashboard_layout' => 'array',
         ];
     }
 
