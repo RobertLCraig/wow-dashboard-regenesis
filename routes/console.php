@@ -36,6 +36,18 @@ Schedule::command('raiderio:pull')
     ->onOneServer()
     ->withoutOverlapping();
 
+// Twice-daily Blizzard profile pull. Authoritative ilvl source: data
+// updates within minutes of a character logging out, so this is more
+// reliable than RIO for the roster's ilvl column. Same cadence as
+// raiderio:pull because both fundamentally depend on members logging
+// out in-game; nothing finer is informative. Short-circuits cleanly
+// when BLIZZARD_CLIENT_ID / BLIZZARD_CLIENT_SECRET are unset.
+Schedule::command('blizzard:pull')
+    ->twiceDaily(7, 18)
+    ->timezone(config('raidhelper.timezone', 'Europe/London'))
+    ->onOneServer()
+    ->withoutOverlapping();
+
 // Daily pull of every Raid-Helper event into the local cache. Webhooks
 // keep us in sync in real-time; this is the safety net that catches any
 // missed deliveries and any events created before the webhook was wired.

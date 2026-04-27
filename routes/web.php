@@ -94,6 +94,9 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     // On-demand Warcraft Logs pull. Same shape as raiderio.sync.
     Route::post('/admin/wcl/sync', [\App\Http\Controllers\Admin\WclSyncController::class, 'store'])->name('admin.wcl.sync');
 
+    // On-demand Blizzard profile pull. Same shape as raiderio.sync.
+    Route::post('/admin/blizzard/sync', [\App\Http\Controllers\Admin\BlizzardSyncController::class, 'store'])->name('admin.blizzard.sync');
+
     // Dedicated sync dashboard: per-source status panels + GRM file
     // upload + on-demand sync triggers. Auto-refreshes while a sync
     // is in progress so officers can see results without reloading.

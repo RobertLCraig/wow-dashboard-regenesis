@@ -31,6 +31,7 @@ class SyncDashboardController extends Controller
         $grm = $this->latestSnapshot($guildKey, Snapshot::SOURCE_GRM);
         $woa = $this->latestSnapshot($guildKey, Snapshot::SOURCE_WOWAUDIT);
         $rio = $this->latestSnapshot($guildKey, Snapshot::SOURCE_RAIDERIO);
+        $bnet = $this->latestSnapshot($guildKey, Snapshot::SOURCE_BLIZZARD);
         $wcl = WclReport::query()->latest('captured_at')->first();
         $wclTotal = WclReport::query()->count();
 
@@ -71,6 +72,16 @@ class SyncDashboardController extends Controller
                 'last_seen_at' => $rio?->captured_at,
                 'last_summary' => $rio ? "{$rio->member_count} members" : null,
                 'state' => SyncStatus::get(SyncStatus::SOURCE_RAIDERIO),
+                'cadence' => 'Pull: twice daily (07:00 + 18:00 UK).',
+                'has_button' => true,
+                'has_upload' => false,
+            ],
+            SyncStatus::SOURCE_BLIZZARD => [
+                'label' => 'Battle.net (Blizzard)',
+                'description' => 'Authoritative gear / ilvl source. Profile data refreshes within minutes of a character logging out, so this beats Raider.IO for parked-alt staleness. Requires BLIZZARD_CLIENT_ID + BLIZZARD_CLIENT_SECRET.',
+                'last_seen_at' => $bnet?->captured_at,
+                'last_summary' => $bnet ? "{$bnet->member_count} members" : null,
+                'state' => SyncStatus::get(SyncStatus::SOURCE_BLIZZARD),
                 'cadence' => 'Pull: twice daily (07:00 + 18:00 UK).',
                 'has_button' => true,
                 'has_upload' => false,

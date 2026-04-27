@@ -179,6 +179,7 @@
                                 'raiderio' => 'admin.raiderio.sync',
                                 'wowaudit' => 'admin.wowaudit.sync',
                                 'wcl'      => 'admin.wcl.sync',
+                                'blizzard' => 'admin.blizzard.sync',
                                 default => null,
                             };
                         @endphp

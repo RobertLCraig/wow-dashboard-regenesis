@@ -311,3 +311,17 @@ it('throws when Blizzard credentials are not configured', function () {
     ))->pull())
         ->toThrow(\RuntimeException::class, 'Blizzard client credentials are not configured');
 });
+
+it('blizzard:pull short-circuits cleanly when credentials are not configured', function () {
+    config(['blizzard.client_id' => '', 'blizzard.client_secret' => '']);
+
+    $this->artisan('blizzard:pull')
+        ->expectsOutputToContain('blizzard:pull skipped')
+        ->assertExitCode(0);
+});
+
+it('blizzard:pull runs end-to-end with no active members', function () {
+    $this->artisan('blizzard:pull')
+        ->expectsOutputToContain('0 members queried')
+        ->assertExitCode(0);
+});
