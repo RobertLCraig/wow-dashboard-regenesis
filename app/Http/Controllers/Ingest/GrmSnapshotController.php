@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Ingest;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\IngestSnapshotJob;
 use App\Services\Grm\GrmSnapshotIngester;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -66,6 +67,10 @@ class GrmSnapshotController extends Controller
                 'reason' => 'payload_hash matches existing snapshot',
             ], 200);
         }
+
+        // Queue the heavy normalize/diff so the PowerShell tool gets a
+        // 202 within a few hundred ms even for multi-MB envelopes.
+        IngestSnapshotJob::dispatch($result['snapshot_id']);
 
         return response()->json([
             'snapshot_id' => $result['snapshot_id'],

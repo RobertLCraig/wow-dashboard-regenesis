@@ -2,7 +2,6 @@
 
 namespace App\Services\Grm;
 
-use App\Jobs\IngestSnapshotJob;
 use App\Models\Snapshot;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Storage;
@@ -15,8 +14,11 @@ use Illuminate\Support\Str;
  *   - HTTP /api/ingest/grm   (PowerShell sync tool, gzipped JSON envelope)
  *   - /admin/sync GRM upload (officer drag-and-drop a SavedVariables.lua)
  *
- * Both paths converge here so dedupe + raw-storage + job dispatch is
- * defined exactly once.
+ * Both paths converge here so dedupe + raw-storage is defined exactly
+ * once. The caller is responsible for dispatching IngestSnapshotJob: the
+ * API path queues it (returns 202 fast); the upload path runs it
+ * synchronously so the officer sees full normalize/diff counts in the
+ * same redirect.
  */
 class GrmSnapshotIngester
 {
@@ -71,8 +73,6 @@ class GrmSnapshotIngester
             'raw_path' => $rawPath,
             'grm_version' => $grmVersion,
         ]);
-
-        IngestSnapshotJob::dispatch($snapshot->id);
 
         return [
             'snapshot_id' => $snapshot->id,
