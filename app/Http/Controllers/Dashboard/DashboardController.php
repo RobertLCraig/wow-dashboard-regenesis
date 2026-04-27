@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
-use App\Models\AltGroup;
 use App\Models\LogEvent;
 use App\Models\Member;
 use App\Models\MemberAction;
@@ -36,10 +35,8 @@ class DashboardController extends Controller
 
         $widgetData = [
             'health' => $this->rosterHealth($guildKey, $inactiveDays),
-            'inactive' => $this->recentlyInactive($guildKey, $inactiveDays),
             'timeline' => $this->recentLogTimeline($guildKey),
             'actionQueue' => $this->actionQueue($guildKey),
-            'altGroups' => $this->altGroups($guildKey),
             'bans' => $this->bans($guildKey),
             'anniversaries' => $this->anniversaries($guildKey),
             'rankDistribution' => $this->rankDistribution($guildKey),
@@ -216,18 +213,6 @@ class DashboardController extends Controller
         ];
     }
 
-    private function recentlyInactive(string $guildKey, int $inactiveDays): \Illuminate\Support\Collection
-    {
-        $cutoff = CarbonImmutable::now()->subDays($inactiveDays);
-        return Member::active()
-            ->forGuild($guildKey)
-            ->whereNotNull('last_online_at')
-            ->where('last_online_at', '<', $cutoff)
-            ->orderBy('last_online_at', 'asc')
-            ->limit(50)
-            ->get();
-    }
-
     private function recentLogTimeline(string $guildKey): \Illuminate\Support\Collection
     {
         return LogEvent::query()
@@ -273,16 +258,6 @@ class DashboardController extends Controller
                 MemberAction::TYPE_KICK,
             ),
         ];
-    }
-
-    private function altGroups(string $guildKey): \Illuminate\Support\Collection
-    {
-        return AltGroup::query()
-            ->where('guild_key', $guildKey)
-            ->with(['members' => fn ($q) => $q->orderByDesc('alt_group_members.is_main')->orderBy('name')])
-            ->get()
-            ->sortBy(fn ($g) => mb_strtolower($g->members->first()?->name ?? ''))
-            ->values();
     }
 
     private function bans(string $guildKey): \Illuminate\Support\Collection

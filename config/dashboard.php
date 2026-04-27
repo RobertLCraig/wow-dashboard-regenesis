@@ -40,25 +40,17 @@ return [
             'data_key' => 'health',
             'col_span' => 'col-span-full',
         ],
-        [
-            'key'      => 'recently-inactive',
-            'title'    => 'Recently inactive',
-            'partial'  => 'dashboard.widgets.recently-inactive',
-            'data_key' => 'inactive',
-            'col_span' => '',
-        ],
+        // recently-inactive + alt-groups widgets were retired here once
+        // the /roster page (with its inactive_30d filter and ?group=1
+        // toggle) shipped: same data, sharper UX, single home. The
+        // widget Blade files live on under resources/views/dashboard/
+        // widgets/ but nothing references them. WidgetOrderResolver
+        // silently drops their old keys from any saved layout.
         [
             'key'      => 'anniversaries',
             'title'    => 'Anniversaries',
             'partial'  => 'dashboard.widgets.anniversaries',
             'data_key' => 'anniversaries',
-            'col_span' => '',
-        ],
-        [
-            'key'      => 'alt-groups',
-            'title'    => 'Alt groups',
-            'partial'  => 'dashboard.widgets.alt-groups',
-            'data_key' => 'altGroups',
             'col_span' => '',
         ],
         [
