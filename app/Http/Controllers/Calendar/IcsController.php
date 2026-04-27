@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\RaidEvent;
 use App\Models\User;
 use App\Services\Calendar\IcsBuilder;
+use App\Services\WorldEvents\WorldEventsCalendar;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -38,6 +40,51 @@ class IcsController extends Controller
             'Content-Type' => 'text/calendar; charset=utf-8',
             'Content-Disposition' => 'attachment; filename="regenesis-' . $event->id . '.ics"',
         ]);
+    }
+
+    /**
+     * Combined Social feed: the user's raid events plus computed world
+     * events (Darkmoon Faire, holidays, Trading Post resets) so a single
+     * subscription gives the holistic Social-page picture. Existing
+     * /calendar/{token}.ics stays raid-only so anyone already subscribed
+     * doesn't suddenly see new entries.
+     */
+    public function socialSubscription(Request $request, string $token, IcsBuilder $builder, WorldEventsCalendar $worldCalendar): Response
+    {
+        $user = User::query()->where('calendar_token', $token)->first();
+        if (! $user) {
+            abort(404);
+        }
+
+        $raidEvents = RaidEvent::query()->withinFeedWindow()->orderBy('starts_at')->get();
+
+        // 60-day forward-only window for world events keeps the feed
+        // bounded; users see Darkmoon Faire / Brewfest / etc. as they
+        // approach without piling up the rest of the year up front.
+        $now = CarbonImmutable::now();
+        $worldEvents = $worldCalendar->eventsInRange($now, $now->addDays(60));
+
+        $body = $builder->buildSocialFeed($raidEvents, $worldEvents);
+        $latestUpdate = $raidEvents->max('updated_at');
+        $etag = '"' . hash('sha256', $body) . '"';
+
+        if ($request->headers->get('If-None-Match') === $etag) {
+            return response('', 304, [
+                'ETag' => $etag,
+                'Cache-Control' => 'private, max-age=300',
+            ]);
+        }
+
+        $headers = [
+            'Content-Type' => 'text/calendar; charset=utf-8',
+            'Cache-Control' => 'private, max-age=300',
+            'ETag' => $etag,
+        ];
+        if ($latestUpdate) {
+            $headers['Last-Modified'] = $latestUpdate->toRfc7231String();
+        }
+
+        return response($body, 200, $headers);
     }
 
     public function subscription(Request $request, string $token, IcsBuilder $builder): Response

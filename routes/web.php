@@ -139,3 +139,10 @@ Route::get('/events/{event}.ics', [\App\Http\Controllers\Calendar\IcsController:
 // show 'what was today').
 Route::get('/calendar/{token}.ics', [\App\Http\Controllers\Calendar\IcsController::class, 'subscription'])
     ->name('calendar.subscription');
+
+// Combined Social feed: raid events plus computed world events. Same
+// per-user token as the raid-only subscription above; users can pick
+// whichever one they want in their calendar app. Tokens are bound to
+// User rows; rotation is identical to the raid feed.
+Route::get('/calendar/social/{token}.ics', [\App\Http\Controllers\Calendar\IcsController::class, 'socialSubscription'])
+    ->name('calendar.social.subscription');

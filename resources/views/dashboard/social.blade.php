@@ -10,7 +10,16 @@
                 Guild events, world events, and what's coming up over the next {{ $windowDays }} days.
             </p>
         </div>
-        <span class="text-xs text-muted">{{ $totalEvents }} {{ \Illuminate\Support\Str::plural('event', $totalEvents) }}</span>
+        <div class="flex items-center gap-3 text-xs text-muted">
+            <span>{{ $totalEvents }} {{ \Illuminate\Support\Str::plural('event', $totalEvents) }}</span>
+            @if (! empty($subscribeUrl))
+                <a href="{{ $subscribeUrl }}"
+                   class="inline-flex items-center gap-1 px-2 py-1 rounded border border-line hover:border-accent hover:text-ink transition"
+                   title="Subscribe in your calendar app. Copy the link or paste into Google Calendar / Apple Calendar / Outlook.">
+                    Subscribe (.ics)
+                </a>
+            @endif
+        </div>
     </div>
 
     @if ($announcements->isNotEmpty())

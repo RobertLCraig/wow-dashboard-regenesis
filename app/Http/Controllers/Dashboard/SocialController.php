@@ -77,12 +77,21 @@ class SocialController extends Controller
             ->limit(10)
             ->get();
 
+        // Per-user calendar token drives the .ics subscribe link. The
+        // user model lazy-creates a stable random token on first access;
+        // rotation is a follow-up settings-page concern.
+        $user = auth()->user();
+        $subscribeUrl = $user && $user->calendar_token
+            ? route('calendar.social.subscription', ['token' => $user->calendar_token])
+            : null;
+
         return view('dashboard.social', [
             'eventsByWeek' => $byWeek,
             'totalEvents' => count($events),
             'windowDays' => self::WINDOW_DAYS_AHEAD,
             'announcements' => $announcements,
             'announcementWindowDays' => $announcementWindow,
+            'subscribeUrl' => $subscribeUrl,
         ]);
     }
 }
