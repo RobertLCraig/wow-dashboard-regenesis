@@ -38,11 +38,13 @@ class RosterController extends Controller
         abort_unless(auth()->user()?->can('roster.view'), 403);
 
         $filter = $this->normaliseFilter($request->query('filter'));
-        $rows = $this->rows($filter);
+        $grouped = $this->normaliseGrouped($request->query('group'));
+        $rows = $this->rows($filter, $grouped);
 
         return view('dashboard.roster', [
             'rows' => $rows,
             'filter' => $filter,
+            'grouped' => $grouped,
             'counts' => $this->chipCounts(),
         ]);
     }
@@ -52,7 +54,9 @@ class RosterController extends Controller
         abort_unless(auth()->user()?->can('roster.view'), 403);
 
         $filter = $this->normaliseFilter($request->query('filter'));
-        $rows = $this->rows($filter);
+        // CSV always exports flat: officers want one row per character,
+        // not collapsed cohorts. The ?group= flag is ignored here.
+        $rows = $this->rows($filter, false);
         $filename = 'roster-' . now()->format('Y-m-d') . ($filter !== 'all' ? "-{$filter}" : '') . '.csv';
 
         return response()->streamDownload(function () use ($rows) {
@@ -91,10 +95,15 @@ class RosterController extends Controller
         return in_array($filter, self::FILTERS, true) ? $filter : 'all';
     }
 
+    private function normaliseGrouped(mixed $raw): bool
+    {
+        return in_array($raw, ['1', 1, true, 'true', 'on'], true);
+    }
+
     /**
-     * @return Collection<int, array{member: Member, snap: ?MemberSnapshot, main: ?Member, flags: list<string>, group_member_ids: list<int>}>
+     * @return Collection<int, array{member: Member, snap: ?MemberSnapshot, main: ?Member, flags: list<string>, group_member_ids: list<int>, alts: \Illuminate\Support\Collection<int,Member>}>
      */
-    private function rows(string $filter): Collection
+    private function rows(string $filter, bool $grouped): Collection
     {
         $guildKey = (string) config('grm.guild_key');
 
@@ -106,7 +115,20 @@ class RosterController extends Controller
         $snapsByMember = $this->latestRaiderioSnapshotsByMember($guildKey, $members);
         $groupIdsByMember = $this->altGroupIdsByMember($guildKey, $members);
 
-        return $members->map(function (Member $m) use ($snapsByMember, $groupIdsByMember) {
+        // Grouped mode: alts whose main is also visible get folded into
+        // the main row's `alts` list. Alts whose main is filtered out
+        // appear as their own row (orphans) so they're never invisible.
+        $visibleIds = $members->pluck('id')->all();
+        $altsByMainId = $grouped
+            ? $this->altsForMains($guildKey, $members->whereNull('main_member_id')->pluck('id')->all())
+            : collect();
+
+        $rowMembers = $grouped
+            ? $members->filter(fn (Member $m) => $m->main_member_id === null
+                || ! in_array($m->main_member_id, $visibleIds, true))->values()
+            : $members;
+
+        return $rowMembers->map(function (Member $m) use ($snapsByMember, $groupIdsByMember, $altsByMainId) {
             return [
                 'member' => $m,
                 'snap' => $snapsByMember->get($m->id),
@@ -116,8 +138,36 @@ class RosterController extends Controller
                 // in the same alt_group. Singletons just contain the row's
                 // own id. Used by the kick-macro modal as data-member-ids.
                 'group_member_ids' => $groupIdsByMember->get($m->id, [$m->id]),
+                // Populated only in grouped mode for rows that are mains
+                // with at least one alt. The view renders these as an
+                // expandable sub-list under the main's name cell.
+                'alts' => $altsByMainId->get($m->id, collect()),
             ];
         })->values();
+    }
+
+    /**
+     * For grouped mode: pull every alt of every visible main in one
+     * query and key by main_member_id. Includes alts that wouldn't
+     * pass the current filter, so expanding a main always shows their
+     * full cohort (matches the old alt-groups widget behaviour).
+     *
+     * @param  list<int>  $mainIds
+     * @return Collection<int, \Illuminate\Database\Eloquent\Collection<int, Member>>
+     */
+    private function altsForMains(string $guildKey, array $mainIds): Collection
+    {
+        if ($mainIds === []) {
+            return collect();
+        }
+
+        return Member::query()
+            ->forGuild($guildKey)
+            ->active()
+            ->whereIn('main_member_id', $mainIds)
+            ->orderBy('name')
+            ->get()
+            ->groupBy('main_member_id');
     }
 
     /**

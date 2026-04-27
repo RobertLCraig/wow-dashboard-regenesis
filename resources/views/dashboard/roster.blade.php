@@ -32,13 +32,17 @@
         ];
     @endphp
 
-    <div class="flex flex-wrap gap-2 mb-4">
+    <div class="flex flex-wrap items-center gap-2 mb-4">
         @foreach ($chips as $chip)
             @php
                 $active = $filter === $chip['key'];
                 $count = $counts[$chip['key']] ?? 0;
+                $chipQuery = ['filter' => $chip['key']];
+                if ($grouped) {
+                    $chipQuery['group'] = 1;
+                }
             @endphp
-            <a href="{{ route('roster.index', ['filter' => $chip['key']]) }}"
+            <a href="{{ route('roster.index', $chipQuery) }}"
                class="text-xs px-2 py-1 rounded border transition
                       {{ $active
                           ? 'border-accent bg-accent/15 text-ink'
@@ -47,6 +51,19 @@
                 <span class="ml-1 text-[10px] {{ $active ? 'text-ink/80' : 'text-muted/70' }}">{{ $count }}</span>
             </a>
         @endforeach
+
+        {{-- Grouping toggle. Mirror of the filter chips: an anchor that
+             flips ?group= on/off. Default is flat (off) so search +
+             column sort behave the obvious way; grouped mode collapses
+             alts under their main with an expand caret. --}}
+        <a href="{{ route('roster.index', $grouped ? ['filter' => $filter] : ['filter' => $filter, 'group' => 1]) }}"
+           class="text-xs px-2 py-1 rounded border transition ml-auto
+                  {{ $grouped
+                      ? 'border-accent bg-accent/15 text-ink'
+                      : 'border-line bg-bg text-muted hover:text-ink hover:border-muted' }}"
+           title="{{ $grouped ? 'Showing one row per alt group; click for flat list' : 'Showing every character as its own row; click to group alts under mains' }}">
+            {{ $grouped ? 'Grouped' : 'Group alts' }}
+        </a>
     </div>
 
     <x-clarity-table
@@ -98,13 +115,44 @@
                         $cls = 'cls-' . strtoupper($m->class ?? '');
                     @endphp
                     <tr class="border-t border-line" data-row>
-                        <td class="px-4 py-2" data-sort-key="name" data-sort-value="{{ strtolower($m->name) }}">
+                        <td class="px-4 py-2 align-top" data-sort-key="name" data-sort-value="{{ strtolower($m->name) }}"
+                            @if ($grouped && $row['alts']->isNotEmpty()) x-data="{ open: false }" @endif>
                             <span class="inline-flex items-center gap-1.5">
+                                @if ($grouped && $row['alts']->isNotEmpty())
+                                    {{-- Expand caret. Flat mode never shows this; grouped mode shows it
+                                         only on rows that actually have alts to reveal. --}}
+                                    <button type="button"
+                                            @click="open = !open"
+                                            class="w-4 text-muted hover:text-ink text-xs leading-none select-none"
+                                            :aria-expanded="open"
+                                            aria-label="Show alts">
+                                        <span x-text="open ? '▾' : '▸'"></span>
+                                    </button>
+                                @endif
                                 <x-class-icon :class="$m->class" />
                                 <a href="{{ route('character.show', $m->name) }}" class="{{ $cls }} hover:underline">{{ $m->name }}</a>
+                                @if ($grouped && $row['alts']->isNotEmpty())
+                                    <span class="text-muted text-xs ml-1">+ {{ $row['alts']->count() }} {{ \Illuminate\Support\Str::plural('alt', $row['alts']->count()) }}</span>
+                                @endif
                             </span>
                             @if ($m->level)
                                 <span class="text-muted text-xs ml-1">L{{ $m->level }}</span>
+                            @endif
+
+                            @if ($grouped && $row['alts']->isNotEmpty())
+                                <ul x-show="open" x-cloak class="mt-2 ml-6 pl-3 border-l border-line space-y-1 text-xs">
+                                    @foreach ($row['alts'] as $alt)
+                                        @php $altCls = 'cls-' . strtoupper($alt->class ?? ''); @endphp
+                                        <li class="flex items-center justify-between gap-2">
+                                            <span class="inline-flex items-center gap-1.5">
+                                                <x-class-icon :class="$alt->class" :size="14" />
+                                                <a href="{{ route('character.show', $alt->name) }}"
+                                                   class="{{ $altCls }} hover:underline">{{ $alt->name }}</a>
+                                            </span>
+                                            <span class="text-muted">{{ $alt->last_online_at?->diffForHumans() ?? 'never' }}</span>
+                                        </li>
+                                    @endforeach
+                                </ul>
                             @endif
                         </td>
                         <td class="px-2 py-2 text-muted" data-label="Class" data-sort-key="class" data-sort-value="{{ strtolower($m->class ?? '') }}">

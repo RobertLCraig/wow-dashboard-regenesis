@@ -187,3 +187,70 @@ it('character-links pills appear in the rendered roster row', function () {
         ->get('/roster')
         ->assertSee('raider.io/characters/eu/silvermoon/Sheday', false);
 });
+
+/**
+ * Count the number of actual roster <tr> rows in a response body.
+ * Matches the literal opening tag the view emits, not the `data-row`
+ * substring (which also appears in the sortableTable() script block).
+ */
+function rosterRowCount(string $html): int
+{
+    return preg_match_all('/<tr [^>]*\bdata-row\b[^>]*>/', $html);
+}
+
+it('grouped mode hides alts whose main is in the visible set', function () {
+    $altGroup = AltGroup::query()->create(['guild_key' => 'Regenesis-Silvermoon', 'group_label' => 'g1']);
+    $main = rosterMember('Mainchar-Silvermoon', ['alt_group_id' => $altGroup->id]);
+    rosterMember('Altchar-Silvermoon', ['alt_group_id' => $altGroup->id, 'main_member_id' => $main->id]);
+
+    // Flat mode: both rows render as data-row entries.
+    $flat = $this->actingAs(rosterOfficer())->get('/roster');
+    $flat->assertOk()
+        ->assertSee('Mainchar-Silvermoon')
+        ->assertSee('Altchar-Silvermoon');
+    expect(rosterRowCount($flat->getContent()))->toBe(2);
+
+    // Grouped mode: alt is folded into the main's expandable list, so it
+    // does not get its own data-row tr. The name still appears in the
+    // hidden sub-list, so we assert on the row count instead.
+    $grouped = $this->actingAs(rosterOfficer())->get('/roster?group=1');
+    $grouped->assertOk()->assertSee('Mainchar-Silvermoon');
+    expect(rosterRowCount($grouped->getContent()))->toBe(1);
+    // Sub-list is rendered server-side and revealed via Alpine on click,
+    // so the alt name still shows in the response body.
+    $grouped->assertSee('Altchar-Silvermoon')->assertSee('+ 1 alt');
+});
+
+it('grouped mode keeps an alt as its own row when its main is filtered out', function () {
+    $altGroup = AltGroup::query()->create(['guild_key' => 'Regenesis-Silvermoon', 'group_label' => 'g1']);
+    // Main is recent, alt is stale. inactive_30d filter excludes the main,
+    // so the alt becomes an orphan row in grouped mode rather than vanishing.
+    $main = rosterMember('Recentmain-Silvermoon', [
+        'alt_group_id' => $altGroup->id,
+        'last_online_at' => now()->subDays(2),
+    ]);
+    rosterMember('Stalealt-Silvermoon', [
+        'alt_group_id' => $altGroup->id,
+        'main_member_id' => $main->id,
+        'last_online_at' => now()->subDays(45),
+    ]);
+
+    $resp = $this->actingAs(rosterOfficer())->get('/roster?group=1&filter=inactive_30d');
+    // The orphan alt is the only roster row; the main appears only as
+    // the alt's "Alt of" reference, not as its own row.
+    $resp->assertOk()->assertSee('Stalealt-Silvermoon');
+    expect(rosterRowCount($resp->getContent()))->toBe(1);
+});
+
+it('CSV export ignores the group= flag and stays flat', function () {
+    $altGroup = AltGroup::query()->create(['guild_key' => 'Regenesis-Silvermoon', 'group_label' => 'g1']);
+    $main = rosterMember('Csvmain-Silvermoon', ['alt_group_id' => $altGroup->id]);
+    rosterMember('Csvalt-Silvermoon', ['alt_group_id' => $altGroup->id, 'main_member_id' => $main->id]);
+
+    $resp = $this->actingAs(rosterOfficer())->get('/roster.csv?group=1');
+    $body = $resp->streamedContent();
+
+    expect($body)
+        ->toContain('Csvmain-Silvermoon')
+        ->toContain('Csvalt-Silvermoon');  // both rows present, even with group=1
+});
