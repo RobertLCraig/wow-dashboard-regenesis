@@ -6,10 +6,10 @@ use Carbon\CarbonImmutable;
 
 /**
  * Computes recurring in-game world events that fall inside a date
- * range. Phase 1 covers Darkmoon Faire because its cadence is fixed
- * and predictable; future tiers can add Brewfest, Hallow's End, the
- * Trading Post reset, weekly maintenance windows, and so on - they're
- * all date math against an absolute calendar, no API needed.
+ * range. All date math, no API: cadences are stable enough that this
+ * doesn't need updating between expansions. The yearly fixed-date
+ * holidays drift by 1-2 days some years (timezone / reset edges); if
+ * Blizzard ever shifts a window we update the absolute date here.
  *
  * Returned shape matches what the SocialController unifies with
  * Raid-Helper events:
@@ -31,16 +31,31 @@ class WorldEventsCalendar
         }
 
         $events = [];
+
+        // Monthly events: one pass per month in the window.
         $cursor = $from->startOfMonth();
-        // Loop through every month that overlaps the window. Each month
-        // contributes at most one Darkmoon Faire instance.
         while ($cursor->lessThanOrEqualTo($to)) {
-            $faire = $this->darkmoonFaireFor($cursor);
-            if ($faire['ends_at']->greaterThanOrEqualTo($from) && $faire['starts_at']->lessThanOrEqualTo($to)) {
-                $events[] = $faire;
-            }
+            $events[] = $this->darkmoonFaireFor($cursor);
+            $events[] = $this->tradingPostResetFor($cursor);
             $cursor = $cursor->addMonth()->startOfMonth();
         }
+
+        // Annual fixed-date holidays: one pass per year touched. We also
+        // include the year before $from->year so a Winter Veil that
+        // started the previous December and runs into January is still
+        // surfaced when the window opens in January.
+        for ($year = $from->year - 1; $year <= $to->year; $year++) {
+            foreach ($this->annualHolidaysFor($year) as $event) {
+                $events[] = $event;
+            }
+        }
+
+        // Filter to anything that actually overlaps the window.
+        $events = array_values(array_filter(
+            $events,
+            fn (array $e) => $e['ends_at']->greaterThanOrEqualTo($from)
+                && $e['starts_at']->lessThanOrEqualTo($to),
+        ));
 
         usort($events, fn (array $a, array $b) => $a['starts_at']->getTimestamp() <=> $b['starts_at']->getTimestamp());
         return $events;
@@ -68,6 +83,68 @@ class WorldEventsCalendar
             'kind' => 'world',
             'tone' => 'violet',
             'description' => 'Monthly carnival on Darkmoon Island. Profession quests, daily games, and a vendor of unique pets and toys.',
+        ];
+    }
+
+    /**
+     * Trading Post resets on the 1st of every month: shop refresh + the
+     * monthly faction-track resets. Single-day "event" so it shows up
+     * as a marker rather than a span.
+     *
+     * @return array{name:string, starts_at:CarbonImmutable, ends_at:CarbonImmutable, kind:string, tone:string, description:?string}
+     */
+    private function tradingPostResetFor(CarbonImmutable $monthStart): array
+    {
+        return [
+            'name' => 'Trading Post reset',
+            'starts_at' => $monthStart->startOfDay(),
+            'ends_at' => $monthStart->endOfDay(),
+            'kind' => 'world',
+            'tone' => 'amber',
+            'description' => "Traveler's vendor stock refresh and the monthly faction track reset.",
+        ];
+    }
+
+    /**
+     * Major in-game holidays whose dates are stable year-to-year. Times
+     * are 00:00 UK to 23:59 UK on the listed dates; Blizzard's actual
+     * server-reset boundaries are close enough for a calendar feed.
+     *
+     * @return list<array{name:string, starts_at:CarbonImmutable, ends_at:CarbonImmutable, kind:string, tone:string, description:?string}>
+     */
+    private function annualHolidaysFor(int $year): array
+    {
+        return [
+            $this->yearly($year, 6, 21, 7, 4, 'Midsummer Fire Festival',
+                'Capital flames and bonfire daily quests across Azeroth.'),
+            $this->yearly($year, 9, 20, 10, 6, 'Brewfest',
+                'Dark Iron raid event, Coren Direbrew daily, festive kegs in the capitals.'),
+            $this->yearly($year, 10, 18, 11, 1, "Hallow's End",
+                'Trick-or-treating, the Headless Horseman world boss, and the Sinister Calling questline.'),
+            $this->yearly($year, 12, 16, 1, 2, 'Feast of Winter Veil',
+                'Greatfather Winter, Metzen the Reindeer dailies, and the Stolen Present quest chain.',
+                endsNextYear: true),
+        ];
+    }
+
+    /**
+     * @return array{name:string, starts_at:CarbonImmutable, ends_at:CarbonImmutable, kind:string, tone:string, description:?string}
+     */
+    private function yearly(
+        int $year,
+        int $startMonth, int $startDay,
+        int $endMonth, int $endDay,
+        string $name,
+        ?string $description = null,
+        bool $endsNextYear = false,
+    ): array {
+        return [
+            'name' => $name,
+            'starts_at' => CarbonImmutable::create($year, $startMonth, $startDay)->startOfDay(),
+            'ends_at' => CarbonImmutable::create($endsNextYear ? $year + 1 : $year, $endMonth, $endDay)->endOfDay(),
+            'kind' => 'world',
+            'tone' => 'amber',
+            'description' => $description,
         ];
     }
 }
