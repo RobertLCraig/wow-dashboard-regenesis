@@ -12,6 +12,15 @@
         </div>
         <div class="flex items-center gap-3 text-xs text-muted">
             <span>{{ $totalEvents }} {{ \Illuminate\Support\Str::plural('event', $totalEvents) }}</span>
+            {{-- View toggle: list (default) shows chronological week
+                 groups; grid shows a month-style calendar where each
+                 day cell lists everything overlapping it. --}}
+            <span class="inline-flex rounded border border-line overflow-hidden">
+                <a href="{{ route('dashboard.social') }}"
+                   class="px-2 py-1 transition {{ $view === 'list' ? 'bg-accent/15 text-ink' : 'hover:text-ink' }}">List</a>
+                <a href="{{ route('dashboard.social', ['view' => 'grid']) }}"
+                   class="px-2 py-1 transition border-l border-line {{ $view === 'grid' ? 'bg-accent/15 text-ink' : 'hover:text-ink' }}">Calendar</a>
+            </span>
             @if (! empty($subscribeUrl))
                 <a href="{{ $subscribeUrl }}"
                    class="inline-flex items-center gap-1 px-2 py-1 rounded border border-line hover:border-accent hover:text-ink transition"
@@ -50,7 +59,58 @@
         </section>
     @endif
 
-    @if (empty($eventsByWeek))
+    @if ($view === 'grid')
+        @if (empty($days))
+            <div class="bg-panel border border-line rounded-lg p-8 text-center text-muted">
+                Nothing to show in calendar view.
+            </div>
+        @else
+            @php
+                $eventToneClasses = [
+                    'sky'    => 'bg-sky-900/40 text-sky-200 border-sky-800/60',
+                    'violet' => 'bg-violet-900/40 text-violet-200 border-violet-800/60',
+                    'amber'  => 'bg-amber-900/40 text-amber-200 border-amber-800/60',
+                ];
+            @endphp
+            <div class="bg-panel border border-line rounded-lg overflow-hidden">
+                <div class="grid grid-cols-7 text-xs uppercase tracking-wider text-muted border-b border-line">
+                    @foreach (['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] as $dow)
+                        <div class="px-2 py-2 text-center">{{ $dow }}</div>
+                    @endforeach
+                </div>
+                <div class="grid grid-cols-7 gap-px bg-line">
+                    @foreach ($days as $day)
+                        @php
+                            $cellTone = ! $day['in_window']
+                                ? 'bg-bg/50 text-muted/60'
+                                : ($day['is_today'] ? 'bg-accent/10' : 'bg-panel');
+                            $isMonthStart = $day['date']->day === 1;
+                        @endphp
+                        <div class="{{ $cellTone }} min-h-[88px] p-1.5 flex flex-col gap-1">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs {{ $day['is_today'] ? 'font-semibold text-ink' : 'text-muted' }}">
+                                    {{ $day['date']->format('j') }}
+                                </span>
+                                @if ($isMonthStart)
+                                    <span class="text-[10px] uppercase text-muted">{{ $day['date']->format('M') }}</span>
+                                @endif
+                            </div>
+                            @foreach (array_slice($day['events'], 0, 3) as $event)
+                                @php $tone = $eventToneClasses[$event['tone']] ?? 'bg-line/40 text-muted border-line'; @endphp
+                                <div class="text-[10px] leading-tight px-1.5 py-0.5 rounded border {{ $tone }} truncate"
+                                     title="{{ $event['name'] }} - {{ $event['starts_at']->format('D j M H:i') }}">
+                                    {{ $event['name'] }}
+                                </div>
+                            @endforeach
+                            @if (count($day['events']) > 3)
+                                <div class="text-[10px] text-muted">+{{ count($day['events']) - 3 }} more</div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+    @elseif (empty($eventsByWeek))
         <div class="bg-panel border border-line rounded-lg p-8 text-center text-muted">
             Nothing scheduled in the next {{ $windowDays }} days.
             New Raid-Helper events appear here as they're created in Discord.

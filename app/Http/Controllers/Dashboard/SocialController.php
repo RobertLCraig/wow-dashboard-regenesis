@@ -7,6 +7,7 @@ use App\Models\DiscordAnnouncement;
 use App\Models\RaidEvent;
 use App\Services\WorldEvents\WorldEventsCalendar;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
@@ -31,10 +32,11 @@ class SocialController extends Controller
 {
     private const WINDOW_DAYS_AHEAD = 60;
 
-    public function index(WorldEventsCalendar $calendar): View
+    public function index(Request $request, WorldEventsCalendar $calendar): View
     {
         abort_unless(auth()->user()?->can('dashboard.social.view'), 403);
 
+        $view = $request->query('view') === 'grid' ? 'grid' : 'list';
         $now = CarbonImmutable::now();
         $until = $now->addDays(self::WINDOW_DAYS_AHEAD);
 
@@ -70,6 +72,34 @@ class SocialController extends Controller
             $byWeek[$key]['week_start'] ??= $event['starts_at']->startOfWeek();
         }
 
+        // Grid-view data: flat list of days from start of this week
+        // through end of the week containing $until. For each day we
+        // collect events that overlap it (multi-day events appear in
+        // every day they cover).
+        $days = [];
+        if ($view === 'grid') {
+            $gridStart = $now->startOfWeek();
+            $gridEnd = $until->endOfWeek();
+            $cursor = $gridStart;
+            while ($cursor->lessThanOrEqualTo($gridEnd)) {
+                $dayStart = $cursor->startOfDay();
+                $dayEnd = $cursor->endOfDay();
+                $dayEvents = array_values(array_filter($events, function (array $e) use ($dayStart, $dayEnd): bool {
+                    $startsAfterDayEnd = $e['starts_at']->greaterThan($dayEnd);
+                    $effectiveEnd = $e['ends_at'] ?? $e['starts_at'];
+                    $endsBeforeDayStart = $effectiveEnd->lessThan($dayStart);
+                    return ! $startsAfterDayEnd && ! $endsBeforeDayStart;
+                }));
+                $days[] = [
+                    'date' => $cursor,
+                    'events' => $dayEvents,
+                    'is_today' => $cursor->isSameDay($now),
+                    'in_window' => $cursor->greaterThanOrEqualTo($now->startOfDay()) && $cursor->lessThanOrEqualTo($until),
+                ];
+                $cursor = $cursor->addDay();
+            }
+        }
+
         $announcementWindow = (int) config('discord.announcements_window_days', 30);
         $announcements = DiscordAnnouncement::query()
             ->where('posted_at', '>=', $now->subDays($announcementWindow))
@@ -86,7 +116,9 @@ class SocialController extends Controller
             : null;
 
         return view('dashboard.social', [
+            'view' => $view,
             'eventsByWeek' => $byWeek,
+            'days' => $days,
             'totalEvents' => count($events),
             'windowDays' => self::WINDOW_DAYS_AHEAD,
             'announcements' => $announcements,

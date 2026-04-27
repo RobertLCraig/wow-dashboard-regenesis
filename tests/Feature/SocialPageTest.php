@@ -111,6 +111,28 @@ it('hides the "Latest from Discord" section entirely when there are no recent an
     $resp->assertOk()->assertDontSee('Latest from Discord');
 });
 
+it('renders a grid view when ?view=grid is set', function () {
+    \App\Models\RaidEvent::query()->create([
+        'raidhelper_event_id' => 'rh-grid',
+        'channel_id' => '111',
+        'server_id' => '222',
+        'title' => 'Mythic Tuesday',
+        'starts_at' => now()->addDays(2),
+        'ends_at' => now()->addDays(2)->addHours(3),
+        'closing_at' => now()->addDays(2)->subHour(),
+        'ics_uid' => 'rh-grid@regenesis.local',
+        'last_synced_at' => now(),
+    ]);
+
+    $resp = $this->actingAs(socialOfficer())->get('/dashboard/social?view=grid');
+    $resp->assertOk()
+        ->assertSee('Calendar')
+        // Day-of-week headers in the grid.
+        ->assertSee('Mon')->assertSee('Sun')
+        // The event lands in a cell.
+        ->assertSee('Mythic Tuesday');
+});
+
 it('hides past Raid-Helper events even when their start is technically inside the window', function () {
     RaidEvent::query()->create([
         'raidhelper_event_id' => 'rh-old',
