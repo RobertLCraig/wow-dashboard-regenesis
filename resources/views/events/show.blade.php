@@ -73,6 +73,8 @@
         @endif
     </section>
 
+    @include('events._invite-macros', ['event' => $event])
+
     <form method="POST" action="{{ route('events.destroy', $event) }}"
           onsubmit="return confirm('Delete this event from Discord and the dashboard? This is permanent.')">
         @csrf
