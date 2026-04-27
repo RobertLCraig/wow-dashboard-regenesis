@@ -61,6 +61,15 @@ Plan file: [`~/.claude/plans/luminous-moseying-bear.md`](C:/Users/r/.claude/plan
 | wowaudit ilvl/vault/M+ data | done (Silver+ tier required) |
 | Great Vault Progress widget | done |
 | Mythic+ This Week widget | done |
+| Battle.net (Blizzard) ilvl source | done |
+| Multi-source ilvl resolver (Blizzard > Wowaudit > RIO) | done |
+| BiS comparison vs SimulationCraft profiles | done |
+| Hero-talent-aware BiS matching | done |
+| Roster BiS issues column + filter | done |
+| Wowhead-linked items in BiS section | done |
+| Social events hub (calendar + holidays + Discord feed) | done |
+| Per-user social ICS feed + public world-events feed | done |
+| Calendar grid view on Social page | done |
 | Roster table page | v2 |
 | Per-tier permission Gates | v2 (flat in v1, gates in place) |
 
@@ -169,6 +178,28 @@ default) and parses them. For dev work without going to GitHub, point
 `SIMC_PROFILES_PATH` at a local clone of the simc repo and run
 `php artisan simc:pull` (no `--fetch`). Runs as a no-op when the path
 is empty, so cron stays armed without errors.
+
+### 5b. Discord bot (optional, for the Social page announcements feed)
+
+The Social page polls a configured Discord channel for announcements
+(transmog contests, drunken raid nights, etc.). This needs a bot token,
+not the OAuth login flow:
+
+1. Create an application at <https://discord.com/developers/applications>,
+   add a Bot, copy its token.
+2. Give the bot `Read Messages` + `Read Message History`. Invite to
+   the server via the OAuth2 URL generator with `bot` scope.
+3. Right-click the announcements channel in Discord (with Developer
+   Mode on) -> Copy Channel ID.
+
+Drop both into `.env`:
+```
+DISCORD_BOT_TOKEN=<from developers.discord.com>
+DISCORD_ANNOUNCEMENTS_CHANNEL_ID=<channel id>
+```
+The hourly `discord:fetch-announcements` cron job populates the
+`discord_announcements` table; the Social page renders the most recent
+10 in the last 30 days. No-ops when either env is empty.
 
 ### 6. GRM ingest token + sync tool on the WoW PC
 
