@@ -14,7 +14,96 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <style>[x-cloak] { display: none !important; }</style>
+
+    {{-- Flatpickr datetime picker with a dark theme. Replaces the native
+         HTML5 datetime-local / time inputs (whose appearance varies wildly
+         across browsers and never matches the dashboard's dark UI) with a
+         consistent calendar + time-spinner widget. CDN-loaded to mirror
+         the Alpine + Tailwind pattern used elsewhere here. --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4/dist/themes/dark.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/flatpickr@4"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+
+        /* Bring Flatpickr's dark theme closer to the dashboard palette so
+           the picker doesn't read as a foreign UI element. Targets the
+           overlay calendar/time popup, not the input itself. Hex values
+           mirror the Tailwind config above (panel #15151f, line #252533,
+           ink #e6e6f0); accent is the live themed CSS variable so a
+           phoenix-red user gets red picker highlights. */
+        .flatpickr-calendar {
+            background: #15151f;
+            border: 1px solid #252533;
+            box-shadow: 0 8px 24px rgb(0 0 0 / 0.5);
+            color: #e6e6f0;
+        }
+        .flatpickr-months .flatpickr-month,
+        .flatpickr-weekdays,
+        span.flatpickr-weekday,
+        .flatpickr-time input {
+            color: #e6e6f0;
+            background: #15151f;
+        }
+        .flatpickr-day {
+            color: #e6e6f0;
+        }
+        .flatpickr-day.selected,
+        .flatpickr-day.selected:hover,
+        .flatpickr-day.startRange,
+        .flatpickr-day.endRange {
+            background: rgb(var(--c-accent));
+            border-color: rgb(var(--c-accent));
+            color: white;
+        }
+        .flatpickr-day.today {
+            border-color: rgb(var(--c-accent) / 0.6);
+        }
+        .flatpickr-day:hover,
+        .flatpickr-day:focus {
+            background: #252533;
+        }
+    </style>
+
+    {{-- Auto-attach Flatpickr to every native datetime-local / time input
+         on the page. Two-way Alpine binding (x-model) keeps working
+         because Flatpickr observes the input element directly: when
+         Alpine writes to el.value (e.g. a quick-create pill click sets
+         the start time), the input event handler below pushes that
+         value back into the picker so its calendar/spinner reflects it.
+         Keeping setDate's second arg false avoids a re-fire loop. --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof flatpickr === 'undefined') return;
+
+            const datetimeOpts = {
+                enableTime: true,
+                time_24hr: true,
+                dateFormat: 'Y-m-d\\TH:i',
+                minuteIncrement: 5,
+                allowInput: true,
+                disableMobile: true,
+            };
+            const timeOpts = {
+                enableTime: true,
+                noCalendar: true,
+                time_24hr: true,
+                dateFormat: 'H:i',
+                minuteIncrement: 5,
+                allowInput: true,
+                disableMobile: true,
+            };
+
+            document.querySelectorAll('input[type="datetime-local"]').forEach(el => {
+                const fp = flatpickr(el, datetimeOpts);
+                el.addEventListener('input', () => fp.setDate(el.value, false));
+            });
+            document.querySelectorAll('input[type="time"]').forEach(el => {
+                const fp = flatpickr(el, timeOpts);
+                el.addEventListener('input', () => fp.setDate(el.value, false));
+            });
+        });
+    </script>
     {{-- Reusable Alpine factory for sortable + searchable + filterable tables.
          Wrap a table region with x-data="sortableTable()", mark data rows with
          data-row, give each sortable cell data-sort-key="X" and (optionally)
