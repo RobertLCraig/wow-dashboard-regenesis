@@ -266,6 +266,52 @@
         }
         body.mode-high-clarity table.clarity-tabular tbody tr[data-empty-message]::before { content: none; }
         body.mode-high-clarity table.clarity-tabular tbody tr[data-empty-message] td::before { content: none; }
+
+        /* --- High-clarity interaction polish --- */
+        /* Bump tiny interactive elements toward a 32px+ tap target so
+           the GM (and anyone else with diplopia / fine-motor issues)
+           can hit them without accidentally clicking a neighbour.
+           Targets the small icon buttons used by the explainer-toggle
+           component (16x16 in standard), the drag handle + up/down
+           buttons in dashboard edit mode (24x24), and assorted
+           chevron / close buttons across the admin pages. Selector
+           matches Tailwind's w-N h-N utilities so we don't have to
+           walk every component. */
+        body.mode-high-clarity button.w-4.h-4,
+        body.mode-high-clarity button.w-5.h-5,
+        body.mode-high-clarity button.w-6.h-6 {
+            width: 2rem !important;
+            height: 2rem !important;
+            font-size: 0.875rem !important;
+        }
+
+        /* Visible focus ring on every keyboard-focusable element.
+           Outline (not box-shadow) so it isn't suppressed by sibling
+           overflow:hidden containers. */
+        body.mode-high-clarity :focus-visible {
+            outline: 2px solid rgb(var(--c-accent));
+            outline-offset: 2px;
+            border-radius: 0.25rem;
+        }
+
+        /* Search inputs across widgets get a bit more vertical room
+           and a slightly larger placeholder so the input field reads
+           as a proper edit target rather than a thin strip. */
+        body.mode-high-clarity input[type="text"],
+        body.mode-high-clarity input[type="search"],
+        body.mode-high-clarity select {
+            padding-top: 0.45rem;
+            padding-bottom: 0.45rem;
+            font-size: 0.9375rem;
+        }
+
+        /* Dashboard-layout edit-mode chrome reads better at this
+           size; the drag handle in particular needs a meatier hit
+           area than the default 1rem character. */
+        body.mode-high-clarity .js-drag-handle {
+            font-size: 1.25rem;
+            padding: 0 0.25rem;
+        }
     </style>
     {{-- WoW class colours, used by the timeline + inactive list. --}}
     <style>
