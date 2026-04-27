@@ -132,7 +132,28 @@ when the key is empty, so cron stays armed without errors. Manually:
 php artisan wowaudit:pull
 ```
 
-### 5. GRM ingest token + sync tool on the WoW PC
+### 5. Battle.net (optional, but recommended for current ilvls)
+
+The roster's ilvl column prefers Blizzard data when available because
+Blizzard refreshes within minutes of a character logging out, ahead of
+Raider.IO's scrape cadence. Register a client at
+<https://develop.battle.net/access/clients> (free; the redirect URI is
+never used, just enter a valid HTTPS URL). Drop the credentials in
+`.env`:
+```
+BLIZZARD_CLIENT_ID=<from develop.battle.net>
+BLIZZARD_CLIENT_SECRET=<from develop.battle.net>
+BLIZZARD_REGION=eu
+```
+The twice-daily `blizzard:pull` cron job populates `Snapshot::SOURCE_BLIZZARD`
+rows. The roster reads Blizzard -> Wowaudit -> Raider.IO in priority order
+per member. Runs as a no-op when credentials are empty, so cron stays
+armed without errors. Manually:
+```sh
+php artisan blizzard:pull
+```
+
+### 6. GRM ingest token + sync tool on the WoW PC
 
 Generate a 32-byte hex token:
 ```sh
@@ -155,7 +176,7 @@ pwsh tools\grm-sync\grm-sync.ps1 -Verbose
 schtasks /Run /TN RegenesisGrmSync
 ```
 
-### 6. First deploy
+### 7. First deploy
 ```sh
 pwsh ./deploy.ps1                    # build, push, run server-side deploy.sh
 pwsh ./deploy.ps1 -DryRun            # preview only
@@ -164,7 +185,7 @@ pwsh ./deploy.ps1 -DryRun            # preview only
 The server-side `deploy.sh` runs migrations, restarts the queue worker,
 and pings `/up`.
 
-### 7. Production cron (Hostinger)
+### 8. Production cron (Hostinger)
 Add via hPanel cron jobs:
 ```cron
 * * * * * /opt/alt/php84/usr/bin/php /home/u408983312/domains/regenesis.enhanceify.co.uk/laravel/artisan schedule:run >> /dev/null 2>&1

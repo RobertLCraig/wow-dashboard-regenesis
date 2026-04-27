@@ -84,10 +84,13 @@ return [
     |
     | We drop the ilvl when either signal says the data is stale:
     |   - GRM's last_online_at is older than the window, OR
-    |   - RIO's gear `created_at` is older than the window.
+    |   - The source's own freshness stamp is older than the window
+    |     (RIO's gear.created_at, Blizzard's last_login_timestamp).
     |
-    | Both are relative durations so this self-adjusts across squishes
-    | and patches without anyone touching config. Set to 0 to disable.
+    | Used by both the Raider.IO and Blizzard importers - the duration
+    | is the same regardless of source, by design. Both are relative so
+    | this self-adjusts across squishes and patches without anyone
+    | touching config. Set to 0 to disable.
     */
     'stale_ilvl_window_days' => (int) env('RAIDERIO_STALE_ILVL_WINDOW_DAYS', 90),
 
