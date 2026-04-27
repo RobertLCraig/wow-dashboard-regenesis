@@ -12,6 +12,7 @@ use App\Models\Snapshot;
 use App\Models\WclActorParse;
 use App\Services\Bis\BisComparisonService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 /**
@@ -24,7 +25,7 @@ use Illuminate\View\View;
  */
 class CharacterController extends Controller
 {
-    public function show(string $nameRealm): View
+    public function show(string $nameRealm, BisComparisonService $bis): View
     {
         abort_unless(auth()->user()?->can('roster.view'), 403);
 
@@ -42,7 +43,24 @@ class CharacterController extends Controller
         $actionHistory = $this->recentActions($member->id, limit: 10);
         $altCohort = $this->altCohort($guildKey, $member);
         $attendance = $this->attendanceFor($guildKey, $member->id);
-        $bisComparison = (new BisComparisonService())->compareForMember($member);
+        // BiS comparison is a nice-to-have - a 500 here shouldn't take
+        // out the rest of the page (the snapshot cards / parses /
+        // attendance / alts are the load-bearing content). On error log
+        // with member context so we can debug from laravel.log without
+        // losing the page render. Service is container-resolved so
+        // tests can swap in a stub.
+        try {
+            $bisComparison = $bis->compareForMember($member);
+        } catch (\Throwable $e) {
+            Log::warning('BiS comparison threw on character page', [
+                'member' => $member->name,
+                'class' => $member->class,
+                'level' => $member->level,
+                'message' => $e->getMessage(),
+                'file' => $e->getFile() . ':' . $e->getLine(),
+            ]);
+            $bisComparison = null;
+        }
 
         return view('dashboard.character.show', [
             'member' => $member,

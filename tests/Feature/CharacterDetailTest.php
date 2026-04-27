@@ -185,3 +185,26 @@ it('renders the alt cohort empty-state when the member is a singleton', function
         ->assertOk()
         ->assertSee('No linked alts');
 });
+
+it('still renders the character page even when the BiS comparison service throws', function () {
+    characterMember('Crash-Silvermoon');
+
+    // Swap in a comparison service whose compareForMember always throws.
+    // The controller catches it, logs, and continues rendering.
+    $this->app->bind(\App\Services\Bis\BisComparisonService::class, function () {
+        return new class extends \App\Services\Bis\BisComparisonService {
+            public function compareForMember(\App\Models\Member $member): ?array
+            {
+                throw new \RuntimeException('contrived test failure');
+            }
+        };
+    });
+
+    $this->actingAs(characterOfficer())
+        ->get('/character/Crash-Silvermoon')
+        ->assertOk()
+        ->assertSee('Crash-Silvermoon')
+        // The BiS section should be omitted when the service throws,
+        // so its header text ("BiS comparison") is not in the response.
+        ->assertDontSee('BiS comparison');
+});
