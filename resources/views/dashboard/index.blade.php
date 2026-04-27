@@ -8,10 +8,11 @@
          Chart.js / Alpine. --}}
     <script defer src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
     <script>
-        function dashboardEditor() {
+        function dashboardEditor(saveUrl) {
             return {
                 editing: false,
                 sortable: null,
+                saveUrl: saveUrl,
                 enterEdit() {
                     this.editing = true;
                     // Wait for x-show to update DOM before initialising
@@ -31,31 +32,58 @@
                     window.location.reload();
                 },
                 async save() {
-                    const keys = Array.from(this.$refs.grid.querySelectorAll('[data-widget-key]'))
+                    const keys = Array.from(this.$refs.grid.children)
+                        .filter(el => el.hasAttribute('data-widget-key'))
                         .map(el => el.getAttribute('data-widget-key'));
-                    await this.postLayout({ layout: keys });
-                    window.location.reload();
+                    if (! keys.length) {
+                        alert('Could not read widget order from the grid; layout NOT saved.');
+                        return;
+                    }
+                    const ok = await this.postLayout({ layout: keys });
+                    if (ok) window.location.reload();
                 },
                 async resetToDefault() {
-                    await this.postLayout({ reset: 1 });
-                    window.location.reload();
+                    const ok = await this.postLayout({ reset: 1 });
+                    if (ok) window.location.reload();
                 },
                 async postLayout(payload) {
-                    const root = this.$el;
-                    const url = root.getAttribute('data-save-url');
-                    const csrf = root.getAttribute('data-csrf');
+                    if (! this.saveUrl) {
+                        alert('Layout save URL not set on the dashboard editor.');
+                        return false;
+                    }
+                    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    if (! csrf) {
+                        alert('CSRF token meta tag missing from the page; layout NOT saved.');
+                        return false;
+                    }
                     const body = new FormData();
                     if (payload.reset) body.append('reset', '1');
                     if (payload.layout) {
                         payload.layout.forEach(k => body.append('layout[]', k));
                     }
                     body.append('_token', csrf);
-                    return fetch(url, {
-                        method: 'POST',
-                        body,
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                        credentials: 'same-origin',
-                    });
+                    try {
+                        const response = await fetch(this.saveUrl, {
+                            method: 'POST',
+                            body,
+                            headers: {
+                                'X-CSRF-TOKEN': csrf,
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json, text/html',
+                            },
+                            credentials: 'same-origin',
+                        });
+                        if (! response.ok) {
+                            console.error('Layout save HTTP error', response.status);
+                            alert('Layout save failed (HTTP ' + response.status + '). See console for details.');
+                            return false;
+                        }
+                        return true;
+                    } catch (err) {
+                        console.error('Layout save network error', err);
+                        alert('Layout save failed: ' + err.message);
+                        return false;
+                    }
                 },
                 // Click / keyboard reorder, runs against the same DOM
                 // Sortable does, so Save reads the new order either way.
@@ -73,7 +101,7 @@
 @endpush
 
 @section('content')
-    <div x-data="dashboardEditor()" data-csrf="{{ csrf_token() }}" data-save-url="{{ route('preferences.dashboard-layout') }}">
+    <div x-data="dashboardEditor('{{ route('preferences.dashboard-layout') }}')">
         <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
             <h1 class="text-xl font-semibold">General Guild Management</h1>
 
