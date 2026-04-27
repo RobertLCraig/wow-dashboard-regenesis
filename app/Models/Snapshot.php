@@ -10,6 +10,7 @@ class Snapshot extends Model
     public const SOURCE_GRM = 'grm';
     public const SOURCE_WOWAUDIT = 'wowaudit';
     public const SOURCE_RAIDERIO = 'raiderio';
+    public const SOURCE_BLIZZARD = 'blizzard';
 
     protected $fillable = [
         'guild_key',
