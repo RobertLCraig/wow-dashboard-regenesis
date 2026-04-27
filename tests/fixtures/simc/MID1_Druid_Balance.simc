@@ -1,0 +1,32 @@
+druid="MID1_Druid_Balance"
+source=default
+spec=balance
+level=90
+race=night_elf
+timeofday=night
+role=spell
+position=back
+
+# Default consumables
+potion=potion_of_recklessness_2
+flask=flask_of_the_magisters_2
+food=blooming_feast
+augmentation=void_touched
+
+actions.precombat=snapshot_stats
+
+head=stellarflare_diadem,id=250100,bonus_id=12676/13575,gem_id=240900,enchant_id=7961
+neck=eclipsed_chain,id=250101,bonus_id=6935/13469,gem_id=240900
+shoulders=mantle_of_balance,id=250102,bonus_id=13577
+chest=robe_of_the_treant,id=250103,bonus_id=13575,enchant_id=7987
+hands=gauntlets_of_the_keeper,id=250104,bonus_id=12675
+waist=cord_of_the_grove,id=250105,bonus_id=6935
+legs=branch_woven_breeches,id=250106,bonus_id=13575,enchant_id=8159
+feet=barkstrider_boots,id=250107,bonus_id=12676
+finger1=ring_of_dappled_light,id=250108,bonus_id=6935,gem_id=240900,enchant_id=7967
+finger2=signet_of_the_mooncalf,id=250109,bonus_id=6935,gem_id=240900,enchant_id=7967
+trinket1=moonkin_emblem,id=250110,bonus_id=13355
+trinket2=tear_of_elune,id=250111,bonus_id=13355
+main_hand=staff_of_the_sister_moon,id=250112,bonus_id=12806/13577,enchant_id=3368
+
+# gear_ilvl=283.5

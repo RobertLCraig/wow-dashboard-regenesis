@@ -1,0 +1,42 @@
+deathknight="MID1_Death_Knight_Frost_Rider"
+source=default
+spec=frost
+level=90
+race=pandaren
+role=attack
+position=back
+talents=CsPAAAAAAAAAAAAAAAAAAAAAAMDwMjZMmZY2mZmZmZxMjMjxMDzw4BMzgZmZmZAAAAAAAAAwY2mFzyMMWYYZmtphmxGmZMzMwMAGmZwMzMgB
+
+# Default consumables
+potion=potion_of_recklessness_2
+flask=flask_of_the_shattered_sun_2
+food=silvermoon_parade
+augmentation=void_touched
+temporary_enchant=main_hand:thalassian_phoenix_oil_2/off_hand:thalassian_phoenix_oil_2
+
+# Action priority list omitted in fixture - we don't parse APL.
+actions.precombat=snapshot_stats
+actions=auto_attack
+
+head=relentless_riders_crown,id=249970,bonus_id=40/6935/12676/12806/13335/13338/13575,gem_id=240983
+neck=amulet_of_the_abyssal_hymn,id=250247,bonus_id=6935/13355/13468/13469,gem_id=240908/240908
+shoulders=shoulderplates_of_frozen_blood,id=50234,bonus_id=12806/13577
+back=adherents_silken_shroud,id=239656,bonus_id=8791/8960
+chest=relentless_riders_cuirass,id=249973,bonus_id=40/12676,enchant_id=7987
+wrists=spellbreakers_bracers,id=237834,bonus_id=8791/8960,gem_id=240908
+hands=relentless_riders_bonegrasps,id=249971,bonus_id=40/12675
+waist=relentless_riders_chain,id=249967,bonus_id=6935,gem_id=240908
+legs=relentless_riders_legguards,id=249969,bonus_id=40/12676,enchant_id=8159
+feet=greaves_of_the_unformed,id=249381,ilevel=289
+finger1=platinum_star_band,id=193708,bonus_id=6935,gem_id=240908,enchant_id=7967
+finger2=sindorei_band_of_hope,id=249919,bonus_id=6935,gem_id=240908,enchant_id=7967
+trinket1=gaze_of_the_alnseer,id=249343,bonus_id=13355
+trinket2=light_company_guidon,id=249344,bonus_id=13355
+main_hand=bellamys_final_judgement,id=249277,bonus_id=12806/13577,enchant_id=3368
+
+# Gear Summary
+# gear_ilvl=288.47
+# gear_strength=1243
+# gear_stamina=17372
+# set_bonus=midnight_season_1_2pc=1
+# set_bonus=midnight_season_1_4pc=1
