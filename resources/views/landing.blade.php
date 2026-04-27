@@ -4,8 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Regenesis | Officer Dashboard</title>
+    <link rel="icon" type="image/webp" href="{{ asset('favicon.webp') }}">
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('img/brand/phoenix-mark.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('img/brand/phoenix-emoji.png') }}">
 
     {{-- Open Graph for Discord / Slack / Twitter unfurls. The
          large wordmark on the dark grey background previews well at

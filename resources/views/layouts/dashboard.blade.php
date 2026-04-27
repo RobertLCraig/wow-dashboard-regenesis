@@ -5,8 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Dashboard') | Regenesis</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    {{-- Favicon. webp first because modern browsers prefer it (sharper
+         + much smaller); the .png is the universal fallback. Both
+         point at the single-phoenix emoji variant, NOT phoenix-mark
+         (which is a logo sheet of every variant - browsers
+         downsampled the whole sheet to 16px and it read as noise). --}}
+    <link rel="icon" type="image/webp" href="{{ asset('favicon.webp') }}">
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('img/brand/phoenix-mark.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('img/brand/phoenix-emoji.png') }}">
     {{-- Tailwind via CDN keeps the deploy story simple while widgets
          are still being added. We'll move to a proper Vite build once
          the structure stabilises (probably when we add the event

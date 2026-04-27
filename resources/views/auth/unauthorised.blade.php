@@ -3,8 +3,9 @@
 <head>
     <meta charset="utf-8">
     <title>Not authorised | Regenesis</title>
+    <link rel="icon" type="image/webp" href="{{ asset('favicon.webp') }}">
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('img/brand/phoenix-mark.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('img/brand/phoenix-emoji.png') }}">
     <style>
         body{font-family:ui-sans-serif,system-ui,sans-serif;background:#0f0f17;color:#e6e6f0;margin:0;min-height:100vh;display:grid;place-items:center;text-align:center;padding:2rem;}
         .card{max-width:480px;}
