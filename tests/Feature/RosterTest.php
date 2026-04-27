@@ -306,6 +306,114 @@ it('grouped mode keeps an alt as its own row when its main is filtered out', fun
     expect(rosterRowCount($resp->getContent()))->toBe(1);
 });
 
+it('roster renders a BiS column showing "OK" when no issues, the count when there are issues, and "-" when no data', function () {
+    // OK: matched everywhere
+    $ok = rosterMember('Ok-Silvermoon');
+    // Issues: missing enchant + missing gem
+    $issues = rosterMember('Issues-Silvermoon');
+    // No data: no RIO snapshot
+    $noData = rosterMember('Nodata-Silvermoon');
+
+    \App\Models\BisProfile::query()->create([
+        'class' => 'priest',
+        'spec' => 'frost',  // PRIEST default in rosterMember
+        'hero_talent' => null,
+        'profile_name' => 'MID1_priest_frost',
+        'source_path' => '/x.simc',
+        'parsed_data' => [
+            'class' => 'priest', 'spec' => 'frost', 'hero_talent' => null,
+            'gear' => [
+                'head'  => ['slot' => 'head',  'name' => 'h', 'item_id' => 1, 'enchant_id' => 100, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+                'neck'  => ['slot' => 'neck',  'name' => 'n', 'item_id' => 2, 'enchant_id' => null, 'gem_ids' => [200, 201], 'bonus_ids' => [], 'ilevel' => null],
+            ],
+            'consumables' => [],
+            'gear_ilvl' => 280,
+        ],
+        'captured_at' => now(),
+    ]);
+
+    $snap = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now(),
+        'source' => Snapshot::SOURCE_RAIDERIO,
+        'payload_hash' => 'h-roster-bis',
+    ]);
+    MemberSnapshot::query()->create([
+        'snapshot_id' => $snap->id,
+        'member_id' => $ok->id,
+        'raw_json' => [
+            'active_spec_name' => 'Frost',
+            'gear' => ['items' => [
+                'head' => ['item_id' => 1, 'name' => 'h', 'enchants' => [100], 'gems' => []],
+                'neck' => ['item_id' => 2, 'name' => 'n', 'enchants' => [], 'gems' => [200, 201]],
+            ]],
+        ],
+        'ilvl' => 282,
+    ]);
+    MemberSnapshot::query()->create([
+        'snapshot_id' => $snap->id,
+        'member_id' => $issues->id,
+        'raw_json' => [
+            'active_spec_name' => 'Frost',
+            'gear' => ['items' => [
+                'head' => ['item_id' => 1, 'name' => 'h', 'enchants' => [], 'gems' => []],   // missing enchant
+                'neck' => ['item_id' => 2, 'name' => 'n', 'enchants' => [], 'gems' => []],   // missing gems
+            ]],
+        ],
+        'ilvl' => 282,
+    ]);
+    // $noData has no MemberSnapshot row.
+
+    $resp = $this->actingAs(rosterOfficer())->get('/roster');
+    $resp->assertOk()
+        // The BiS column header is present.
+        ->assertSee('BiS')
+        // Ok-Silvermoon row gets "OK".
+        ->assertSee('Ok-Silvermoon')
+        // Issues-Silvermoon row gets a numeric count (2: one missing enchant + one missing gem slot).
+        ->assertSee('Issues-Silvermoon');
+});
+
+it('bis_issues filter shows only members with > 0 issues', function () {
+    rosterMember('Clean-Silvermoon');
+    $broken = rosterMember('Broken-Silvermoon');
+
+    \App\Models\BisProfile::query()->create([
+        'class' => 'priest',
+        'spec' => 'frost',
+        'hero_talent' => null,
+        'profile_name' => 'MID1_priest_frost',
+        'source_path' => '/x.simc',
+        'parsed_data' => [
+            'class' => 'priest', 'spec' => 'frost', 'hero_talent' => null,
+            'gear' => [
+                'chest' => ['slot' => 'chest', 'name' => 'c', 'item_id' => 1, 'enchant_id' => 7987, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+            ],
+            'consumables' => [],
+        ],
+        'captured_at' => now(),
+    ]);
+
+    $snap = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now(),
+        'source' => Snapshot::SOURCE_RAIDERIO,
+        'payload_hash' => 'h-bis-filter',
+    ]);
+    MemberSnapshot::query()->create([
+        'snapshot_id' => $snap->id,
+        'member_id' => $broken->id,
+        'raw_json' => [
+            'active_spec_name' => 'Frost',
+            'gear' => ['items' => ['chest' => ['item_id' => 1, 'name' => 'c', 'enchants' => [], 'gems' => []]]],
+        ],
+    ]);
+
+    $resp = $this->actingAs(rosterOfficer())->get('/roster?filter=bis_issues');
+    $resp->assertSee('Broken-Silvermoon')
+        ->assertDontSee('Clean-Silvermoon');
+});
+
 it('CSV export ignores the group= flag and stays flat', function () {
     $altGroup = AltGroup::query()->create(['guild_key' => 'Regenesis-Silvermoon', 'group_label' => 'g1']);
     $main = rosterMember('Csvmain-Silvermoon', ['alt_group_id' => $altGroup->id]);

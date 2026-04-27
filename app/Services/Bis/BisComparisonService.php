@@ -106,22 +106,49 @@ class BisComparisonService
             return null;
         }
 
-        $class = self::CLASS_NORMALISE[strtoupper((string) $member->class)] ?? null;
-        $spec = $this->normaliseSpec($raw['active_spec_name'] ?? null);
-        if ($class === null || $spec === null) {
-            return null;
-        }
-
-        $profile = BisProfile::query()
-            ->where('class', $class)
-            ->where('spec', $spec)
-            ->whereNull('hero_talent')
-            ->first();
+        $profile = $this->resolveProfileFor($member, $raw);
         if ($profile === null) {
             return null;
         }
 
-        $actualGear = $this->extractActualGear($raw);
+        return $this->compareWithData($member, $raw, $profile, $rioSnap->snapshot?->captured_at);
+    }
+
+    /**
+     * Resolve the default-hero-talent BiS profile for a member based
+     * on their class and the active_spec_name in a RIO payload. Pure-
+     * function-shaped (no member-side state mutation), but does still
+     * hit the DB for the BisProfile lookup. Bulk callers should prefer
+     * pre-loading profiles and using compareWithData() directly.
+     *
+     * @param  array<string,mixed>  $rioRaw
+     */
+    public function resolveProfileFor(Member $member, array $rioRaw): ?BisProfile
+    {
+        $class = self::CLASS_NORMALISE[strtoupper((string) $member->class)] ?? null;
+        $spec = $this->normaliseSpec($rioRaw['active_spec_name'] ?? null);
+        if ($class === null || $spec === null) {
+            return null;
+        }
+        return BisProfile::query()
+            ->where('class', $class)
+            ->where('spec', $spec)
+            ->whereNull('hero_talent')
+            ->first();
+    }
+
+    /**
+     * Pure comparison: no DB lookups, callers pre-load both sides.
+     * Useful for the roster's bulk path where we'd N+1 otherwise.
+     *
+     * @param  array<string,mixed>  $rioRaw
+     */
+    public function compareWithData(Member $member, array $rioRaw, BisProfile $profile, ?\Carbon\CarbonInterface $capturedAt = null): array
+    {
+        $class = self::CLASS_NORMALISE[strtoupper((string) $member->class)] ?? (string) $profile->class;
+        $spec = $this->normaliseSpec($rioRaw['active_spec_name'] ?? null) ?? (string) $profile->spec;
+
+        $actualGear = $this->extractActualGear($rioRaw);
         $bisGear = is_array($profile->parsed_data['gear'] ?? null) ? $profile->parsed_data['gear'] : [];
 
         $slots = [];
@@ -140,16 +167,53 @@ class BisComparisonService
             'profile_name' => (string) $profile->profile_name,
             'profile_gear_ilvl' => is_numeric($profile->parsed_data['gear_ilvl'] ?? null) ? (float) $profile->parsed_data['gear_ilvl'] : null,
             'source' => 'raiderio',
-            'source_captured_at' => $rioSnap->snapshot?->captured_at,
+            'source_captured_at' => $capturedAt,
             'slots' => $slots,
             'consumables' => is_array($profile->parsed_data['consumables'] ?? null) ? $profile->parsed_data['consumables'] : [],
         ];
     }
 
     /**
+     * Aggregate counts of actionable issues from a comparison result.
+     * "missing" reads as a clear gear-prep failure (slot needs the
+     * enchant / sockets need filling); "wrong" / "count_mismatch" is
+     * suspicious but the player may have made an intentional choice,
+     * so we tally it separately. Total is the sum officers can sort by.
+     *
+     * @param  array<string,mixed>  $comparison  result of compareWithData()
+     * @return array{missing_enchants:int, wrong_enchants:int, missing_gems:int, wrong_gems:int, total:int}
+     */
+    public function countIssues(array $comparison): array
+    {
+        $missingEnchants = 0;
+        $wrongEnchants = 0;
+        $missingGems = 0;
+        $wrongGems = 0;
+        foreach (($comparison['slots'] ?? []) as $slot) {
+            match ($slot['enchant_status'] ?? null) {
+                'missing'   => $missingEnchants++,
+                'different' => $wrongEnchants++,
+                default     => null,
+            };
+            match ($slot['gems_status'] ?? null) {
+                'missing'                       => $missingGems++,
+                'different', 'count_mismatch'   => $wrongGems++,
+                default                         => null,
+            };
+        }
+        return [
+            'missing_enchants' => $missingEnchants,
+            'wrong_enchants' => $wrongEnchants,
+            'missing_gems' => $missingGems,
+            'wrong_gems' => $wrongGems,
+            'total' => $missingEnchants + $wrongEnchants + $missingGems + $wrongGems,
+        ];
+    }
+
+    /**
      * @return array<string,mixed>|null
      */
-    private function rawArray(MemberSnapshot $snap): ?array
+    public function rawArray(MemberSnapshot $snap): ?array
     {
         $raw = $snap->raw_json;
         if (is_string($raw)) {

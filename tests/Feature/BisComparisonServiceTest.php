@@ -244,6 +244,26 @@ it('normalises multi-word spec names to underscore form', function () {
     expect($result['spec'])->toBe('beast_mastery');
 });
 
+it('countIssues totals missing and wrong enchants + gems separately', function () {
+    $service = new BisComparisonService();
+    $comparison = [
+        'slots' => [
+            'head'  => ['enchant_status' => 'matched',        'gems_status' => 'matched'],
+            'neck'  => ['enchant_status' => 'missing',        'gems_status' => 'missing'],
+            'chest' => ['enchant_status' => 'different',      'gems_status' => 'count_mismatch'],
+            'feet'  => ['enchant_status' => 'none_required',  'gems_status' => 'none_required'],
+            'waist' => ['enchant_status' => 'missing',        'gems_status' => 'different'],
+        ],
+    ];
+
+    $issues = $service->countIssues($comparison);
+    expect($issues['missing_enchants'])->toBe(2);
+    expect($issues['wrong_enchants'])->toBe(1);
+    expect($issues['missing_gems'])->toBe(1);
+    expect($issues['wrong_gems'])->toBe(2);
+    expect($issues['total'])->toBe(6);
+});
+
 it('skips slots where neither BiS nor actual data exists', function () {
     $m = bisMember();
     bisProfileFor('death_knight', 'frost', [

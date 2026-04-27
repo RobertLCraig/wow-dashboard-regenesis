@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Models\BisProfile;
 use App\Models\Member;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
+use App\Services\Bis\BisComparisonService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
@@ -30,7 +32,7 @@ class RosterController extends Controller
     /** Allowed values for the ?filter= query string. */
     private const FILTERS = [
         'all', 'inactive_7d', 'inactive_14d', 'inactive_30d', 'inactive_60d', 'inactive_90d',
-        'alts', 'mains', 'trial', 'action_queue', 'banned',
+        'alts', 'mains', 'trial', 'action_queue', 'bis_issues', 'banned',
     ];
 
     public function index(Request $request): View
@@ -64,11 +66,13 @@ class RosterController extends Controller
             fputcsv($out, [
                 'name', 'realm', 'class', 'level', 'rank', 'team',
                 'ilvl', 'ilvl_source', 'mplus_score', 'mplus_keystone',
+                'bis_issues_total', 'bis_missing_enchants', 'bis_missing_gems',
                 'last_online_at', 'main', 'flags',
             ]);
             foreach ($rows as $row) {
                 $m = $row['member'];
                 $snap = $row['snap'];
+                $bis = $row['bis_issues'];
                 fputcsv($out, [
                     $m->name,
                     $m->realm,
@@ -80,6 +84,9 @@ class RosterController extends Controller
                     $row['ilvl_source'],
                     $snap?->mplus_score,
                     $snap?->mplus_keystone,
+                    $bis['total'] ?? null,
+                    $bis['missing_enchants'] ?? null,
+                    $bis['missing_gems'] ?? null,
                     $m->last_online_at?->toIso8601String(),
                     $row['main']?->name,
                     implode('|', $row['flags']),
@@ -102,7 +109,7 @@ class RosterController extends Controller
     }
 
     /**
-     * @return Collection<int, array{member: Member, snap: ?MemberSnapshot, ilvl: ?int, ilvl_source: ?string, main: ?Member, flags: list<string>, group_member_ids: list<int>, alts: \Illuminate\Support\Collection<int,Member>}>
+     * @return Collection<int, array{member: Member, snap: ?MemberSnapshot, ilvl: ?int, ilvl_source: ?string, bis_issues: ?array<string,int>, main: ?Member, flags: list<string>, group_member_ids: list<int>, alts: \Illuminate\Support\Collection<int,Member>}>
      */
     private function rows(string $filter, bool $grouped): Collection
     {
@@ -116,6 +123,13 @@ class RosterController extends Controller
         $snapsByMember = $this->latestRaiderioSnapshotsByMember($guildKey, $members);
         $ilvlsByMember = $this->resolveIlvls($guildKey, $members);
         $groupIdsByMember = $this->altGroupIdsByMember($guildKey, $members);
+        $bisIssuesByMember = $this->bisIssuesByMember($members, $snapsByMember);
+
+        // 'bis_issues' filter is post-comparison: baseQuery returns all
+        // active members, then we keep only those with total > 0.
+        if ($filter === 'bis_issues') {
+            $members = $members->filter(fn (Member $m) => ($bisIssuesByMember->get($m->id)['total'] ?? 0) > 0)->values();
+        }
 
         // Grouped mode: alts whose main is also visible get folded into
         // the main row's `alts` list. Alts whose main is filtered out
@@ -130,13 +144,14 @@ class RosterController extends Controller
                 || ! in_array($m->main_member_id, $visibleIds, true))->values()
             : $members;
 
-        return $rowMembers->map(function (Member $m) use ($snapsByMember, $ilvlsByMember, $groupIdsByMember, $altsByMainId) {
+        return $rowMembers->map(function (Member $m) use ($snapsByMember, $ilvlsByMember, $bisIssuesByMember, $groupIdsByMember, $altsByMainId) {
             $ilvl = $ilvlsByMember->get($m->id, ['ilvl' => null, 'source' => null]);
             return [
                 'member' => $m,
                 'snap' => $snapsByMember->get($m->id),
                 'ilvl' => $ilvl['ilvl'],
                 'ilvl_source' => $ilvl['source'],
+                'bis_issues' => $bisIssuesByMember->get($m->id),
                 'main' => $m->main,
                 'flags' => $this->flagsFor($m),
                 // Full kick-and-alts cohort for this row: main + all alts
@@ -149,6 +164,51 @@ class RosterController extends Controller
                 'alts' => $altsByMainId->get($m->id, collect()),
             ];
         })->values();
+    }
+
+    /**
+     * Bulk BiS issue counts. One BisProfile load up front (~50 rows for
+     * a current tier), then a pure in-memory comparison per member with
+     * a RIO snapshot. Returns one entry per member where we could
+     * resolve the comparison; missing entries mean "no data, render -".
+     *
+     * @param  EloquentCollection<int, Member>  $members
+     * @param  Collection<int, MemberSnapshot>  $snapsByMember
+     * @return Collection<int, array{missing_enchants:int, wrong_enchants:int, missing_gems:int, wrong_gems:int, total:int}>
+     */
+    private function bisIssuesByMember(EloquentCollection $members, Collection $snapsByMember): Collection
+    {
+        if ($members->isEmpty()) {
+            return collect();
+        }
+
+        $profilesByKey = BisProfile::query()
+            ->whereNull('hero_talent')
+            ->get()
+            ->keyBy(fn (BisProfile $p) => $p->class . '|' . $p->spec);
+        if ($profilesByKey->isEmpty()) {
+            return collect();
+        }
+
+        $service = new BisComparisonService();
+        $out = collect();
+        foreach ($members as $member) {
+            $snap = $snapsByMember->get($member->id);
+            if ($snap === null) {
+                continue;
+            }
+            $raw = $service->rawArray($snap);
+            if ($raw === null) {
+                continue;
+            }
+            $profile = $service->resolveProfileFor($member, $raw);
+            if ($profile === null) {
+                continue;
+            }
+            $comparison = $service->compareWithData($member, $raw, $profile);
+            $out->put($member->id, $service->countIssues($comparison));
+        }
+        return $out;
     }
 
     /**
@@ -336,8 +396,9 @@ class RosterController extends Controller
 
     /**
      * One COUNT() per chip so officers can see at a glance "30 inactive
-     * 30d, 4 in action queue". Cheap because each filter is a single
-     * indexed query.
+     * 30d, 4 in action queue". Most are a single indexed query; the
+     * bis_issues count needs an in-memory pass over comparisons since
+     * issue detection is post-SQL.
      *
      * @return array<string,int>
      */
@@ -346,8 +407,30 @@ class RosterController extends Controller
         $guildKey = (string) config('grm.guild_key');
         $counts = [];
         foreach (self::FILTERS as $f) {
+            if ($f === 'bis_issues') {
+                $counts[$f] = $this->countBisIssueMembers($guildKey);
+                continue;
+            }
             $counts[$f] = $this->baseQuery($guildKey, $f)->count();
         }
         return $counts;
+    }
+
+    /**
+     * Count of active members with at least one BiS issue. Bounded to
+     * the active roster (typically ~250 with RIO data after the recency
+     * gate); reuses the same in-memory comparison the rows() method
+     * runs, but doesn't share its results because the chip count is
+     * computed before rows() runs.
+     */
+    private function countBisIssueMembers(string $guildKey): int
+    {
+        $members = Member::query()->forGuild($guildKey)->active()->get();
+        if ($members->isEmpty()) {
+            return 0;
+        }
+        $snapsByMember = $this->latestRaiderioSnapshotsByMember($guildKey, $members);
+        $issues = $this->bisIssuesByMember($members, $snapsByMember);
+        return $issues->filter(fn (array $i) => ($i['total'] ?? 0) > 0)->count();
     }
 }

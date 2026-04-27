@@ -28,6 +28,7 @@
             ['key' => 'alts',          'label' => 'Alts'],
             ['key' => 'trial',         'label' => 'Trial'],
             ['key' => 'action_queue',  'label' => 'Action queue'],
+            ['key' => 'bis_issues',    'label' => 'BiS issues'],
             ['key' => 'banned',        'label' => 'Banned'],
         ];
     @endphp
@@ -95,6 +96,10 @@
                     </th>
                     <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink text-right" @click="sortBy('rio')">
                         RIO <span class="text-muted" x-text="sortIcon('rio')"></span>
+                    </th>
+                    <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink text-center" @click="sortBy('bis')"
+                        title="Total BiS issues: missing or wrong enchants + missing or wrong gem slots, vs the SimulationCraft profile for class+spec">
+                        BiS <span class="text-muted" x-text="sortIcon('bis')"></span>
                     </th>
                     <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('lastseen')">
                         Last seen <span class="text-muted" x-text="sortIcon('lastseen')"></span>
@@ -170,6 +175,22 @@
                         </td>
                         <td class="px-2 py-2 font-mono text-right" data-label="RIO" data-sort-key="rio" data-sort-value="{{ $snap?->mplus_score ?? 0 }}">
                             {{ $snap?->mplus_score !== null ? number_format($snap->mplus_score, 0) : '-' }}
+                        </td>
+                        @php $bis = $row['bis_issues']; @endphp
+                        <td class="px-2 py-2 font-mono text-center text-xs"
+                            data-label="BiS"
+                            data-sort-key="bis"
+                            data-sort-value="{{ $bis['total'] ?? -1 }}">
+                            @if ($bis === null)
+                                <span class="text-muted">-</span>
+                            @elseif ($bis['total'] === 0)
+                                <span class="text-emerald-400">OK</span>
+                            @else
+                                <span class="{{ $bis['total'] >= 4 ? 'text-red-400' : 'text-amber-400' }}"
+                                      title="{{ $bis['missing_enchants'] }} missing enchants, {{ $bis['wrong_enchants'] }} wrong; {{ $bis['missing_gems'] }} missing gem slots, {{ $bis['wrong_gems'] }} wrong">
+                                    {{ $bis['total'] }}
+                                </span>
+                            @endif
                         </td>
                         <td class="px-2 py-2 text-muted whitespace-nowrap"
                             data-label="Last seen"
