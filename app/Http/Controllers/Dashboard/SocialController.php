@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Models\DiscordAnnouncement;
 use App\Models\RaidEvent;
 use App\Services\WorldEvents\WorldEventsCalendar;
 use Carbon\CarbonImmutable;
@@ -69,10 +70,19 @@ class SocialController extends Controller
             $byWeek[$key]['week_start'] ??= $event['starts_at']->startOfWeek();
         }
 
+        $announcementWindow = (int) config('discord.announcements_window_days', 30);
+        $announcements = DiscordAnnouncement::query()
+            ->where('posted_at', '>=', $now->subDays($announcementWindow))
+            ->orderByDesc('posted_at')
+            ->limit(10)
+            ->get();
+
         return view('dashboard.social', [
             'eventsByWeek' => $byWeek,
             'totalEvents' => count($events),
             'windowDays' => self::WINDOW_DAYS_AHEAD,
+            'announcements' => $announcements,
+            'announcementWindowDays' => $announcementWindow,
         ]);
     }
 }

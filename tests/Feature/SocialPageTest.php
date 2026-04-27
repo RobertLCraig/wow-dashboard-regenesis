@@ -71,6 +71,46 @@ it('renders the empty-state when the next 60 days hold no Raid-Helper events but
         ->assertDontSee('Nothing scheduled in the next');
 });
 
+it('renders a "Latest from Discord" section when announcements exist', function () {
+    \App\Models\DiscordAnnouncement::query()->create([
+        'discord_message_id' => '1',
+        'guild_id' => 'g',
+        'channel_id' => 'c',
+        'author_username' => 'GuildHerald',
+        'content' => 'Drunken raid night this Saturday, BYOB!',
+        'posted_at' => now()->subHours(2),
+        'fetched_at' => now(),
+    ]);
+
+    $resp = $this->actingAs(socialOfficer())->get('/dashboard/social');
+    $resp->assertOk()
+        ->assertSee('Latest from Discord')
+        ->assertSee('GuildHerald')
+        ->assertSee('Drunken raid night this Saturday');
+});
+
+it('drops Discord announcements outside the configured window', function () {
+    config(['discord.announcements_window_days' => 30]);
+
+    \App\Models\DiscordAnnouncement::query()->create([
+        'discord_message_id' => '2',
+        'guild_id' => 'g',
+        'channel_id' => 'c',
+        'author_username' => 'OldHerald',
+        'content' => 'Last expansions transmog contest',
+        'posted_at' => now()->subDays(45),
+        'fetched_at' => now(),
+    ]);
+
+    $resp = $this->actingAs(socialOfficer())->get('/dashboard/social');
+    $resp->assertOk()->assertDontSee('Last expansions transmog contest');
+});
+
+it('hides the "Latest from Discord" section entirely when there are no recent announcements', function () {
+    $resp = $this->actingAs(socialOfficer())->get('/dashboard/social');
+    $resp->assertOk()->assertDontSee('Latest from Discord');
+});
+
 it('hides past Raid-Helper events even when their start is technically inside the window', function () {
     RaidEvent::query()->create([
         'raidhelper_event_id' => 'rh-old',

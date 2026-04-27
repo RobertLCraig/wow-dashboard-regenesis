@@ -90,6 +90,16 @@ Schedule::command('events:dispatch-reminders')
     ->onOneServer()
     ->withoutOverlapping();
 
+// Hourly Discord announcements pull. The announcements channel is
+// low-traffic (a few posts per week typically) so hourly is generous;
+// catches transmog contests, drunken raid nights, server status notes
+// before the Social page is loaded next. Short-circuits cleanly when
+// DISCORD_BOT_TOKEN / DISCORD_ANNOUNCEMENTS_CHANNEL_ID are unset.
+Schedule::command('discord:fetch-announcements')
+    ->hourly()
+    ->onOneServer()
+    ->withoutOverlapping();
+
 // Weekly SimulationCraft BiS profile refresh. Profiles change with
 // patches and class tuning rounds, not minutes - one pull per week is
 // plenty. --fetch downloads fresh .simc files from GitHub before

@@ -13,6 +13,29 @@
         <span class="text-xs text-muted">{{ $totalEvents }} {{ \Illuminate\Support\Str::plural('event', $totalEvents) }}</span>
     </div>
 
+    @if ($announcements->isNotEmpty())
+        <section class="mb-8">
+            <header class="flex items-baseline justify-between mb-2">
+                <h2 class="text-sm font-semibold uppercase tracking-wider">Latest from Discord</h2>
+                <span class="text-[10px] text-muted">last {{ $announcementWindowDays }} days</span>
+            </header>
+            <ul class="space-y-2">
+                @foreach ($announcements as $a)
+                    <li class="bg-panel border border-line rounded-lg p-3">
+                        <div class="flex items-baseline justify-between gap-2 flex-wrap">
+                            <span class="text-sm font-medium">{{ $a->author_username }}</span>
+                            <a href="{{ $a->discordUrl() }}" target="_blank" rel="noopener"
+                               class="text-[10px] text-muted hover:text-accent">
+                                {{ $a->posted_at?->diffForHumans() }} - open in Discord &rarr;
+                            </a>
+                        </div>
+                        <p class="text-sm text-ink/90 mt-1 whitespace-pre-line">{{ \Illuminate\Support\Str::limit($a->content, 400) }}</p>
+                    </li>
+                @endforeach
+            </ul>
+        </section>
+    @endif
+
     @if (empty($eventsByWeek))
         <div class="bg-panel border border-line rounded-lg p-8 text-center text-muted">
             Nothing scheduled in the next {{ $windowDays }} days.
