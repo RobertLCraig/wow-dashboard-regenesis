@@ -63,8 +63,12 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     // SavedVariables convention) so the param allows letters and a
     // single hyphen separator. Apostrophes are stripped by GRM, no
     // need to whitelist them.
+    // Constraint is "anything except a slash" so realms like
+    // Aggra(Português), Drak'thul, Sha'tar - anything with parens,
+    // apostrophes, accents - route correctly. The controller's
+    // firstOrFail() handles unknown names with a clean 404.
     Route::get('/character/{nameRealm}', [\App\Http\Controllers\Dashboard\CharacterController::class, 'show'])
-        ->where('nameRealm', '[A-Za-z]+-[A-Za-z]+')->name('character.show');
+        ->where('nameRealm', '[^/]+')->name('character.show');
 
     Route::get('/events', [\App\Http\Controllers\Events\EventController::class, 'index'])->name('events.index');
     Route::get('/events/new', [\App\Http\Controllers\Events\EventController::class, 'create'])->name('events.create');

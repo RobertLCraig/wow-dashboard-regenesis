@@ -186,6 +186,24 @@ it('renders the alt cohort empty-state when the member is a singleton', function
         ->assertSee('No linked alts');
 });
 
+it('routes to characters whose realm has parentheses and accents', function () {
+    // GRM stores realms verbatim, so names like "Foo-Aggra(Português)"
+    // and "Foo-Drak'thul" land in the DB as-is. The route constraint
+    // has to permit non-ASCII letters and punctuation past the dash.
+    characterMember('Absolutely-Aggra(Português)');
+    characterMember("Mikkino-Drak'thul");
+
+    $this->actingAs(characterOfficer())
+        ->get('/character/' . rawurlencode('Absolutely-Aggra(Português)'))
+        ->assertOk()
+        ->assertSee('Absolutely-Aggra(Português)');
+
+    $this->actingAs(characterOfficer())
+        ->get('/character/' . rawurlencode("Mikkino-Drak'thul"))
+        ->assertOk()
+        ->assertSee("Mikkino-Drak'thul");
+});
+
 it('shows the latest attendance stat for the character (looked up by member_name)', function () {
     $m = characterMember('Sheday-Silvermoon');
 
