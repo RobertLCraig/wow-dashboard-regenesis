@@ -2,6 +2,14 @@
 
 @section('title', $member->name)
 
+{{-- Wowhead's power.js renders inline tooltips on any element with a
+     data-wowhead attribute. Lightweight and async so it doesn't block
+     paint; only loaded on the character page where the BiS comparison
+     uses it. --}}
+@push('head')
+    <script src="https://wow.zamimg.com/widgets/power.js" defer></script>
+@endpush
+
 @section('content')
     @php
         $cls = 'cls-' . strtoupper($member->class ?? '');

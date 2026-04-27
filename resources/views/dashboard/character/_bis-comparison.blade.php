@@ -1,4 +1,6 @@
 @php
+    use App\Support\Wowhead;
+
     /**
      * @var array{
      *   class:string, spec:string, profile_name:string,
@@ -84,18 +86,32 @@
                         <td class="px-3 py-2 text-muted">{{ $slotLabel }}</td>
                         <td class="px-3 py-2">
                             @if ($row['actual_item_id'])
-                                <span class="font-mono text-xs">
-                                    {{ $row['actual_item_name'] ? str_replace('_', ' ', $row['actual_item_name']) : '#' . $row['actual_item_id'] }}
-                                </span>
+                                <a href="{{ Wowhead::url($row['actual_item_id']) }}"
+                                   data-wowhead="{{ Wowhead::dataAttr(
+                                       $row['actual_item_id'],
+                                       gemIds: $row['actual_gem_ids'] ?? [],
+                                       enchantId: ($row['actual_enchant_ids'][0] ?? null),
+                                   ) }}"
+                                   target="_blank" rel="noopener"
+                                   class="text-xs hover:underline">
+                                    {{ Wowhead::formatItemName($row['actual_item_name']) ?? '#' . $row['actual_item_id'] }}
+                                </a>
                             @else
                                 <span class="text-muted text-xs italic">empty</span>
                             @endif
                         </td>
                         <td class="px-3 py-2">
                             @if ($row['bis_item_id'])
-                                <span class="font-mono text-xs {{ $row['item_match'] ? 'text-emerald-400' : 'text-muted' }}">
-                                    {{ $row['bis_item_name'] ? str_replace('_', ' ', $row['bis_item_name']) : '#' . $row['bis_item_id'] }}
-                                </span>
+                                <a href="{{ Wowhead::url($row['bis_item_id']) }}"
+                                   data-wowhead="{{ Wowhead::dataAttr(
+                                       $row['bis_item_id'],
+                                       gemIds: $row['bis_gem_ids'] ?? [],
+                                       enchantId: $row['bis_enchant_id'] ?? null,
+                                   ) }}"
+                                   target="_blank" rel="noopener"
+                                   class="text-xs hover:underline {{ $row['item_match'] ? 'text-emerald-400' : 'text-muted' }}">
+                                    {{ Wowhead::formatItemName($row['bis_item_name']) ?? '#' . $row['bis_item_id'] }}
+                                </a>
                             @else
                                 <span class="text-muted text-xs">-</span>
                             @endif
