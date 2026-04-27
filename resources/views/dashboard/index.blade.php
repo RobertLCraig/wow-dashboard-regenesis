@@ -23,6 +23,18 @@
                             handle: '.js-drag-handle',
                             animation: 150,
                             ghostClass: 'opacity-30',
+                            // Auto-scroll the window while dragging so
+                            // long dashboards can be reordered without
+                            // dropping the drag to scroll manually.
+                            // forceAutoScrollFallback: true forces the
+                            // built-in fallback even where native
+                            // touch-based auto-scroll is available, so
+                            // tablet + desktop behave the same.
+                            scroll: true,
+                            forceAutoScrollFallback: true,
+                            scrollSensitivity: 80,
+                            scrollSpeed: 20,
+                            bubbleScroll: true,
                         });
                     });
                 },
@@ -87,13 +99,20 @@
                 },
                 // Click / keyboard reorder, runs against the same DOM
                 // Sortable does, so Save reads the new order either way.
+                // After the move we scroll the widget into view so the
+                // user follows the action visually rather than guessing
+                // whether the click did anything.
                 moveUp(el) {
                     const prev = el.previousElementSibling;
-                    if (prev) el.parentNode.insertBefore(el, prev);
+                    if (! prev) return;
+                    el.parentNode.insertBefore(el, prev);
+                    el.scrollIntoView({ block: 'center', behavior: 'auto' });
                 },
                 moveDown(el) {
                     const next = el.nextElementSibling;
-                    if (next) el.parentNode.insertBefore(next, el);
+                    if (! next) return;
+                    el.parentNode.insertBefore(next, el);
+                    el.scrollIntoView({ block: 'center', behavior: 'auto' });
                 },
             };
         }
