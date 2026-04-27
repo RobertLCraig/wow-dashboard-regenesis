@@ -11,6 +11,7 @@ use App\Models\MemberSnapshot;
 use App\Models\RaidEvent;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
+use App\Services\Attendance\AttendanceReconciler;
 use App\Services\Dashboard\WidgetOrderResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -43,6 +44,7 @@ class DashboardController extends Controller
             'churn' => $this->churn($guildKey),
             'upcomingEvents' => $this->upcomingEvents(),
             'teamProgression' => $this->teamProgression($guildKey),
+            'raidAttendance' => (new AttendanceReconciler)->recent($guildKey),
         ];
 
         $widgets = WidgetOrderResolver::resolve(

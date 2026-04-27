@@ -34,6 +34,13 @@ return [
             'col_span' => 'col-span-full md:col-span-2 xl:col-span-1',
         ],
         [
+            'key'      => 'raid-attendance',
+            'title'    => 'Raid attendance (RH vs WCL)',
+            'partial'  => 'dashboard.widgets.raid-attendance',
+            'data_key' => 'raidAttendance',
+            'col_span' => 'col-span-full xl:col-span-2',
+        ],
+        [
             'key'      => 'roster-health',
             'title'    => 'Roster health (KPIs)',
             'partial'  => 'dashboard.widgets.roster-health',
