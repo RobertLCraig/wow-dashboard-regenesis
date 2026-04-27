@@ -161,8 +161,12 @@
                         <td class="px-2 py-2 text-muted" data-label="Rank" data-sort-key="rank" data-sort-value="{{ $m->rank_index ?? 99 }}">
                             {{ $m->rank_name }}
                         </td>
-                        <td class="px-2 py-2 font-mono text-right" data-label="ilvl" data-sort-key="ilvl" data-sort-value="{{ $snap?->ilvl ?? 0 }}">
-                            {{ $snap?->ilvl ?? '-' }}
+                        <td class="px-2 py-2 font-mono text-right" data-label="ilvl" data-sort-key="ilvl" data-sort-value="{{ $row['ilvl'] ?? 0 }}">
+                            @if ($row['ilvl'] !== null)
+                                <span title="via {{ $row['ilvl_source'] }}">{{ $row['ilvl'] }}</span>
+                            @else
+                                -
+                            @endif
                         </td>
                         <td class="px-2 py-2 font-mono text-right" data-label="RIO" data-sort-key="rio" data-sort-value="{{ $snap?->mplus_score ?? 0 }}">
                             {{ $snap?->mplus_score !== null ? number_format($snap->mplus_score, 0) : '-' }}

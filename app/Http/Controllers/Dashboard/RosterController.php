@@ -63,7 +63,7 @@ class RosterController extends Controller
             $out = fopen('php://output', 'wb');
             fputcsv($out, [
                 'name', 'realm', 'class', 'level', 'rank', 'team',
-                'ilvl', 'mplus_score', 'mplus_keystone',
+                'ilvl', 'ilvl_source', 'mplus_score', 'mplus_keystone',
                 'last_online_at', 'main', 'flags',
             ]);
             foreach ($rows as $row) {
@@ -76,7 +76,8 @@ class RosterController extends Controller
                     $m->level,
                     $m->rank_name,
                     $m->team,
-                    $snap?->ilvl,
+                    $row['ilvl'],
+                    $row['ilvl_source'],
                     $snap?->mplus_score,
                     $snap?->mplus_keystone,
                     $m->last_online_at?->toIso8601String(),
@@ -101,7 +102,7 @@ class RosterController extends Controller
     }
 
     /**
-     * @return Collection<int, array{member: Member, snap: ?MemberSnapshot, main: ?Member, flags: list<string>, group_member_ids: list<int>, alts: \Illuminate\Support\Collection<int,Member>}>
+     * @return Collection<int, array{member: Member, snap: ?MemberSnapshot, ilvl: ?int, ilvl_source: ?string, main: ?Member, flags: list<string>, group_member_ids: list<int>, alts: \Illuminate\Support\Collection<int,Member>}>
      */
     private function rows(string $filter, bool $grouped): Collection
     {
@@ -113,6 +114,7 @@ class RosterController extends Controller
             ->get();
 
         $snapsByMember = $this->latestRaiderioSnapshotsByMember($guildKey, $members);
+        $ilvlsByMember = $this->resolveIlvls($guildKey, $members);
         $groupIdsByMember = $this->altGroupIdsByMember($guildKey, $members);
 
         // Grouped mode: alts whose main is also visible get folded into
@@ -128,10 +130,13 @@ class RosterController extends Controller
                 || ! in_array($m->main_member_id, $visibleIds, true))->values()
             : $members;
 
-        return $rowMembers->map(function (Member $m) use ($snapsByMember, $groupIdsByMember, $altsByMainId) {
+        return $rowMembers->map(function (Member $m) use ($snapsByMember, $ilvlsByMember, $groupIdsByMember, $altsByMainId) {
+            $ilvl = $ilvlsByMember->get($m->id, ['ilvl' => null, 'source' => null]);
             return [
                 'member' => $m,
                 'snap' => $snapsByMember->get($m->id),
+                'ilvl' => $ilvl['ilvl'],
+                'ilvl_source' => $ilvl['source'],
                 'main' => $m->main,
                 'flags' => $this->flagsFor($m),
                 // Full kick-and-alts cohort for this row: main + all alts
@@ -144,6 +149,58 @@ class RosterController extends Controller
                 'alts' => $altsByMainId->get($m->id, collect()),
             ];
         })->values();
+    }
+
+    /**
+     * Multi-source ilvl resolver. Walks Blizzard -> Wowaudit -> RIO and
+     * for each member takes the first non-null ilvl. Blizzard wins
+     * because it's the authoritative source (updates within minutes of
+     * logout); Wowaudit beats RIO for the mythic team's tracked chars
+     * because it refreshes hourly with no scrape-cache delay; RIO is the
+     * roster-wide fallback.
+     *
+     * Returns one entry per member that has an ilvl in any source.
+     * Members missing from all three return null at the call site.
+     *
+     * @param  EloquentCollection<int, Member>  $members
+     * @return Collection<int, array{ilvl: int, source: string}>
+     */
+    private function resolveIlvls(string $guildKey, EloquentCollection $members): Collection
+    {
+        if ($members->isEmpty()) {
+            return collect();
+        }
+        $memberIds = $members->pluck('id')->all();
+
+        $resolved = collect();
+        foreach ([Snapshot::SOURCE_BLIZZARD, Snapshot::SOURCE_WOWAUDIT, Snapshot::SOURCE_RAIDERIO] as $source) {
+            $latest = Snapshot::query()
+                ->where('guild_key', $guildKey)
+                ->where('source', $source)
+                ->latest('captured_at')
+                ->first();
+            if (! $latest) {
+                continue;
+            }
+
+            $rows = MemberSnapshot::query()
+                ->where('snapshot_id', $latest->id)
+                ->whereIn('member_id', $memberIds)
+                ->whereNotNull('ilvl')
+                ->get(['member_id', 'ilvl']);
+
+            foreach ($rows as $row) {
+                // Higher-priority source already resolved this member.
+                if ($resolved->has($row->member_id)) {
+                    continue;
+                }
+                $resolved->put($row->member_id, [
+                    'ilvl' => (int) $row->ilvl,
+                    'source' => $source,
+                ]);
+            }
+        }
+        return $resolved;
     }
 
     /**

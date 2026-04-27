@@ -135,15 +135,79 @@ it('roster row pulls ilvl + RIO + key from the latest raiderio snapshot', functi
     MemberSnapshot::query()->create([
         'snapshot_id' => $snapshot->id,
         'member_id' => $m->id,
-        'ilvl' => 645,
+        'ilvl' => 285,
         'mplus_score' => 1500.5,
         'mplus_keystone' => 14,
     ]);
 
     $this->actingAs(rosterOfficer())
         ->get('/roster')
-        ->assertSee('645')
+        ->assertSee('285')
+        ->assertSee('via raiderio')
         ->assertSee('1,501'); // formatted (1500.5 rounds to 1501 via number_format(0))
+});
+
+it('roster ilvl prefers Blizzard over Wowaudit and Wowaudit over RIO', function () {
+    $m = rosterMember('Sheday-Silvermoon');
+
+    foreach ([
+        Snapshot::SOURCE_RAIDERIO  => 245,
+        Snapshot::SOURCE_WOWAUDIT  => 265,
+        Snapshot::SOURCE_BLIZZARD  => 282,
+    ] as $source => $ilvl) {
+        $snap = Snapshot::query()->create([
+            'guild_key' => 'Regenesis-Silvermoon',
+            'captured_at' => now(),
+            'source' => $source,
+            'payload_hash' => 'h-' . $source,
+        ]);
+        MemberSnapshot::query()->create([
+            'snapshot_id' => $snap->id,
+            'member_id' => $m->id,
+            'ilvl' => $ilvl,
+        ]);
+    }
+
+    $resp = $this->actingAs(rosterOfficer())->get('/roster');
+    $resp->assertSee('282')                  // Blizzard wins
+        ->assertSee('via blizzard')
+        ->assertDontSee('via wowaudit')
+        ->assertDontSee('via raiderio');
+});
+
+it('roster ilvl falls through to a lower-priority source when the higher one has no row for that member', function () {
+    // Two members: one only in Wowaudit, one only in RIO. The resolver
+    // should walk past the missing higher-priority sources for each.
+    $mythic = rosterMember('Mythic-Silvermoon');
+    $heroic = rosterMember('Heroic-Silvermoon');
+
+    $woa = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now(),
+        'source' => Snapshot::SOURCE_WOWAUDIT,
+        'payload_hash' => 'woa-1',
+    ]);
+    MemberSnapshot::query()->create([
+        'snapshot_id' => $woa->id,
+        'member_id' => $mythic->id,
+        'ilvl' => 280,
+    ]);
+
+    $rio = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now(),
+        'source' => Snapshot::SOURCE_RAIDERIO,
+        'payload_hash' => 'rio-1',
+    ]);
+    MemberSnapshot::query()->create([
+        'snapshot_id' => $rio->id,
+        'member_id' => $heroic->id,
+        'ilvl' => 245,
+    ]);
+
+    $resp = $this->actingAs(rosterOfficer())->get('/roster');
+    $resp->assertSee('280')->assertSee('via wowaudit');
+    $resp->assertSee('245')->assertSee('via raiderio');
 });
 
 it('flag pills render for the recommend_* columns', function () {
