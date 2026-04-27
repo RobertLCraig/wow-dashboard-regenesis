@@ -126,3 +126,36 @@ it('does not duplicate annual holidays when the window spans multiple years', fu
     expect($brewfests)->toHaveCount(2);
     expect($midsummers)->toHaveCount(2);
 });
+
+it('returns Love is in the Air at Feb 7-21', function () {
+    $events = (new WorldEventsCalendar())->eventsInRange(
+        CarbonImmutable::parse('2026-02-01'),
+        CarbonImmutable::parse('2026-02-28'),
+    );
+    $love = collect($events)->firstWhere('name', 'Love is in the Air');
+    expect($love)->not->toBeNull();
+    expect($love['starts_at']->toDateString())->toBe('2026-02-07');
+    expect($love['ends_at']->toDateString())->toBe('2026-02-21');
+});
+
+it("returns Children's Week at May 1-7", function () {
+    $events = (new WorldEventsCalendar())->eventsInRange(
+        CarbonImmutable::parse('2026-05-01'),
+        CarbonImmutable::parse('2026-05-31'),
+    );
+    $week = collect($events)->firstWhere('name', "Children's Week");
+    expect($week)->not->toBeNull();
+    expect($week['starts_at']->toDateString())->toBe('2026-05-01');
+    expect($week['ends_at']->toDateString())->toBe('2026-05-07');
+});
+
+it('returns Day of the Dead at Nov 1-3', function () {
+    $events = (new WorldEventsCalendar())->eventsInRange(
+        CarbonImmutable::parse('2026-11-01'),
+        CarbonImmutable::parse('2026-11-30'),
+    );
+    $dotd = collect($events)->firstWhere('name', 'Day of the Dead');
+    expect($dotd)->not->toBeNull();
+    expect($dotd['starts_at']->toDateString())->toBe('2026-11-01');
+    expect($dotd['ends_at']->toDateString())->toBe('2026-11-03');
+});

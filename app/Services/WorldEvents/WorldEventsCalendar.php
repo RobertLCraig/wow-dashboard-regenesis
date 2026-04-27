@@ -115,12 +115,18 @@ class WorldEventsCalendar
     private function annualHolidaysFor(int $year): array
     {
         return [
+            $this->yearly($year, 2, 7, 2, 21, 'Love is in the Air',
+                'The Crown Chemical Co. heroic dungeon event and Lovely Charm Bracelet daily.'),
+            $this->yearly($year, 5, 1, 5, 7, "Children's Week",
+                'Orphan whistles in Stormwind / Orgrimmar / Dalaran; 1 week to grind the orphan achievements.'),
             $this->yearly($year, 6, 21, 7, 4, 'Midsummer Fire Festival',
                 'Capital flames and bonfire daily quests across Azeroth.'),
             $this->yearly($year, 9, 20, 10, 6, 'Brewfest',
                 'Dark Iron raid event, Coren Direbrew daily, festive kegs in the capitals.'),
             $this->yearly($year, 10, 18, 11, 1, "Hallow's End",
                 'Trick-or-treating, the Headless Horseman world boss, and the Sinister Calling questline.'),
+            $this->yearly($year, 11, 1, 11, 3, 'Day of the Dead',
+                'Three-day Dia de los Muertos event; quick achievement + a unique pet recipe.'),
             $this->yearly($year, 12, 16, 1, 2, 'Feast of Winter Veil',
                 'Greatfather Winter, Metzen the Reindeer dailies, and the Stolen Present quest chain.',
                 endsNextYear: true),
