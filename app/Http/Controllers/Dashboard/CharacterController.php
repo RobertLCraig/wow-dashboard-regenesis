@@ -10,6 +10,7 @@ use App\Models\MemberEvent;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use App\Models\WclActorParse;
+use App\Services\Bis\BisComparisonService;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
@@ -41,6 +42,7 @@ class CharacterController extends Controller
         $actionHistory = $this->recentActions($member->id, limit: 10);
         $altCohort = $this->altCohort($guildKey, $member);
         $attendance = $this->attendanceFor($guildKey, $member->id);
+        $bisComparison = (new BisComparisonService())->compareForMember($member);
 
         return view('dashboard.character.show', [
             'member' => $member,
@@ -50,6 +52,7 @@ class CharacterController extends Controller
             'actionHistory' => $actionHistory,
             'altCohort' => $altCohort,
             'attendance' => $attendance,
+            'bisComparison' => $bisComparison,
         ]);
     }
 

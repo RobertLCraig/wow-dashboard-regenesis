@@ -139,6 +139,13 @@
         @endforeach
     </div>
 
+    {{-- BiS comparison: per-slot enchant + gem status against the
+         class+spec SimulationCraft profile. Renders only when we have
+         a RIO snapshot (for actual gear) AND a BiS profile loaded. --}}
+    @if ($bisComparison)
+        @include('dashboard.character._bis-comparison', ['comparison' => $bisComparison])
+    @endif
+
     {{-- Bottom: parses + activity / actions / alts --}}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div class="lg:col-span-2 space-y-6">
