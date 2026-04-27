@@ -30,6 +30,11 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     // Standalone page so heroic + mythic raiders both find it in one place.
     Route::get('/dashboard/keynight', [\App\Http\Controllers\Dashboard\KeynightController::class, 'index'])->name('dashboard.keynight');
 
+    // Social hub: guild-wide events calendar. Aggregates Raid-Helper
+    // events with computed world events (Darkmoon Faire, holidays).
+    // Read-only - event creation lives on /events for officers.
+    Route::get('/dashboard/social', [\App\Http\Controllers\Dashboard\SocialController::class, 'index'])->name('dashboard.social');
+
     // Composition planner per team. Aggregates the WCL parse data into
     // a role-grouped view (tank / healer / melee / ranged) so a raid
     // lead can see who their strongest at each role over a window.

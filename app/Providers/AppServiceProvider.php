@@ -57,6 +57,7 @@ class AppServiceProvider extends ServiceProvider
             'dashboard.team.heroic.view', // sidebar: Heroic Team (raid leaders later)
             'dashboard.team.mythic.view', // sidebar: Mythic Team (raid leaders later)
             'dashboard.keynight.view',    // sidebar: Keynight (M+ leaders later)
+            'dashboard.social.view',      // sidebar: Social (open to all members later)
             'events.create',
             'events.edit',
             'events.delete',
