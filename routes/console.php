@@ -89,3 +89,14 @@ Schedule::command('events:dispatch-reminders')
     ->everyFiveMinutes()
     ->onOneServer()
     ->withoutOverlapping();
+
+// Weekly SimulationCraft BiS profile refresh. Profiles change with
+// patches and class tuning rounds, not minutes - one pull per week is
+// plenty. --fetch downloads fresh .simc files from GitHub before
+// parsing so production stays current without anyone touching the box.
+// Short-circuits cleanly when SIMC_PROFILES_PATH is empty.
+Schedule::command('simc:pull --fetch')
+    ->weeklyOn(2, '04:00')  // Tuesday 04:00 UK, comfortably after weekly reset
+    ->timezone(config('raidhelper.timezone', 'Europe/London'))
+    ->onOneServer()
+    ->withoutOverlapping();

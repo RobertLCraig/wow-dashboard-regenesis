@@ -30,4 +30,26 @@ return [
     | which tier the imported profiles came from.
     */
     'tier_label' => env('SIMC_TIER_LABEL', 'MID1'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | GitHub fetch settings
+    |--------------------------------------------------------------------------
+    |
+    | When `simc:pull --fetch` runs, the fetcher walks the configured
+    | repo+branch+directory via GitHub's Contents API, then downloads
+    | each .simc file via raw.githubusercontent.com (which doesn't count
+    | against API rate limits). Token is optional but recommended:
+    | unauthenticated API listing is rate-limited to 60 req/hour, with
+    | a token it's 5000/hour. The download URLs themselves are unmetered.
+    |
+    | Defaults track current Midnight Season 1; bump the branch + dir
+    | when a new tier lands.
+    */
+    'github_repo' => env('SIMC_GITHUB_REPO', 'simulationcraft/simc'),
+    'github_branch' => env('SIMC_GITHUB_BRANCH', 'midnight'),
+    'github_profiles_dir' => env('SIMC_GITHUB_PROFILES_DIR', 'profiles/MID1'),
+    'github_token' => env('SIMC_GITHUB_TOKEN', ''),
+    'http_timeout' => (int) env('SIMC_HTTP_TIMEOUT', 15),
+    'fetch_concurrency' => (int) env('SIMC_FETCH_CONCURRENCY', 10),
 ];

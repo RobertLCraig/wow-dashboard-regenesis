@@ -4,6 +4,7 @@ use App\Models\BisProfile;
 use App\Services\Simc\SimcProfileLoader;
 use App\Services\Simc\SimcProfileParser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
 
@@ -75,4 +76,40 @@ it('simc:pull --path overrides the configured directory', function () {
     $this->artisan('simc:pull', ['--path' => __DIR__ . '/../fixtures/simc'])
         ->expectsOutputToContain('2 imported')
         ->assertExitCode(0);
+});
+
+it('simc:pull --fetch downloads from GitHub then parses the result', function () {
+    $target = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'simc-pull-fetch-' . bin2hex(random_bytes(4));
+    @mkdir($target, 0755, true);
+
+    config([
+        'simc.profiles_path' => $target,
+        'simc.github_repo' => 'simulationcraft/simc',
+        'simc.github_branch' => 'midnight',
+        'simc.github_profiles_dir' => 'profiles/MID1',
+        'simc.github_token' => '',
+        'simc.http_timeout' => 5,
+        'simc.fetch_concurrency' => 5,
+    ]);
+
+    Http::fake([
+        'api.github.com/repos/simulationcraft/simc/contents/profiles/MID1*' => Http::response([
+            ['name' => 'MID1_Druid_Balance.simc', 'type' => 'file'],
+        ], 200),
+        'raw.githubusercontent.com/*MID1_Druid_Balance.simc' => Http::response(
+            file_get_contents(__DIR__ . '/../fixtures/simc/MID1_Druid_Balance.simc'),
+            200,
+        ),
+    ]);
+
+    $this->artisan('simc:pull', ['--fetch' => true])
+        ->expectsOutputToContain('Fetched 1 files')
+        ->expectsOutputToContain('1 imported')
+        ->assertExitCode(0);
+
+    expect(BisProfile::query()->where('class', 'druid')->count())->toBe(1);
+
+    // cleanup
+    foreach (glob($target . '/*') as $f) @unlink($f);
+    @rmdir($target);
 });

@@ -153,6 +153,23 @@ armed without errors. Manually:
 php artisan blizzard:pull
 ```
 
+### 5a. SimulationCraft BiS profiles (optional)
+
+Pulls canonical BiS gear / enchants / gems / consumables per class+spec
+from <https://github.com/simulationcraft/simc> and stores them in the
+`bis_profiles` table for future "your gear vs BiS" comparison views.
+
+Set a writable path for the cached `.simc` files:
+```
+SIMC_PROFILES_PATH=/var/www/regenesis/storage/app/simc/profiles
+```
+The weekly `simc:pull --fetch` schedule (Tuesdays 04:00 UK) downloads
+fresh files from the configured branch+dir (Midnight Season 1 by
+default) and parses them. For dev work without going to GitHub, point
+`SIMC_PROFILES_PATH` at a local clone of the simc repo and run
+`php artisan simc:pull` (no `--fetch`). Runs as a no-op when the path
+is empty, so cron stays armed without errors.
+
 ### 6. GRM ingest token + sync tool on the WoW PC
 
 Generate a 32-byte hex token:
