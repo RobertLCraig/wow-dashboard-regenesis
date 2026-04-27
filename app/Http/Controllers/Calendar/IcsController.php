@@ -87,6 +87,35 @@ class IcsController extends Controller
         return response($body, 200, $headers);
     }
 
+    /**
+     * Public, no-auth world-events feed: Darkmoon Faire, Trading Post
+     * resets, fixed-date holidays. No per-user content so no token
+     * needed. Anyone with the URL can subscribe in their calendar app.
+     */
+    public function worldFeed(Request $request, IcsBuilder $builder, WorldEventsCalendar $worldCalendar): Response
+    {
+        $now = CarbonImmutable::now();
+        // Year-ahead window: a casual subscriber wants to see when
+        // every holiday is across the year, not just the next 60 days.
+        $worldEvents = $worldCalendar->eventsInRange($now, $now->addDays(365));
+
+        $body = $builder->buildSocialFeed([], $worldEvents);
+        $etag = '"' . hash('sha256', $body) . '"';
+
+        if ($request->headers->get('If-None-Match') === $etag) {
+            return response('', 304, [
+                'ETag' => $etag,
+                'Cache-Control' => 'public, max-age=86400',  // a day; world events shift slowly
+            ]);
+        }
+
+        return response($body, 200, [
+            'Content-Type' => 'text/calendar; charset=utf-8',
+            'Cache-Control' => 'public, max-age=86400',
+            'ETag' => $etag,
+        ]);
+    }
+
     public function subscription(Request $request, string $token, IcsBuilder $builder): Response
     {
         $user = User::query()->where('calendar_token', $token)->first();

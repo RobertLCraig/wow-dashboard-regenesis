@@ -79,6 +79,26 @@ it('serves a 304 when the If-None-Match etag matches', function () {
     $second->assertStatus(304);
 });
 
+it('serves the public world-events feed without authentication', function () {
+    $resp = $this->get('/calendar/world.ics');
+    $resp->assertOk();
+    expect($resp->headers->get('content-type'))->toContain('text/calendar');
+    expect($resp->headers->get('cache-control'))->toContain('public');
+
+    $body = $resp->getContent();
+    expect($body)->toContain('Darkmoon Faire');
+    expect($body)->toContain('BEGIN:VCALENDAR');
+});
+
+it('the public world feed honours If-None-Match', function () {
+    $first = $this->get('/calendar/world.ics');
+    $first->assertOk();
+    $etag = $first->headers->get('ETag');
+
+    $second = $this->withHeaders(['If-None-Match' => $etag])->get('/calendar/world.ics');
+    $second->assertStatus(304);
+});
+
 it('shows the Subscribe (.ics) link on the Social page when the user has a calendar_token', function () {
     $user = User::factory()->create([
         'tier' => 'officer',

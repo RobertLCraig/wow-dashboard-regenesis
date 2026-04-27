@@ -15,10 +15,15 @@
             @if (! empty($subscribeUrl))
                 <a href="{{ $subscribeUrl }}"
                    class="inline-flex items-center gap-1 px-2 py-1 rounded border border-line hover:border-accent hover:text-ink transition"
-                   title="Subscribe in your calendar app. Copy the link or paste into Google Calendar / Apple Calendar / Outlook.">
+                   title="Per-user feed: raid events + world events. Copy the link or paste into Google Calendar / Apple Calendar / Outlook.">
                     Subscribe (.ics)
                 </a>
             @endif
+            <a href="{{ route('calendar.world') }}"
+               class="inline-flex items-center gap-1 px-2 py-1 rounded border border-line hover:border-accent hover:text-ink transition"
+               title="World events only (Darkmoon Faire, holidays, Trading Post). Public feed - share with anyone, no auth.">
+                World events
+            </a>
         </div>
     </div>
 

@@ -133,12 +133,13 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
 Route::get('/events/{event}.ics', [\App\Http\Controllers\Calendar\IcsController::class, 'show'])
     ->where('event', '[0-9]+')->name('event.ics');
 
-// Per-user webcal:// subscription feed. Token is a random column on the
-// User row; rotate from the settings page if leaked. Returns rolling
-// 90-day window (subset includes recent past so calendar clients can
-// show 'what was today').
-Route::get('/calendar/{token}.ics', [\App\Http\Controllers\Calendar\IcsController::class, 'subscription'])
-    ->name('calendar.subscription');
+// Public world-events feed: Darkmoon Faire, holidays, Trading Post
+// resets. No auth - it's just public WoW calendar info, anyone can
+// subscribe. Cached for a day (these dates barely shift). Listed
+// before the generic /calendar/{token}.ics route below so the
+// literal "world" segment isn't captured as a token.
+Route::get('/calendar/world.ics', [\App\Http\Controllers\Calendar\IcsController::class, 'worldFeed'])
+    ->name('calendar.world');
 
 // Combined Social feed: raid events plus computed world events. Same
 // per-user token as the raid-only subscription above; users can pick
@@ -146,3 +147,10 @@ Route::get('/calendar/{token}.ics', [\App\Http\Controllers\Calendar\IcsControlle
 // User rows; rotation is identical to the raid feed.
 Route::get('/calendar/social/{token}.ics', [\App\Http\Controllers\Calendar\IcsController::class, 'socialSubscription'])
     ->name('calendar.social.subscription');
+
+// Per-user webcal:// subscription feed. Token is a random column on the
+// User row; rotate from the settings page if leaked. Returns rolling
+// 90-day window (subset includes recent past so calendar clients can
+// show 'what was today').
+Route::get('/calendar/{token}.ics', [\App\Http\Controllers\Calendar\IcsController::class, 'subscription'])
+    ->name('calendar.subscription');
