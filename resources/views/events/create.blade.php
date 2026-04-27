@@ -9,11 +9,16 @@
     // sensible defaults that match the most common officer flow.
     $channelIds = collect($channels ?? [])->pluck('id');
     $firstChannelId = (string) ($channels[0]['id'] ?? '');
-    $oldChannelId = (string) old('channel_id', $defaultChannel ?? $firstChannelId);
+    // ?: not ?? because env('RAID_HELPER_DEFAULT_CHANNEL_ID') with an
+    // empty .env line returns '' (not null), so ?? would skip the
+    // fallback and leave $oldChannelId blank - which then breaks the
+    // channel-name lookup below and leaves the announcement rows
+    // pointing at "" instead of the configured first preset.
+    $oldChannelId = (string) old('channel_id', $defaultChannel ?: $firstChannelId);
     $channelMode = old('_channel_mode',
         $oldChannelId !== '' && ! $channelIds->contains($oldChannelId) ? 'other' : 'preset'
     );
-    $presetFallback = $channelIds->contains($defaultChannel ?? '') ? $defaultChannel : $firstChannelId;
+    $presetFallback = $channelIds->contains($defaultChannel ?: '') ? $defaultChannel : $firstChannelId;
     $durationMode = old('duration_mode', 'duration');
 
     // Tomorrow at the configured default time, in the configured

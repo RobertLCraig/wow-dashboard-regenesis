@@ -14,8 +14,12 @@ beforeEach(function () {
         'raidhelper.default_channel_id' => '1430231966686511124',
         'raidhelper.timezone' => 'Europe/London',
         'raidhelper.channels' => [
-            ['id' => '1430231966686511124', 'label' => 'social-events'],
-            ['id' => '1247281653777301714', 'label' => 'heroic-raid-signup'],
+            ['id' => '1430231966686511124', 'name' => 'social-events',      'label' => 'social-events'],
+            ['id' => '1247281653777301714', 'name' => 'heroic-raid-signup', 'label' => 'heroic-raid-signup'],
+        ],
+        'raidhelper.default_announcements' => [
+            ['minutes' => 1,  'message' => 'Event starting now!'],
+            ['minutes' => 30, 'message' => 'Event starting in 30 minutes!'],
         ],
         // Pin the templates the controller validates against, independent
         // of whatever the production config currently exposes.
@@ -77,6 +81,23 @@ function basePayload(array $overrides = []): array
         'leader_id' => '900000',
     ], $overrides);
 }
+
+it('defaults the announcement-row channel to the first preset channel name when default_channel_id is empty', function () {
+    // Reproduces the prod bug: env('RAID_HELPER_DEFAULT_CHANNEL_ID')
+    // returns '' (not null) when the .env line is blank, so the
+    // `?? $firstChannelId` fallback in the blade used to skip and the
+    // reminder rows landed with an empty channel field.
+    config(['raidhelper.default_channel_id' => null]);
+
+    $resp = $this->actingAs(officer())->get(route('events.create'));
+
+    $resp->assertOk();
+    // The Alpine state initialises announcements from a server-rendered
+    // JSON blob; the channel slot for each row should be the first
+    // preset's `name` (social-events), not an empty string.
+    $resp->assertSee('"channel":"social-events"', false);
+    $resp->assertDontSee('"channel":""', false);
+});
 
 it('creates an event in duration mode and sends advancedSettings.duration', function () {
     Http::fake(['raid-helper.xyz/*' => Http::response(fakeRaidHelperEvent(), 200)]);

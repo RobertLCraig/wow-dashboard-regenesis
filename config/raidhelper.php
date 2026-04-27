@@ -44,9 +44,11 @@ return [
     |--------------------------------------------------------------------------
     |
     | Right-click your raid-events channel in Discord and Copy ID.
-    | Officers can override this on the create form.
+    | Officers can override this on the create form. The trailing `?: null`
+    | normalises an empty .env line to null so blade `??` fallbacks fire
+    | properly (env('FOO') with `FOO=` returns '', not null).
     */
-    'default_channel_id' => env('RAID_HELPER_DEFAULT_CHANNEL_ID'),
+    'default_channel_id' => env('RAID_HELPER_DEFAULT_CHANNEL_ID') ?: null,
 
     /*
     |--------------------------------------------------------------------------
