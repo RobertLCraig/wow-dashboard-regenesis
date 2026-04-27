@@ -128,12 +128,24 @@
                         line: '#252533',
                         ink: '#e6e6f0',
                         muted: '#7a7a8c',
-                        accent: '#5865F2',
+                        // Accent colour comes from the body's theme class
+                        // (theme-discord / theme-phoenix), set as an RGB
+                        // triple in --c-accent so Tailwind's opacity
+                        // utilities (bg-accent/15 etc) keep working.
+                        accent: 'rgb(var(--c-accent) / <alpha-value>)',
                     },
                 },
             },
         };
     </script>
+    {{-- Theme accent CSS variables. Default at :root keeps the
+         landing/auth pages on Discord blue; body theme classes
+         override per logged-in user preference. --}}
+    <style>
+        :root            { --c-accent: 88 101 242; }   /* discord blurple */
+        body.theme-discord { --c-accent: 88 101 242; }
+        body.theme-phoenix { --c-accent: 168 38 46; }  /* phoenix red */
+    </style>
     {{-- Display mode (users.display_mode). Three steps stack additively:
 
          standard      no overrides at all (baseline)
@@ -280,8 +292,10 @@
         \App\Models\User::DISPLAY_CLEAR        => 'mode-clear',
         default                                => 'mode-standard',
     };
+    $userTheme = auth()->user()?->theme ?? \App\Models\User::THEME_DISCORD;
+    $bodyTheme = $userTheme === \App\Models\User::THEME_PHOENIX ? 'theme-phoenix' : 'theme-discord';
 @endphp
-<body class="bg-bg text-ink font-sans antialiased min-h-screen {{ $bodyMode }}" x-data="{ navOpen: false }">
+<body class="bg-bg text-ink font-sans antialiased min-h-screen {{ $bodyMode }} {{ $bodyTheme }}" x-data="{ navOpen: false }">
 @php
     /**
      * Sidebar nav model. Primary items are the four section pages
@@ -406,12 +420,43 @@
             @endphp
             <div class="pt-2 border-t border-line/60">
                 <div class="text-[10px] uppercase tracking-wider text-muted/60 mb-1">View clarity</div>
-                <div class="flex border border-line rounded overflow-hidden" role="group" aria-label="View clarity">
+                <div class="flex border border-line rounded overflow-hidden mb-3" role="group" aria-label="View clarity">
                     @foreach ($clarityOptions as $value => $opt)
                         @php $active = $displayMode === $value; @endphp
                         <form method="POST" action="{{ route('preferences.display') }}" class="flex-1">
                             @csrf
                             <input type="hidden" name="display_mode" value="{{ $value }}">
+                            <button type="submit"
+                                    title="{{ $opt['hint'] }}"
+                                    aria-pressed="{{ $active ? 'true' : 'false' }}"
+                                    class="w-full text-[11px] py-1.5 transition
+                                           {{ $active
+                                               ? 'bg-accent/20 text-ink font-medium'
+                                               : 'text-muted hover:text-ink hover:bg-line/40' }}">
+                                {{ $opt['label'] }}
+                            </button>
+                        </form>
+                    @endforeach
+                </div>
+
+                {{-- Theme picker. Orthogonal to view clarity:
+                     theme controls accent colour, clarity controls
+                     layout. Two-state for now (Discord blurple vs
+                     phoenix red); the column type allows extending
+                     to more themes without schema work. --}}
+                @php
+                    $themeOptions = [
+                        \App\Models\User::THEME_DISCORD => ['label' => 'Discord', 'hint' => 'Default Discord blurple accent.'],
+                        \App\Models\User::THEME_PHOENIX => ['label' => 'Phoenix', 'hint' => 'Phoenix-red accent that matches the guild logo.'],
+                    ];
+                @endphp
+                <div class="text-[10px] uppercase tracking-wider text-muted/60 mb-1">Theme</div>
+                <div class="flex border border-line rounded overflow-hidden" role="group" aria-label="Theme">
+                    @foreach ($themeOptions as $value => $opt)
+                        @php $active = $userTheme === $value; @endphp
+                        <form method="POST" action="{{ route('preferences.theme') }}" class="flex-1">
+                            @csrf
+                            <input type="hidden" name="theme" value="{{ $value }}">
                             <button type="submit"
                                     title="{{ $opt['hint'] }}"
                                     aria-pressed="{{ $active ? 'true' : 'false' }}"

@@ -29,6 +29,14 @@ class User extends Authenticatable
         self::DISPLAY_HIGH_CLARITY,
     ];
 
+    public const THEME_DISCORD = 'discord';
+    public const THEME_PHOENIX = 'phoenix';
+
+    public const THEMES = [
+        self::THEME_DISCORD,
+        self::THEME_PHOENIX,
+    ];
+
     protected $fillable = [
         'name',
         'email',
@@ -39,6 +47,7 @@ class User extends Authenticatable
         'tier',
         'team',
         'display_mode',
+        'theme',
         'discord_refresh_token',
         'last_role_check_at',
         'calendar_token',

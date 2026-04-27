@@ -102,3 +102,68 @@ it('marks the active clarity step with aria-pressed=true', function () {
     expect($html)->toContain('aria-pressed="true"');
     expect($html)->toContain('aria-pressed="false"');
 });
+
+// ----------------------------------------------------------------------------
+// Theme picker (orthogonal to clarity)
+// ----------------------------------------------------------------------------
+
+it('defaults new users to the discord theme', function () {
+    $u = makePrefsOfficer();
+    expect($u->fresh()->theme)->toBe(User::THEME_DISCORD);
+});
+
+it('persists each of the two valid themes', function (string $theme) {
+    $u = makePrefsOfficer();
+
+    $this->actingAs($u)
+        ->post(route('preferences.theme'), ['theme' => $theme])
+        ->assertRedirect();
+
+    expect($u->fresh()->theme)->toBe($theme);
+})->with([
+    'discord' => User::THEME_DISCORD,
+    'phoenix' => User::THEME_PHOENIX,
+]);
+
+it('rejects an unknown theme value', function () {
+    $u = makePrefsOfficer();
+
+    $this->actingAs($u)
+        ->post(route('preferences.theme'), ['theme' => 'rainbow'])
+        ->assertSessionHasErrors('theme');
+
+    expect($u->fresh()->theme)->toBe(User::THEME_DISCORD);
+});
+
+it('the theme endpoint requires authentication', function () {
+    $this->post(route('preferences.theme'), ['theme' => User::THEME_PHOENIX])
+        ->assertRedirect(route('auth.discord.start'));
+});
+
+it('renders the body with the right theme-* class for each pref', function (string $theme, string $expectedClass) {
+    $u = makePrefsOfficer();
+    $u->forceFill(['theme' => $theme])->save();
+
+    $response = $this->actingAs($u)->get(route('dashboard'));
+
+    $response->assertOk();
+    expect($response->getContent())->toContain($expectedClass);
+})->with([
+    'discord -> theme-discord' => [User::THEME_DISCORD, 'theme-discord'],
+    'phoenix -> theme-phoenix' => [User::THEME_PHOENIX, 'theme-phoenix'],
+]);
+
+it('clarity and theme are independent of each other', function () {
+    $u = makePrefsOfficer();
+    $u->forceFill([
+        'display_mode' => User::DISPLAY_HIGH_CLARITY,
+        'theme'        => User::THEME_PHOENIX,
+    ])->save();
+
+    $response = $this->actingAs($u)->get(route('dashboard'));
+
+    $response->assertOk();
+    $html = $response->getContent();
+    expect($html)->toContain('mode-high-clarity');
+    expect($html)->toContain('theme-phoenix');
+});

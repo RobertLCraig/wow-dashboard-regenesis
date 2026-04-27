@@ -24,4 +24,15 @@ class PreferencesController extends Controller
 
         return redirect()->back();
     }
+
+    public function theme(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'theme' => ['required', Rule::in(User::THEMES)],
+        ]);
+
+        $request->user()->forceFill(['theme' => $data['theme']])->save();
+
+        return redirect()->back();
+    }
 }

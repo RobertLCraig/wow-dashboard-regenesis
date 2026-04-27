@@ -100,10 +100,11 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::get('/admin/sync', [\App\Http\Controllers\Admin\SyncDashboardController::class, 'index'])->name('admin.sync.index');
     Route::post('/admin/sync/grm', [\App\Http\Controllers\Admin\SyncDashboardController::class, 'uploadGrm'])->name('admin.sync.grm.upload');
 
-    // Per-user display preferences (high-clarity mode toggle, future
-    // theme picker). Single POST endpoint per pref keeps the surface
-    // tiny and JS-free.
+    // Per-user display preferences (clarity dial, theme picker).
+    // Single POST endpoint per pref keeps the surface tiny and
+    // JS-free; each toggle in the UI is its own form.
     Route::post('/preferences/display', [\App\Http\Controllers\PreferencesController::class, 'display'])->name('preferences.display');
+    Route::post('/preferences/theme',   [\App\Http\Controllers\PreferencesController::class, 'theme'])->name('preferences.theme');
 
     // Officer-managed Discord webhook table. Used by the digest sender
     // and any future webhook-based sender (event reminders etc).
