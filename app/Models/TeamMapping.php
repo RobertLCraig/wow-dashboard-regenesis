@@ -58,4 +58,22 @@ class TeamMapping extends Model
             default => 'Unassigned',
         };
     }
+
+    /**
+     * The highest raid difficulty a team meaningfully runs as a unit.
+     * Used to cap the team's headline progression so a Heroic team
+     * doesn't display "4/9 M" just because one member happens to have
+     * picked up some Mythic kills with the Mythic team.
+     *
+     * Returns 'mythic' | 'heroic' | 'normal'. Unknown teams default to
+     * 'mythic' (no cap) so callers stay forwards-compatible.
+     */
+    public static function maxDifficultyFor(?string $team): string
+    {
+        return match ($team) {
+            self::TEAM_MYTHIC, self::TEAM_MYTHIC_TRIAL => 'mythic',
+            self::TEAM_HEROIC, self::TEAM_HEROIC_TRIAL => 'heroic',
+            default => 'mythic',
+        };
+    }
 }

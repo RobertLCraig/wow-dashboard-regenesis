@@ -68,11 +68,14 @@ function snapshotWithRow(int $memberId, array $rowOverrides = []): Snapshot
 }
 
 it('dashboard shows the team progression widget with per-team rollups', function () {
+    // h1 has 3 Mythic kills (picked up via the Mythic roster), h2 has
+    // pure 8/8 H. The Heroic-team rollup should ignore the Mythic
+    // kills entirely and show 8/8 H, NOT "3/8 M". The Mythic team's
+    // panel still sees Mythic kills as the headline number.
     $h1 = makeTeamMember('Healer-Silvermoon', TeamMapping::TEAM_HEROIC);
     $h2 = makeTeamMember('Tank-Silvermoon', TeamMapping::TEAM_HEROIC);
     $m1 = makeTeamMember('Bruiser-Silvermoon', TeamMapping::TEAM_MYTHIC);
 
-    // Mythic raider has farther progression + higher ilvl than heroic.
     $snapshot = snapshotWithRow($h1->id, ['ilvl' => 640, 'mplus_score' => 1100, 'mplus_keystone' => 12]);
     MemberSnapshot::query()->create([
         'snapshot_id' => $snapshot->id,
@@ -112,11 +115,60 @@ it('dashboard shows the team progression widget with per-team rollups', function
     $resp->assertSee('Team progression');
     $resp->assertSee('Heroic');
     $resp->assertSee('Mythic');
-    // Best heroic raid progression from h1 row (3 mythic kills) wins
-    // over h2 (0 mythic). Mythic team's 6 mythic kills wins overall
-    // for that panel.
-    $resp->assertSee('8/8 H 3/8 M');
-    $resp->assertSee('8/8 H 6/8 M');
+    // Heroic rollup capped: best is 8/8 H, mythic kills ignored.
+    $resp->assertSee('8/8 H');
+    // Mythic rollup: 6 mythic kills wins.
+    $resp->assertSee('6/8 M');
+});
+
+it('caps the Heroic team rollup at heroic difficulty even when one member has mythic kills', function () {
+    // The bug we hit on production: a Heroic-team member who joined
+    // the Mythic raid for a few bosses pulled the team's headline
+    // progression to "4/9 M". The cap should drop those kills.
+    $hero = makeTeamMember('Hero-Silvermoon', TeamMapping::TEAM_HEROIC);
+    $crossover = makeTeamMember('Crossover-Silvermoon', TeamMapping::TEAM_HEROIC);
+
+    $snapshot = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now(),
+        'source' => Snapshot::SOURCE_RAIDERIO,
+        'payload_hash' => 'cap-test',
+    ]);
+    MemberSnapshot::query()->create([
+        'snapshot_id' => $snapshot->id,
+        'member_id' => $hero->id,
+        'ilvl' => 285,
+        'raid_progression_json' => [
+            'tier-mn-1' => [
+                'summary' => '6/9 H',
+                'total_bosses' => 9,
+                'heroic_bosses_killed' => 6,
+                'mythic_bosses_killed' => 0,
+            ],
+        ],
+    ]);
+    MemberSnapshot::query()->create([
+        'snapshot_id' => $snapshot->id,
+        'member_id' => $crossover->id,
+        'ilvl' => 287,
+        'raid_progression_json' => [
+            'tier-mn-1' => [
+                'summary' => '8/9 H 4/9 M',
+                'total_bosses' => 9,
+                'heroic_bosses_killed' => 8,
+                'mythic_bosses_killed' => 4,
+            ],
+        ],
+    ]);
+
+    $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
+    $resp = $this->actingAs($user)->get('/dashboard');
+
+    $resp->assertOk();
+    // Best heroic kills among the team is 8/9 (from crossover), with
+    // mythic kills ignored. Should NOT display "4/9 M".
+    $resp->assertSee('8/9 H');
+    $resp->assertDontSee('4/9 M');
 });
 
 it('widget renders empty state when no member has a team assigned', function () {

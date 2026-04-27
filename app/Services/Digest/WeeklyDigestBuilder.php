@@ -183,21 +183,37 @@ class WeeklyDigestBuilder
 
             $snaps = $members->map(fn ($m) => $snapsByMember->get($m->id))->filter();
 
-            $bestSummary = null;
+            // Cap by team difficulty so Heroic teams don't show Mythic
+            // kills picked up by individuals via the Mythic roster.
+            // Same shape as DashboardController::teamProgression.
+            $maxDiff = TeamMapping::maxDifficultyFor($team);
             $bestM = -1;
             $bestH = -1;
+            $bestN = -1;
+            $bestTotal = 0;
             foreach ($snaps as $snap) {
                 foreach ((array) ($snap->raid_progression_json ?? []) as $p) {
                     if (! is_array($p)) continue;
-                    $m = (int) ($p['mythic_bosses_killed'] ?? 0);
-                    $h = (int) ($p['heroic_bosses_killed'] ?? 0);
-                    if ($m > $bestM || ($m === $bestM && $h > $bestH)) {
+                    $total = (int) ($p['total_bosses'] ?? 0);
+                    $m = $maxDiff === 'mythic' ? (int) ($p['mythic_bosses_killed'] ?? 0) : 0;
+                    $h = in_array($maxDiff, ['mythic', 'heroic'], true) ? (int) ($p['heroic_bosses_killed'] ?? 0) : 0;
+                    $n = (int) ($p['normal_bosses_killed'] ?? 0);
+                    if ($m > $bestM
+                        || ($m === $bestM && $h > $bestH)
+                        || ($m === $bestM && $h === $bestH && $n > $bestN)) {
                         $bestM = $m;
                         $bestH = $h;
-                        $bestSummary = is_string($p['summary'] ?? null) ? $p['summary'] : null;
+                        $bestN = $n;
+                        $bestTotal = $total;
                     }
                 }
             }
+            $bestSummary = match (true) {
+                $bestM > 0 => "{$bestM}/{$bestTotal} M",
+                $bestH > 0 => "{$bestH}/{$bestTotal} H",
+                $bestN > 0 => "{$bestN}/{$bestTotal} N",
+                default    => null,
+            };
             $ilvls = $snaps->pluck('ilvl')->filter()->all();
 
             $out[$team] = [

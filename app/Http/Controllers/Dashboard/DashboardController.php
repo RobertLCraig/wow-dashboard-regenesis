@@ -108,27 +108,48 @@ class DashboardController extends Controller
                 ->map(fn ($m) => $snapsByMember->get($m->id))
                 ->filter();
 
-            // Best raid progression across the team: prefer most mythic
-            // kills, then most heroic kills as a tiebreaker.
+            // Best raid progression for the team, capped to the team's
+            // own raid difficulty: Heroic teams shouldn't read "4/9 M"
+            // just because one member did some Mythic kills with the
+            // Mythic team. Difficulty preference inside the cap:
+            // mythic > heroic > normal, then most kills wins. Summary
+            // is synthesized from the raw counts so it always matches
+            // the cap (Raider.IO's own summary string includes mythic
+            // and would re-leak the bug).
+            $maxDiff = TeamMapping::maxDifficultyFor($team);
             $bestSummary = null;
             $bestKey = null;
             $bestM = -1;
             $bestH = -1;
+            $bestN = -1;
+            $bestTotal = 0;
             foreach ($snaps as $snap) {
                 foreach ((array) ($snap->raid_progression_json ?? []) as $instanceKey => $p) {
                     if (! is_array($p)) {
                         continue;
                     }
-                    $m = (int) ($p['mythic_bosses_killed'] ?? 0);
-                    $h = (int) ($p['heroic_bosses_killed'] ?? 0);
-                    if ($m > $bestM || ($m === $bestM && $h > $bestH)) {
+                    $total = (int) ($p['total_bosses'] ?? 0);
+                    $m = $maxDiff === 'mythic' ? (int) ($p['mythic_bosses_killed'] ?? 0) : 0;
+                    $h = in_array($maxDiff, ['mythic', 'heroic'], true) ? (int) ($p['heroic_bosses_killed'] ?? 0) : 0;
+                    $n = (int) ($p['normal_bosses_killed'] ?? 0);
+
+                    if ($m > $bestM
+                        || ($m === $bestM && $h > $bestH)
+                        || ($m === $bestM && $h === $bestH && $n > $bestN)) {
                         $bestM = $m;
                         $bestH = $h;
-                        $bestSummary = is_string($p['summary'] ?? null) ? $p['summary'] : null;
+                        $bestN = $n;
+                        $bestTotal = $total;
                         $bestKey = $instanceKey;
                     }
                 }
             }
+            $bestSummary = match (true) {
+                $bestM > 0 => "{$bestM}/{$bestTotal} M",
+                $bestH > 0 => "{$bestH}/{$bestTotal} H",
+                $bestN > 0 => "{$bestN}/{$bestTotal} N",
+                default    => null,
+            };
 
             $ilvls = $snaps->pluck('ilvl')->filter()->all();
             $rios = $snaps->pluck('mplus_score')->filter()->all();

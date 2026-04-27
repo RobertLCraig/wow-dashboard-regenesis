@@ -110,12 +110,12 @@ it('digest summarises team progression and the top RIO scores', function () {
     MemberSnapshot::query()->create([
         'snapshot_id' => $snap->id, 'member_id' => $a->id,
         'ilvl' => 660, 'mplus_score' => 2400.0, 'mplus_keystone' => 18,
-        'raid_progression_json' => ['manaforge-omega' => ['summary' => '8/8 H 5/8 M', 'mythic_bosses_killed' => 5, 'heroic_bosses_killed' => 8]],
+        'raid_progression_json' => ['manaforge-omega' => ['summary' => '8/8 H 5/8 M', 'total_bosses' => 8, 'mythic_bosses_killed' => 5, 'heroic_bosses_killed' => 8]],
     ]);
     MemberSnapshot::query()->create([
         'snapshot_id' => $snap->id, 'member_id' => $b->id,
         'ilvl' => 645, 'mplus_score' => 1500.0, 'mplus_keystone' => 14,
-        'raid_progression_json' => ['manaforge-omega' => ['summary' => '8/8 H', 'mythic_bosses_killed' => 0, 'heroic_bosses_killed' => 8]],
+        'raid_progression_json' => ['manaforge-omega' => ['summary' => '8/8 H', 'total_bosses' => 8, 'mythic_bosses_killed' => 0, 'heroic_bosses_killed' => 8]],
     ]);
 
     $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon', $now))->build();
@@ -123,8 +123,11 @@ it('digest summarises team progression and the top RIO scores', function () {
     expect($built['markdown'])
         ->toContain('Team progression')
         ->toContain('Mythic: 1 members')
-        ->toContain('8/8 H 5/8 M')
+        // Synthesized headline (cap-aware): mythic team prefers M; heroic
+        // team caps at H. Builder no longer mirrors RIO's compound summary.
+        ->toContain('5/8 M')
         ->toContain('Heroic: 1 members')
+        ->toContain('8/8 H')
         ->toContain('Top M+ scores')
         ->toContain('Mythraider-Silvermoon')
         ->toContain('2,400');
