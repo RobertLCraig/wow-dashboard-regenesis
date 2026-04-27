@@ -96,6 +96,12 @@ return [
             'raid_days' => [1],                    // Mon
             'template_id' => '9',
         ],
+        'social' => [
+            'label' => 'Social Event',
+            'channel_id' => '1430231966686511124', // social-events
+            'raid_days' => [],                     // ad-hoc, no fixed cadence
+            'template_id' => '1',                  // accept / maybe / decline
+        ],
     ],
 
     /*

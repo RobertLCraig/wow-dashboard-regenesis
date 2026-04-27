@@ -111,6 +111,21 @@ it('hides the "Latest from Discord" section entirely when there are no recent an
     $resp->assertOk()->assertDontSee('Latest from Discord');
 });
 
+it('shows the quick-create panel pointed at the social-events channel', function () {
+    config(['raidhelper.teams.social' => [
+        'label' => 'Social Event',
+        'channel_id' => '1430231966686511124',
+        'raid_days' => [],
+        'template_id' => '1',
+    ]]);
+
+    $resp = $this->actingAs(socialOfficer())->get('/dashboard/social');
+    $resp->assertOk()
+        ->assertSee('Quick create')
+        ->assertSee('1430231966686511124', false)  // hidden channel_id input
+        ->assertSee('value="1"', false);            // hidden template_id input (accept/maybe/decline)
+});
+
 it('renders a grid view when ?view=grid is set', function () {
     \App\Models\RaidEvent::query()->create([
         'raidhelper_event_id' => 'rh-grid',

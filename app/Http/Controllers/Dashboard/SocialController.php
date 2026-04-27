@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\DiscordAnnouncement;
 use App\Models\RaidEvent;
+use App\Services\Teams\TeamScheduleResolver;
 use App\Services\WorldEvents\WorldEventsCalendar;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -115,6 +116,14 @@ class SocialController extends Controller
             ? route('calendar.social.subscription', ['token' => $user->calendar_token])
             : null;
 
+        // Quick-create panel preset matches the team-dashboard pattern:
+        // posts to /events with channel + template + leader pre-filled
+        // from config('raidhelper.teams.social'). Only show the panel
+        // to users who can actually create events.
+        $quickCreatePreset = $user && $user->can('events.create')
+            ? TeamScheduleResolver::for('social')
+            : null;
+
         return view('dashboard.social', [
             'view' => $view,
             'eventsByWeek' => $byWeek,
@@ -124,6 +133,7 @@ class SocialController extends Controller
             'announcements' => $announcements,
             'announcementWindowDays' => $announcementWindow,
             'subscribeUrl' => $subscribeUrl,
+            'quickCreatePreset' => $quickCreatePreset,
         ]);
     }
 }

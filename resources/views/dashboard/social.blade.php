@@ -36,6 +36,15 @@
         </div>
     </div>
 
+    @if ($quickCreatePreset)
+        {{-- Same shared widget the team dashboards use; the social
+             preset posts to #social-events with the accept/maybe/decline
+             template and no fixed-day pills. --}}
+        <div class="mb-6">
+            @include('dashboard.widgets.quick-create', ['preset' => $quickCreatePreset, 'teamSlug' => 'social'])
+        </div>
+    @endif
+
     @if ($announcements->isNotEmpty())
         <section class="mb-8">
             <header class="flex items-baseline justify-between mb-2">
