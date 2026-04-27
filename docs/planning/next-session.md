@@ -2,21 +2,37 @@
 
 Captured 2026-04-26. Drop-in agenda for the next sit-down planning pass.
 
+## 0. Shipped 2026-04-27 (one big session)
+
+- **ilvl recency gate** - drop ilvl when GRM hasn't seen the char online or RIO's gear sample is older than the window; relative duration so it self-adjusts across squishes.
+- **Battle.net (Blizzard) integration** - OAuth client, snapshot importer, schedule, dashboard card, on-demand sync button; multi-source roster ilvl resolver (Blizzard > Wowaudit > RIO) with per-cell `via {source}` tooltip.
+- **BiS feature end-to-end** - SimC profile parser + GitHub fetcher + weekly schedule, character-page comparison section with per-slot OK / MISSING / wrong / partial badges and consumable recommendations, roster BiS-issues column with sortable count + filter chip, hero-talent-aware profile matching by gear overlap (no decoder needed), Wowhead-linked items with inline tooltips.
+- **Social events hub** - read-only chronological feed mixing Raid-Helper events with computed world events (Darkmoon Faire, Trading Post resets, Love is in the Air, Children's Week, Midsummer, Brewfest, Hallow's End, Day of the Dead, Winter Veil); list view + month-grid view toggle; "Latest from Discord" announcements feed (bot-authenticated hourly poll); per-user social ICS feed (raid + world combined); public world-events ICS feed (no auth, year-ahead window).
+
 ## 1. Raw queue (verbatim)
 
 - Review features on Guilds of WoW.
-- Pull in data from Warcraft Logs.
-- Add a sync with Battle.net option (pull data directly from Blizzard's WoW API).
+- ~~Pull in data from Warcraft Logs.~~ (shipped)
+- ~~Add a sync with Battle.net option (pull data directly from Blizzard's WoW API).~~ (shipped 2026-04-27)
 - Consider building our own data-collection addon.
-- Provide quick links to external data (Warcraft Logs, WoW Analyzer, RaiderIO, WoW Armory, etc).
-- Pull alt groups and "recently inactive" into a new "Roster" view that is richer and more searchable, with those things as pre-made filters.
-- Build "kick" macros: officers click a player and get a copy-paste WoW macro that kicks them and all their alts in one go.
+- ~~Provide quick links to external data (Warcraft Logs, WoW Analyzer, RaiderIO, WoW Armory, etc).~~ (shipped, x-character-links component)
+- ~~Pull alt groups and "recently inactive" into a new "Roster" view that is richer and more searchable, with those things as pre-made filters.~~ (shipped)
+- ~~Build "kick" macros: officers click a player and get a copy-paste WoW macro that kicks them and all their alts in one go.~~ (shipped)
 - Dashboard UX review: make the UI more responsive and use available screen space better. Consider letting the user pick 1-col / 2-col / 3-col / fluid responsive.
-- Accessibility / high-clarity mode: GM has horizontal + vertical diplopia plus rotational tilt; build a per-user preset that strips visual noise, enforces single-column flow, increases spacing, raises contrast, and disables animation. Toggle accessible to everyone, not gated to one account.
-- Brand asset integration: phoenix logo + class / role / profession / guild-role icons sit in `docs/LOGO/` and `docs/Icons*/`. Wire them into the sidebar, landing page, roster, action queue, and team pages. Pick a canonical icon set and normalise filenames before they're referenced in Blade.
-- Social page (events hub): not a team / cohort like Mythic / Heroic, but a guild-wide events calendar. Aggregate Raid-Helper signups (already ingested), Discord #announcements posts (transmog contests, drunken raid nights, etc.), and recurring in-game events (Darkmoon Faire monthly cadence, holidays, new-patch / season launches). Discord side will need a bot token with read access to the announcements channel (or a webhook push from a server admin). World events probably curated in a small data file rather than scraped.
-- Enchant / gem checker on the roster: derived-display only, no new source needed. RIO's `gear.items[*].enchants` / `gems` and Wowaudit's per-slot data are already in the snapshot raw_json. Add a "missing enchants / empty sockets" badge column to the roster, with a per-character breakdown in the detail view.
-- BiS gear / enchant / consumables reference: pull canonical SimulationCraft profiles from the official `simulationcraft/simc` GitHub repo (machine-readable APL files per spec, updated each tier, free, no scraping). Parse out item IDs, enchants, gems; render a "your gear vs BiS" comparison on the character page. WoWhead / IcyVeins ruled out (no API, scraping is TOS-risky and breaks every patch).
+- Accessibility / high-clarity mode: GM has horizontal + vertical diplopia plus rotational tilt; build a per-user preset that strips visual noise, enforces single-column flow, increases spacing, raises contrast, and disables animation. Toggle accessible to everyone, not gated to one account. (Mode plumbing landed earlier; tightening / new-page coverage is the open work.)
+- ~~Brand asset integration: phoenix logo + class / role / profession / guild-role icons~~ (largely done - components in place, icons published, theme switcher live).
+- ~~Social page (events hub): not a team / cohort like Mythic / Heroic, but a guild-wide events calendar.~~ (shipped 2026-04-27)
+- ~~Enchant / gem checker on the roster.~~ (shipped 2026-04-27 as the BiS issues column)
+- ~~BiS gear / enchant / consumables reference~~ (shipped 2026-04-27)
+
+## 1a. Open follow-ups from the BiS / Social work
+
+- **Permission rework so non-officer guild members can reach Social.** Currently `OfficerOnly` middleware blocks anyone without a gm/big6/officer Discord role from the entire dashboard, so the Social page is officer-only despite being intended for everyone. Plan: add a `member` tier below `officer`, surface it in `RoleVerifier`, swap `OfficerOnly` for a route-by-route gate where Social + Roster are member-accessible while admin pages stay officer-only.
+- **Multi-day event spans on the Social calendar grid.** Currently a 17-day Brewfest renders the name in 17 separate cells. Polish via CSS-grid `grid-row: span N` bars across week boundaries.
+- **Discord attachments storage.** Image-only / sticker-only announcements skip the importer because we don't keep their attachments. JSON column on `discord_announcements` + render with `<img>` thumbnails when present.
+- **Hero-talent matching via talent-string decode.** Voting-by-gear is good enough most of the time, but a real talent-loadout decoder would catch the remaining edge cases. Heavy work and brittle across patches.
+- **Wowaudit fallback for actual gear in BiS comparison.** Skipped during the session because Wowaudit's payload doesn't carry spec, so we can't pick a profile. Could be unlocked by adding spec to `_roster` upstream or by inferring from class+role+gear.
+- **Year-aware holiday lookup.** Easter-aligned (Noblegarden), Lunar New Year (Lunar Festival), and US-Thanksgiving (Pilgrim's Bounty) need a year-keyed table. Stable absolute-date holidays already shipped.
 
 ## 2. My read on the Copilot PRD
 
