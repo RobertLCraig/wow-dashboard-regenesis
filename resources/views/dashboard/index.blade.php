@@ -2,27 +2,155 @@
 
 @section('title', 'General')
 
+@push('head')
+    {{-- Sortable.js, only used in dashboard layout edit mode. ~10kb
+         minified; loaded once from CDN, same posture as Tailwind /
+         Chart.js / Alpine. --}}
+    <script defer src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script>
+        function dashboardEditor() {
+            return {
+                editing: false,
+                sortable: null,
+                enterEdit() {
+                    this.editing = true;
+                    // Wait for x-show to update DOM before initialising
+                    // Sortable, otherwise the handle isn't visible yet.
+                    this.$nextTick(() => {
+                        if (typeof Sortable === 'undefined') return;
+                        this.sortable = new Sortable(this.$refs.grid, {
+                            handle: '.js-drag-handle',
+                            animation: 150,
+                            ghostClass: 'opacity-30',
+                        });
+                    });
+                },
+                cancel() {
+                    // Easiest way to revert if the user dragged things
+                    // around in edit mode and changed their mind.
+                    window.location.reload();
+                },
+                async save() {
+                    const keys = Array.from(this.$refs.grid.querySelectorAll('[data-widget-key]'))
+                        .map(el => el.getAttribute('data-widget-key'));
+                    await this.postLayout({ layout: keys });
+                    window.location.reload();
+                },
+                async resetToDefault() {
+                    await this.postLayout({ reset: 1 });
+                    window.location.reload();
+                },
+                async postLayout(payload) {
+                    const root = this.$el;
+                    const url = root.getAttribute('data-save-url');
+                    const csrf = root.getAttribute('data-csrf');
+                    const body = new FormData();
+                    if (payload.reset) body.append('reset', '1');
+                    if (payload.layout) {
+                        payload.layout.forEach(k => body.append('layout[]', k));
+                    }
+                    body.append('_token', csrf);
+                    return fetch(url, {
+                        method: 'POST',
+                        body,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin',
+                    });
+                },
+                // Click / keyboard reorder, runs against the same DOM
+                // Sortable does, so Save reads the new order either way.
+                moveUp(el) {
+                    const prev = el.previousElementSibling;
+                    if (prev) el.parentNode.insertBefore(el, prev);
+                },
+                moveDown(el) {
+                    const next = el.nextElementSibling;
+                    if (next) el.parentNode.insertBefore(next, el);
+                },
+            };
+        }
+    </script>
+@endpush
+
 @section('content')
-    <h1 class="text-xl font-semibold mb-6">General Guild Management</h1>
+    <div x-data="dashboardEditor()" data-csrf="{{ csrf_token() }}" data-save-url="{{ route('preferences.dashboard-layout') }}">
+        <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+            <h1 class="text-xl font-semibold">General Guild Management</h1>
 
-    {{-- Single responsive grid for the whole dashboard. The widget
-         catalogue lives in config/dashboard.php; per-user layout
-         override comes from users.dashboard_layout (resolved by
-         App\Services\Dashboard\WidgetOrderResolver in the
-         controller). DOM order is the user's preferred order, which
-         doubles as the High-clarity-mode scroll order. --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        @foreach ($widgets as $widget)
-            <div class="{{ $widget['col_span'] ?: '' }}" data-widget-key="{{ $widget['key'] }}">
-                @include($widget['partial'], [$widget['data_key'] => $widgetData[$widget['data_key']] ?? null])
+            <div class="flex items-center gap-2">
+                <button type="button"
+                        x-show="!editing"
+                        @click="enterEdit()"
+                        class="text-xs px-3 py-1.5 rounded border border-line bg-bg hover:bg-panel">
+                    Edit layout
+                </button>
+                <template x-if="editing">
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="save()"
+                                class="text-xs px-3 py-1.5 rounded bg-accent text-white font-medium hover:bg-accent/80">
+                            Save layout
+                        </button>
+                        <button type="button" @click="resetToDefault()"
+                                class="text-xs px-3 py-1.5 rounded border border-line bg-bg hover:bg-panel">
+                            Reset to default
+                        </button>
+                        <button type="button" @click="cancel()"
+                                class="text-xs px-3 py-1.5 rounded border border-line text-muted hover:text-ink">
+                            Cancel
+                        </button>
+                    </div>
+                </template>
             </div>
-        @endforeach
-    </div>
-
-    @if (! $lastSnapshot)
-        <div class="mt-8 p-4 rounded border border-line bg-panel text-sm text-muted">
-            No data ingested yet. Run <code class="text-ink">tools/grm-sync/grm-sync.ps1 -Force</code>
-            on your PC after the next time you log in to WoW.
         </div>
-    @endif
+
+        <div x-show="editing" x-cloak
+             class="mb-4 px-4 py-3 rounded border border-accent/40 bg-accent/10 text-sm text-ink">
+            <strong class="font-semibold">Editing layout.</strong>
+            Drag a widget by its <code class="font-mono text-xs">⋮⋮</code> handle, or use the
+            <span class="inline-flex items-center w-5 h-5 rounded border border-line text-[11px] font-mono align-middle">↑</span>
+            <span class="inline-flex items-center w-5 h-5 rounded border border-line text-[11px] font-mono align-middle">↓</span>
+            buttons to reorder. Click <em class="not-italic font-medium">Save layout</em> when you're happy, or
+            <em class="not-italic font-medium">Reset to default</em> to restore the project's order.
+        </div>
+
+        {{-- The widget grid. data-widget-key on each wrapper is what
+             Sortable + the keyboard buttons read to capture order. --}}
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" x-ref="grid">
+            @foreach ($widgets as $widget)
+                <div class="{{ $widget['col_span'] ?: '' }} relative"
+                     data-widget-key="{{ $widget['key'] }}">
+                    {{-- Edit-mode chrome. Absolutely positioned so it
+                         doesn't shift the widget when toggled. --}}
+                    <div x-show="editing" x-cloak
+                         class="absolute -top-2 left-2 right-2 z-20 flex items-center justify-between bg-panel border border-accent/60 rounded-md px-2 py-1 shadow">
+                        <div class="flex items-center gap-2 text-xs text-ink">
+                            <span class="js-drag-handle cursor-grab text-muted hover:text-ink select-none" title="Drag to reorder" aria-hidden="true">⋮⋮</span>
+                            <span class="font-medium">{{ $widget['title'] }}</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button type="button" @click="moveUp($el.closest('[data-widget-key]'))"
+                                    class="w-6 h-6 inline-flex items-center justify-center rounded border border-line text-muted hover:text-ink text-xs"
+                                    aria-label="Move up">↑</button>
+                            <button type="button" @click="moveDown($el.closest('[data-widget-key]'))"
+                                    class="w-6 h-6 inline-flex items-center justify-center rounded border border-line text-muted hover:text-ink text-xs"
+                                    aria-label="Move down">↓</button>
+                        </div>
+                    </div>
+
+                    {{-- Dim the widget content while editing so the
+                         chrome reads as the active layer. --}}
+                    <div :class="editing ? 'opacity-60 pointer-events-none' : ''">
+                        @include($widget['partial'], [$widget['data_key'] => $widgetData[$widget['data_key']] ?? null])
+                    </div>
+                </div>
+            @endforeach
+        </div>
+
+        @if (! $lastSnapshot)
+            <div class="mt-8 p-4 rounded border border-line bg-panel text-sm text-muted">
+                No data ingested yet. Run <code class="text-ink">tools/grm-sync/grm-sync.ps1 -Force</code>
+                on your PC after the next time you log in to WoW.
+            </div>
+        @endif
+    </div>
 @endsection

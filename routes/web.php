@@ -105,6 +105,7 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     // JS-free; each toggle in the UI is its own form.
     Route::post('/preferences/display', [\App\Http\Controllers\PreferencesController::class, 'display'])->name('preferences.display');
     Route::post('/preferences/theme',   [\App\Http\Controllers\PreferencesController::class, 'theme'])->name('preferences.theme');
+    Route::post('/preferences/dashboard-layout', [\App\Http\Controllers\PreferencesController::class, 'dashboardLayout'])->name('preferences.dashboard-layout');
 
     // Officer-managed Discord webhook table. Used by the digest sender
     // and any future webhook-based sender (event reminders etc).

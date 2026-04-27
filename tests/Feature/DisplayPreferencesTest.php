@@ -167,3 +167,88 @@ it('clarity and theme are independent of each other', function () {
     expect($html)->toContain('mode-high-clarity');
     expect($html)->toContain('theme-phoenix');
 });
+
+// ----------------------------------------------------------------------------
+// Dashboard layout (drag-reorder Phase 2)
+// ----------------------------------------------------------------------------
+
+it('defaults new users to a null dashboard_layout (project default order)', function () {
+    $u = makePrefsOfficer();
+    expect($u->fresh()->dashboard_layout)->toBeNull();
+});
+
+it('persists a posted dashboard layout', function () {
+    $u = makePrefsOfficer();
+    $known = collect((array) config('dashboard.widgets', []))->pluck('key')->all();
+    $reverse = array_reverse($known);
+
+    $this->actingAs($u)
+        ->post(route('preferences.dashboard-layout'), ['layout' => $reverse])
+        ->assertRedirect();
+
+    expect($u->fresh()->dashboard_layout)->toBe($reverse);
+});
+
+it('drops unknown widget keys at save time', function () {
+    $u = makePrefsOfficer();
+
+    $this->actingAs($u)
+        ->post(route('preferences.dashboard-layout'), [
+            'layout' => ['action-queue', 'made-up-widget', 'churn'],
+        ])
+        ->assertRedirect();
+
+    expect($u->fresh()->dashboard_layout)->toBe(['action-queue', 'churn']);
+});
+
+it('saving an empty layout clears the user override (back to default)', function () {
+    $u = makePrefsOfficer();
+    $u->forceFill(['dashboard_layout' => ['churn', 'bans']])->save();
+
+    $this->actingAs($u)
+        ->post(route('preferences.dashboard-layout'), ['layout' => []])
+        ->assertRedirect();
+
+    expect($u->fresh()->dashboard_layout)->toBeNull();
+});
+
+it('reset=1 clears the saved layout', function () {
+    $u = makePrefsOfficer();
+    $u->forceFill(['dashboard_layout' => ['churn']])->save();
+
+    $this->actingAs($u)
+        ->post(route('preferences.dashboard-layout'), ['reset' => '1'])
+        ->assertRedirect();
+
+    expect($u->fresh()->dashboard_layout)->toBeNull();
+});
+
+it('the dashboard-layout endpoint requires authentication', function () {
+    $this->post(route('preferences.dashboard-layout'), ['layout' => ['churn']])
+        ->assertRedirect(route('auth.discord.start'));
+});
+
+it('renders widgets in the user saved order', function () {
+    $u = makePrefsOfficer();
+    $u->forceFill(['dashboard_layout' => ['churn', 'bans', 'action-queue']])->save();
+
+    $response = $this->actingAs($u)->get(route('dashboard'));
+    $response->assertOk();
+
+    $html = $response->getContent();
+    $churnAt = strpos($html, 'data-widget-key="churn"');
+    $bansAt  = strpos($html, 'data-widget-key="bans"');
+    $aqAt    = strpos($html, 'data-widget-key="action-queue"');
+
+    expect($churnAt)->not->toBeFalse();
+    expect($bansAt)->not->toBeFalse();
+    expect($aqAt)->not->toBeFalse();
+    expect($churnAt)->toBeLessThan($bansAt);
+    expect($bansAt)->toBeLessThan($aqAt);
+});
+
+it('renders the Edit layout button on the dashboard', function () {
+    $response = $this->actingAs(makePrefsOfficer())->get(route('dashboard'));
+    $response->assertOk()
+        ->assertSee('Edit layout');
+});

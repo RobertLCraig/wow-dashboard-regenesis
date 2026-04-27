@@ -35,4 +35,38 @@ class PreferencesController extends Controller
 
         return redirect()->back();
     }
+
+    /**
+     * Save the user's dashboard widget order. Accepts a `layout`
+     * array of widget keys, or a `reset` flag to clear the saved
+     * layout (so the user falls back to the project default order).
+     *
+     * Unknown keys are silently dropped at save time so a stale
+     * layout never persists; the resolver does the same on render.
+     */
+    public function dashboardLayout(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'layout'   => ['nullable', 'array'],
+            'layout.*' => ['string'],
+            'reset'    => ['nullable', 'boolean'],
+        ]);
+
+        if ($request->boolean('reset')) {
+            $request->user()->forceFill(['dashboard_layout' => null])->save();
+            return redirect()->back();
+        }
+
+        $known = collect((array) config('dashboard.widgets', []))->pluck('key')->all();
+        $layout = collect($data['layout'] ?? [])
+            ->filter(fn ($key) => is_string($key) && in_array($key, $known, true))
+            ->values()
+            ->all();
+
+        $request->user()->forceFill([
+            'dashboard_layout' => $layout ?: null,
+        ])->save();
+
+        return redirect()->back();
+    }
 }
