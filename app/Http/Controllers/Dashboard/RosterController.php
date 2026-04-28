@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\BisProfile;
 use App\Models\Member;
+use App\Models\MemberEquipmentSnapshot;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
 use App\Services\Bis\BisComparisonService;
+use App\Services\Blizzard\EquipmentAnalyzer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
@@ -67,12 +69,14 @@ class RosterController extends Controller
                 'name', 'realm', 'class', 'level', 'rank', 'team',
                 'ilvl', 'ilvl_source', 'mplus_score', 'mplus_keystone',
                 'bis_issues_total', 'bis_missing_enchants', 'bis_missing_gems',
+                'gear_health_total', 'gear_missing_enchants', 'gear_empty_sockets',
                 'last_online_at', 'main', 'flags',
             ]);
             foreach ($rows as $row) {
                 $m = $row['member'];
                 $snap = $row['snap'];
                 $bis = $row['bis_issues'];
+                $gh = $row['gear_health'];
                 fputcsv($out, [
                     $m->name,
                     $m->realm,
@@ -87,6 +91,9 @@ class RosterController extends Controller
                     $bis['total'] ?? null,
                     $bis['missing_enchants'] ?? null,
                     $bis['missing_gems'] ?? null,
+                    $gh['total_issues'] ?? null,
+                    $gh ? count($gh['missing_enchants']) : null,
+                    $gh ? count($gh['empty_sockets']) : null,
                     $m->last_online_at?->toIso8601String(),
                     $row['main']?->name,
                     implode('|', $row['flags']),
@@ -109,7 +116,7 @@ class RosterController extends Controller
     }
 
     /**
-     * @return Collection<int, array{member: Member, snap: ?MemberSnapshot, ilvl: ?int, ilvl_source: ?string, bis_issues: ?array<string,int>, main: ?Member, flags: list<string>, group_member_ids: list<int>, alts: \Illuminate\Support\Collection<int,Member>}>
+     * @return Collection<int, array{member: Member, snap: ?MemberSnapshot, ilvl: ?int, ilvl_source: ?string, bis_issues: ?array<string,int>, gear_health: ?array{missing_enchants:list<string>, empty_sockets:list<string>, total_issues:int, equipped_ilvl:?int, pieces_count:int}, main: ?Member, flags: list<string>, group_member_ids: list<int>, alts: \Illuminate\Support\Collection<int,Member>}>
      */
     private function rows(string $filter, bool $grouped): Collection
     {
@@ -124,6 +131,7 @@ class RosterController extends Controller
         $ilvlsByMember = $this->resolveIlvls($guildKey, $members);
         $groupIdsByMember = $this->altGroupIdsByMember($guildKey, $members);
         $bisIssuesByMember = $this->bisIssuesByMember($members, $snapsByMember);
+        $gearHealthByMember = $this->gearHealthByMember($guildKey, $members);
 
         // 'bis_issues' filter is post-comparison: baseQuery returns all
         // active members, then we keep only those with total > 0.
@@ -144,7 +152,7 @@ class RosterController extends Controller
                 || ! in_array($m->main_member_id, $visibleIds, true))->values()
             : $members;
 
-        return $rowMembers->map(function (Member $m) use ($snapsByMember, $ilvlsByMember, $bisIssuesByMember, $groupIdsByMember, $altsByMainId) {
+        return $rowMembers->map(function (Member $m) use ($snapsByMember, $ilvlsByMember, $bisIssuesByMember, $gearHealthByMember, $groupIdsByMember, $altsByMainId) {
             $ilvl = $ilvlsByMember->get($m->id, ['ilvl' => null, 'source' => null]);
             return [
                 'member' => $m,
@@ -152,6 +160,7 @@ class RosterController extends Controller
                 'ilvl' => $ilvl['ilvl'],
                 'ilvl_source' => $ilvl['source'],
                 'bis_issues' => $bisIssuesByMember->get($m->id),
+                'gear_health' => $gearHealthByMember->get($m->id),
                 'main' => $m->main,
                 'flags' => $this->flagsFor($m),
                 // Full kick-and-alts cohort for this row: main + all alts
@@ -214,6 +223,45 @@ class RosterController extends Controller
             }
             $comparison = $service->compareWithData($member, $raw, $profile);
             $out->put($member->id, $service->countIssues($comparison));
+        }
+        return $out;
+    }
+
+    /**
+     * Latest Blizzard equipment snapshot per member, run through
+     * EquipmentAnalyzer for the "ready for raid invite" lens. Pure
+     * universal rules (no SimC profile dependency) so this complements
+     * rather than duplicates the BiS-comparison data: officers get a
+     * raw "did this character forget an enchant" signal that works for
+     * trials, fresh alts, and classes without a profile loaded.
+     *
+     * @param  EloquentCollection<int, Member>  $members
+     * @return Collection<int, array{missing_enchants:list<string>, empty_sockets:list<string>, total_issues:int, equipped_ilvl:?int, pieces_count:int}>
+     */
+    private function gearHealthByMember(string $guildKey, EloquentCollection $members): Collection
+    {
+        if ($members->isEmpty()) {
+            return collect();
+        }
+
+        $latest = Snapshot::query()
+            ->where('guild_key', $guildKey)
+            ->where('source', Snapshot::SOURCE_BLIZZARD_EQUIPMENT)
+            ->latest('captured_at')
+            ->first();
+        if (! $latest) {
+            return collect();
+        }
+
+        $rows = MemberEquipmentSnapshot::query()
+            ->where('snapshot_id', $latest->id)
+            ->whereIn('member_id', $members->pluck('id')->all())
+            ->get();
+
+        $analyzer = new EquipmentAnalyzer();
+        $out = collect();
+        foreach ($rows as $row) {
+            $out->put($row->member_id, $analyzer->analyze($row));
         }
         return $out;
     }

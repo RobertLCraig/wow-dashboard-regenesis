@@ -106,6 +106,10 @@
                         BiS <span class="text-muted" x-text="sortIcon('bis')"></span>
                         <x-column-explainer-toggle col="bis" />
                     </th>
+                    <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink text-center" @click="sortBy('gear')">
+                        Gear <span class="text-muted" x-text="sortIcon('gear')"></span>
+                        <x-column-explainer-toggle col="gear" />
+                    </th>
                     <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('lastseen')">
                         Last seen <span class="text-muted" x-text="sortIcon('lastseen')"></span>
                         <x-column-explainer-toggle col="lastseen" />
@@ -131,7 +135,7 @@
                 </tr>
             </thead>
             <tbody>
-                @php $colspan = auth()->user()?->can('roster.kick') ? 11 : 10; @endphp
+                @php $colspan = auth()->user()?->can('roster.kick') ? 12 : 11; @endphp
                 <tr x-show="openCol !== null" x-cloak class="border-t border-line bg-bg/40">
                     <td colspan="{{ $colspan }}"
                         class="px-4 py-3 text-xs text-muted leading-relaxed normal-case tracking-normal font-normal">
@@ -178,6 +182,17 @@
                                 character's class and spec: missing or wrong enchants, plus missing
                                 or wrong gem slots. OK is none, amber is 1 to 3, red is 4 or more.
                                 Hover the number for the breakdown.
+                            </div>
+                        </template>
+                        <template x-if="openCol === 'gear'">
+                            <div>
+                                <span class="block text-ink font-semibold mb-1">Gear</span>
+                                Universal gear-readiness check from the latest Blizzard equipment
+                                pull. Counts slots that should be enchanted but aren't, plus any
+                                empty sockets. No SimC profile needed, so this works for trials,
+                                fresh alts and classes the BiS column has no profile for.
+                                OK is none, amber is 1 to 3, red is 4 or more. Hover the number
+                                for the slot breakdown.
                             </div>
                         </template>
                         <template x-if="openCol === 'lastseen'">
@@ -299,6 +314,27 @@
                                 </span>
                             @endif
                         </td>
+                        @php $gh = $row['gear_health']; @endphp
+                        <td class="px-2 py-2 font-mono text-center text-xs"
+                            data-label="Gear"
+                            data-sort-key="gear"
+                            data-sort-value="{{ $gh['total_issues'] ?? -1 }}">
+                            @if ($gh === null)
+                                <span class="text-muted">-</span>
+                            @elseif ($gh['total_issues'] === 0)
+                                <span class="text-emerald-400">OK</span>
+                            @else
+                                @php
+                                    $missingSlots = implode(', ', $gh['missing_enchants']) ?: 'none';
+                                    $emptySlots = implode(', ', $gh['empty_sockets']) ?: 'none';
+                                    $title = "Missing enchants: {$missingSlots}. Empty sockets: {$emptySlots}.";
+                                @endphp
+                                <span class="{{ $gh['total_issues'] >= 4 ? 'text-red-400' : 'text-amber-400' }}"
+                                      title="{{ $title }}">
+                                    {{ $gh['total_issues'] }}
+                                </span>
+                            @endif
+                        </td>
                         <td class="px-2 py-2 text-muted whitespace-nowrap"
                             data-label="Last seen"
                             data-sort-key="lastseen"
@@ -341,7 +377,7 @@
                     </tr>
                 @endforeach
                 <tr data-empty-message style="display:none">
-                    <td colspan="{{ auth()->user()?->can('roster.kick') ? 10 : 9 }}" class="px-4 py-4 text-center text-muted text-xs italic">No matches.</td>
+                    <td colspan="{{ $colspan }}" class="px-4 py-4 text-center text-muted text-xs italic">No matches.</td>
                 </tr>
             </tbody>
         </table>

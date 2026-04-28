@@ -2,6 +2,7 @@
 
 use App\Models\AltGroup;
 use App\Models\Member;
+use App\Models\MemberEquipmentSnapshot;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
@@ -425,4 +426,50 @@ it('CSV export ignores the group= flag and stays flat', function () {
     expect($body)
         ->toContain('Csvmain-Silvermoon')
         ->toContain('Csvalt-Silvermoon');  // both rows present, even with group=1
+});
+
+it('roster renders a Gear column from the latest Blizzard equipment snapshot', function () {
+    $clean = rosterMember('Cleangear-Silvermoon');
+    $broken = rosterMember('Brokengear-Silvermoon');
+    rosterMember('Nogear-Silvermoon'); // no equipment row at all
+
+    $snap = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now(),
+        'source' => Snapshot::SOURCE_BLIZZARD_EQUIPMENT,
+        'payload_hash' => 'h-gear-roster',
+    ]);
+
+    MemberEquipmentSnapshot::query()->create([
+        'snapshot_id' => $snap->id,
+        'member_id' => $clean->id,
+        'equipped_ilvl' => 282,
+        'pieces' => [
+            ['slot' => ['type' => 'CHEST'], 'enchantments' => [['enchantment_id' => 100]], 'sockets' => []],
+            ['slot' => ['type' => 'WRIST'], 'enchantments' => [['enchantment_id' => 101]], 'sockets' => []],
+            ['slot' => ['type' => 'LEGS'], 'enchantments' => [['enchantment_id' => 102]], 'sockets' => []],
+            ['slot' => ['type' => 'FEET'], 'enchantments' => [['enchantment_id' => 103]], 'sockets' => []],
+            ['slot' => ['type' => 'BACK'], 'enchantments' => [['enchantment_id' => 104]], 'sockets' => []],
+            ['slot' => ['type' => 'FINGER_1'], 'enchantments' => [['enchantment_id' => 105]], 'sockets' => []],
+            ['slot' => ['type' => 'FINGER_2'], 'enchantments' => [['enchantment_id' => 106]], 'sockets' => []],
+            ['slot' => ['type' => 'MAIN_HAND'], 'enchantments' => [['enchantment_id' => 107]], 'sockets' => []],
+        ],
+    ]);
+
+    MemberEquipmentSnapshot::query()->create([
+        'snapshot_id' => $snap->id,
+        'member_id' => $broken->id,
+        'equipped_ilvl' => 280,
+        'pieces' => [
+            ['slot' => ['type' => 'CHEST'], 'enchantments' => [], 'sockets' => []], // missing enchant
+            ['slot' => ['type' => 'NECK'], 'enchantments' => [], 'sockets' => [['item' => null]]], // empty socket
+        ],
+    ]);
+
+    $resp = $this->actingAs(rosterOfficer())->get('/roster');
+    $resp->assertOk()
+        ->assertSee('Gear')
+        ->assertSee('Cleangear-Silvermoon')
+        ->assertSee('Brokengear-Silvermoon')
+        ->assertSee('Nogear-Silvermoon');
 });
