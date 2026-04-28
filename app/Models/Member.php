@@ -84,4 +84,23 @@ class Member extends Model
     {
         return $query->where('team', $team);
     }
+
+    /**
+     * Display-cased class name. GRM stores the class as a single uppercase
+     * token ("DEATHKNIGHT", "DEMONHUNTER", "ROGUE"). The roster, character
+     * page and any human-facing surface should call this instead of
+     * lowercasing the raw value.
+     */
+    public function getClassDisplayAttribute(): ?string
+    {
+        $raw = $this->class;
+        if (! is_string($raw) || $raw === '') {
+            return null;
+        }
+        return match (strtoupper($raw)) {
+            'DEATHKNIGHT' => 'Death Knight',
+            'DEMONHUNTER' => 'Demon Hunter',
+            default => ucfirst(strtolower($raw)),
+        };
+    }
 }

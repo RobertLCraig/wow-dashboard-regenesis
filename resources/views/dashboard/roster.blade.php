@@ -276,11 +276,16 @@
                                     </button>
                                 @endif
                                 <x-class-icon :class="$m->class" />
-                                <a href="{{ route('character.show', $m->name) }}" class="{{ $cls }} hover:underline">{{ $m->name }}</a>
+                                <a href="{{ route('character.show', $m->name) }}" class="{{ $cls }} hover:underline">
+                                    <x-character-name :name="$m->name" :siblings="$row['siblings']" />
+                                </a>
                                 @if ($grouped && $row['alts']->isNotEmpty())
                                     <span class="text-muted text-xs ml-1">+ {{ $row['alts']->count() }} {{ \Illuminate\Support\Str::plural('alt', $row['alts']->count()) }}</span>
                                 @endif
                             </span>
+                            @if ($m->class_display)
+                                <span class="{{ $cls }} text-xs ml-1 opacity-75">{{ $m->class_display }}</span>
+                            @endif
                             @if ($m->level)
                                 <span class="text-muted text-xs ml-1">L{{ $m->level }}</span>
                             @endif
@@ -288,12 +293,22 @@
                             @if ($grouped && $row['alts']->isNotEmpty())
                                 <ul x-show="open" x-cloak class="mt-2 ml-6 pl-3 border-l border-line space-y-1 text-xs">
                                     @foreach ($row['alts'] as $alt)
-                                        @php $altCls = 'cls-' . strtoupper($alt->class ?? ''); @endphp
+                                        @php
+                                            $altCls = 'cls-' . strtoupper($alt->class ?? '');
+                                            $altSiblings = $row['alts']->where('id', '!=', $alt->id)->pluck('name')->push($m->name)->all();
+                                        @endphp
                                         <li class="flex items-center justify-between gap-2">
                                             <span class="inline-flex items-center gap-1.5">
                                                 <x-class-icon :class="$alt->class" :size="14" />
-                                                <a href="{{ route('character.show', $alt->name) }}"
-                                                   class="{{ $altCls }} hover:underline">{{ $alt->name }}</a>
+                                                <a href="{{ route('character.show', $alt->name) }}" class="{{ $altCls }} hover:underline">
+                                                    <x-character-name :name="$alt->name" :siblings="$altSiblings" />
+                                                </a>
+                                                @if ($alt->class_display)
+                                                    <span class="{{ $altCls }} opacity-75">{{ $alt->class_display }}</span>
+                                                @endif
+                                                @if ($alt->level)
+                                                    <span class="text-muted">L{{ $alt->level }}</span>
+                                                @endif
                                             </span>
                                             <span class="text-muted">{{ $alt->last_online_at?->diffForHumans() ?? 'never' }}</span>
                                         </li>

@@ -259,6 +259,32 @@ it('main? flag does not fire when alts are within the 14-day grace window', func
         ->assertDontSee('designation in GRM may be stale', false);
 });
 
+it('renders the inline class display name and level on each row', function () {
+    rosterMember('Sheday-Silvermoon', ['class' => 'DEMONHUNTER', 'level' => 80]);
+
+    $resp = $this->actingAs(rosterOfficer())->get('/roster');
+    $resp->assertOk()
+        ->assertSee('Demon Hunter') // class_display accessor mapping
+        ->assertSee('L80');
+});
+
+it('highlights the differing diacritic between alt-group siblings', function () {
+    $altGroup = AltGroup::query()->create(['guild_key' => 'Regenesis-Silvermoon', 'group_label' => 'g-twins']);
+    $main = rosterMember('Ñýxx-Silvermoon', ['alt_group_id' => $altGroup->id, 'class' => 'SHAMAN', 'level' => 90]);
+    rosterMember('Ñyxx-Silvermoon', [
+        'alt_group_id' => $altGroup->id,
+        'main_member_id' => $main->id,
+        'class' => 'ROGUE',
+        'level' => 80,
+    ]);
+
+    $resp = $this->actingAs(rosterOfficer())->get('/roster');
+    $resp->assertOk()
+        // Diacritic letter wrapped in the diff-highlight span.
+        ->assertSee('text-amber-300', false)
+        ->assertSee('<strong class="font-bold text-amber-300', false);
+});
+
 it('main? flag does not fire on solo characters with no alt group', function () {
     rosterMember('Solo-Silvermoon', ['last_online_at' => now()->subDays(60)]);
 

@@ -141,6 +141,7 @@ class RosterController extends Controller
         $gearHealthByMember = $this->gearHealthByMember($guildKey, $members);
         $mplusActivityByMember = $this->mplusActivityByMember($members, days: 30);
         $staleMainByMember = $this->mainLooksStaleByMember($guildKey, $members);
+        $altGroupSiblings = $this->altGroupSiblingNames($guildKey, $members);
 
         // 'bis_issues' filter is post-comparison: baseQuery returns all
         // active members, then we keep only those with total > 0.
@@ -161,7 +162,7 @@ class RosterController extends Controller
                 || ! in_array($m->main_member_id, $visibleIds, true))->values()
             : $members;
 
-        return $rowMembers->map(function (Member $m) use ($snapsByMember, $ilvlsByMember, $bisIssuesByMember, $gearHealthByMember, $groupIdsByMember, $altsByMainId, $staleMainByMember, $mplusActivityByMember) {
+        return $rowMembers->map(function (Member $m) use ($snapsByMember, $ilvlsByMember, $bisIssuesByMember, $gearHealthByMember, $groupIdsByMember, $altsByMainId, $staleMainByMember, $mplusActivityByMember, $altGroupSiblings) {
             $ilvl = $ilvlsByMember->get($m->id, ['ilvl' => null, 'source' => null]);
             return [
                 'member' => $m,
@@ -173,6 +174,10 @@ class RosterController extends Controller
                 'mplus_activity' => $mplusActivityByMember->get($m->id),
                 'main' => $m->main,
                 'flags' => $this->flagsFor($m, (bool) $staleMainByMember->get($m->id, false)),
+                // Other character names sharing this member's alt_group_id,
+                // used by the view's name-diff highlighter to draw attention
+                // to diacritics that differ between near-identical names.
+                'siblings' => $altGroupSiblings->get($m->id, []),
                 // Full kick-and-alts cohort for this row: main + all alts
                 // in the same alt_group. Singletons just contain the row's
                 // own id. Used by the kick-macro modal as data-member-ids.
@@ -509,6 +514,42 @@ class RosterController extends Controller
         if ($m->status === Member::STATUS_BANNED) $flags[] = 'banned';
         if ($mainLooksStale) $flags[] = 'main?';
         return $flags;
+    }
+
+    /**
+     * For each visible member, list the other character names sharing
+     * its alt_group_id. The view feeds this into NameDiff to highlight
+     * the diacritics that distinguish near-identical sibling names.
+     *
+     * @param  EloquentCollection<int, Member>  $members
+     * @return Collection<int, list<string>>
+     */
+    private function altGroupSiblingNames(string $guildKey, EloquentCollection $members): Collection
+    {
+        if ($members->isEmpty()) {
+            return collect();
+        }
+        $groupIds = $members->pluck('alt_group_id')->filter()->unique()->values();
+        if ($groupIds->isEmpty()) {
+            return collect();
+        }
+        $bucket = Member::query()
+            ->forGuild($guildKey)
+            ->active()
+            ->whereIn('alt_group_id', $groupIds)
+            ->get(['id', 'name', 'alt_group_id'])
+            ->groupBy('alt_group_id');
+
+        return $members->mapWithKeys(function (Member $m) use ($bucket) {
+            if ($m->alt_group_id === null) {
+                return [$m->id => []];
+            }
+            $names = $bucket->get($m->alt_group_id, collect())
+                ->where('id', '!=', $m->id)
+                ->pluck('name')
+                ->all();
+            return [$m->id => $names];
+        });
     }
 
     /**
