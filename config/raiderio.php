@@ -109,6 +109,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | M+ run retention window (days)
+    |--------------------------------------------------------------------------
+    |
+    | How long to keep individual run rows in member_mplus_runs before the
+    | weekly prune sweeps them. The character page heatmap covers 13 weeks
+    | (91 days) and the summary tiles cap at 90 days, so anything below 90
+    | starts breaking the UI. 180 leaves a half-season of headroom for
+    | trend lines without the table growing unbounded.
+    |
+    | Set to 0 to disable pruning entirely (keep every run forever).
+    | Storage is tiny - ~5MB per guild at 180 days, a couple of dozen MB
+    | at 12 months - so the practical decision is about query speed and
+    | UI honesty, not disk.
+    */
+    'runs_retention_days' => (int) env('MPLUS_RUN_RETENTION_DAYS', 180),
+
+    /*
+    |--------------------------------------------------------------------------
     | Default realm
     |--------------------------------------------------------------------------
     |

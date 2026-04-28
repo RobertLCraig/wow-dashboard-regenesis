@@ -165,6 +165,17 @@ Schedule::command('discord:fetch-announcements')
     ->onOneServer()
     ->withoutOverlapping();
 
+// Weekly M+ run retention sweep. Drops rows from member_mplus_runs
+// older than config('raiderio.runs_retention_days') (default 180,
+// MPLUS_RUN_RETENTION_DAYS env-overridable). Sunday 04:30 UK lands
+// after weekly reset (Wed) and well before any raid window; the
+// command short-circuits when retention is set to 0.
+Schedule::command('mplus:prune-runs')
+    ->weeklyOn(7, '04:30') // Sunday 04:30 UK
+    ->timezone(config('raidhelper.timezone', 'Europe/London'))
+    ->onOneServer()
+    ->withoutOverlapping();
+
 // Weekly SimulationCraft BiS profile refresh. Profiles change with
 // patches and class tuning rounds, not minutes - one pull per week is
 // plenty. --fetch downloads fresh .simc files from GitHub before
