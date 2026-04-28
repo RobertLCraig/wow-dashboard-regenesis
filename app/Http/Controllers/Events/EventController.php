@@ -120,17 +120,19 @@ class EventController extends Controller
         // via /admin/discord-roles. Channels not in any team preset
         // (e.g. dj-stuff testing) ping nobody, which is intentional.
         //
-        // Format: comma-separated role *names* (NOT snowflakes), and
-        // the field lives inside `advancedSettings`, not at the top
-        // level. Verified by GETting an existing slash-command-created
-        // event from the API: it returns `advancedSettings.mentions: 'M+'`
-        // for the keynight team. Sending the field at the top level or
-        // sending IDs is silently ignored - the event posts but no ping.
+        // The mentions field lives inside `advancedSettings`, takes a
+        // comma-separated string of role *names* (NOT snowflakes), and
+        // requires `mention_mode: true` on create to actually post the
+        // @role prefix message. Slash-command-created events end up with
+        // mention_mode: false in storage but still ping (presumably the
+        // slash flow runs the ping logic regardless), so the GET response
+        // is misleading. Verified by API probe in dj-stuff testing channel.
         $teamSlug = $this->teamSlugForChannel($validated['channel_id']);
         if ($teamSlug !== null) {
             $names = DiscordRoleMentionResolver::namesForTeam($teamSlug);
             if (! empty($names)) {
                 $advancedSettings['mentions'] = implode(', ', $names);
+                $advancedSettings['mention_mode'] = true;
             }
         }
 
