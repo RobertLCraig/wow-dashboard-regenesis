@@ -149,6 +149,10 @@
         @endforeach
     </div>
 
+    {{-- M+ activity: per-day heatmap + dungeon spread + recent runs.
+         Sourced from member_mplus_runs (RIO 3-hourly sampling). --}}
+    @include('dashboard.character._mplus-activity', ['mplusActivity' => $mplusActivity])
+
     {{-- BiS comparison: per-slot enchant + gem status against the
          class+spec SimulationCraft profile. Renders only when we have
          a RIO snapshot (for actual gear) AND a BiS profile loaded. --}}

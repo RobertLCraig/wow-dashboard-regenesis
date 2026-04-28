@@ -4,6 +4,7 @@ use App\Models\AltGroup;
 use App\Models\Member;
 use App\Models\MemberAction;
 use App\Models\MemberEvent;
+use App\Models\MemberMplusRun;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
@@ -263,4 +264,57 @@ it('still renders the character page even when the BiS comparison service throws
         // The BiS section should be omitted when the service throws,
         // so its header text ("BiS comparison") is not in the response.
         ->assertDontSee('BiS comparison');
+});
+
+it('renders an empty-state Mythic+ activity panel when the character has no runs', function () {
+    characterMember('Quiet-Silvermoon');
+
+    $this->actingAs(characterOfficer())
+        ->get('/character/Quiet-Silvermoon')
+        ->assertOk()
+        ->assertSee('Mythic+ activity')
+        ->assertSee('No keys completed in the last 90 days');
+});
+
+it('renders the Mythic+ activity panel with summary tiles, dungeon spread, and recent runs', function () {
+    $member = characterMember('Sheday-Silvermoon');
+
+    // Three runs spread across the trailing windows so each summary
+    // tile has something to show: one in the last 7d (timed +14),
+    // one between 7d and 30d (untimed +10), one between 30d and 90d
+    // (timed +12). Hit two distinct dungeons for the spread chart.
+    $now = CarbonImmutable::now();
+    foreach ([
+        ['short' => 'HoA', 'name' => 'Halls of Atonement', 'level' => 14, 'upgrades' => 1, 'completed_at' => $now->subDays(2)],
+        ['short' => 'TOP', 'name' => 'Theatre of Pain',    'level' => 10, 'upgrades' => 0, 'completed_at' => $now->subDays(15)],
+        ['short' => 'HoA', 'name' => 'Halls of Atonement', 'level' => 12, 'upgrades' => 2, 'completed_at' => $now->subDays(45)],
+    ] as $r) {
+        MemberMplusRun::query()->create([
+            'member_id' => $member->id,
+            'completed_at' => $r['completed_at'],
+            'mythic_level' => $r['level'],
+            'dungeon_id' => 391,
+            'dungeon_short_name' => $r['short'],
+            'dungeon_name' => $r['name'],
+            'num_keystone_upgrades' => $r['upgrades'],
+            'source' => MemberMplusRun::SOURCE_RECENT,
+            'first_seen_at' => $r['completed_at'],
+            'last_seen_at' => $r['completed_at'],
+        ]);
+    }
+
+    $this->actingAs(characterOfficer())
+        ->get('/character/Sheday-Silvermoon')
+        ->assertOk()
+        ->assertSee('Mythic+ activity')
+        ->assertSee('Last 7 days')
+        ->assertSee('Last 30 days')
+        ->assertSee('Last 90 days')
+        ->assertSee('Dungeon spread (30d)')
+        // Both dungeons within 30d should appear in the spread.
+        ->assertSee('HoA')
+        ->assertSee('TOP')
+        ->assertSee('Recent runs')
+        // Highest level shown in the 90d tile should be the +14
+        ->assertSee('+14');
 });

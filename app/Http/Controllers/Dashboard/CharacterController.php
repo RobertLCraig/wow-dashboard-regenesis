@@ -7,10 +7,13 @@ use App\Models\AttendanceStat;
 use App\Models\Member;
 use App\Models\MemberAction;
 use App\Models\MemberEvent;
+use App\Models\MemberMplusRun;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use App\Models\WclActorParse;
 use App\Services\Bis\BisComparisonService;
+use Carbon\CarbonImmutable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
@@ -43,6 +46,7 @@ class CharacterController extends Controller
         $actionHistory = $this->recentActions($member->id, limit: 10);
         $altCohort = $this->altCohort($guildKey, $member);
         $attendance = $this->attendanceFor($guildKey, $member->name);
+        $mplusActivity = $this->mplusActivity($member->id);
         // BiS comparison is a nice-to-have - a 500 here shouldn't take
         // out the rest of the page (the snapshot cards / parses /
         // attendance / alts are the load-bearing content). On error log
@@ -71,7 +75,146 @@ class CharacterController extends Controller
             'altCohort' => $altCohort,
             'attendance' => $attendance,
             'bisComparison' => $bisComparison,
+            'mplusActivity' => $mplusActivity,
         ]);
+    }
+
+    /**
+     * Bundle every M+ data shape the character page panel needs in one
+     * pass over member_mplus_runs:
+     *
+     *   - summary: counts + highest level for trailing 7/30/90 day windows
+     *   - heatmap: cell-per-day for the last 13 weeks (today included),
+     *              each carrying the run count and highest level for that
+     *              calendar day in the user's local TZ
+     *   - by_dungeon: counts + highest per dungeon over 30d, sorted by
+     *                 count desc (drives the "are they farming one?" view)
+     *   - recent: last 25 rows verbatim, newest first, for the table
+     *
+     * The query pulls everything within the largest window (90 days) once
+     * and partitions in PHP - cheaper than three round trips for the
+     * typical "<200 runs per character per quarter" volume.
+     *
+     * @return array{
+     *   summary: array<string,array{count:int,highest:?int,timed:int}>,
+     *   heatmap: array{from:CarbonImmutable, to:CarbonImmutable, days:array<string,array{count:int,highest:int,timed:int}>},
+     *   by_dungeon: list<array{dungeon:string,short:?string,count:int,highest:int,timed:int}>,
+     *   recent: Collection<int,MemberMplusRun>,
+     * }
+     */
+    private function mplusActivity(int $memberId): array
+    {
+        $now = CarbonImmutable::now();
+        $from = $now->subDays(90)->startOfDay();
+
+        $runs = MemberMplusRun::query()
+            ->where('member_id', $memberId)
+            ->where('completed_at', '>=', $from)
+            ->orderByDesc('completed_at')
+            ->get();
+
+        $summary = [
+            '7d' => $this->summariseWindow($runs, $now->subDays(7)),
+            '30d' => $this->summariseWindow($runs, $now->subDays(30)),
+            '90d' => $this->summariseWindow($runs, $now->subDays(90)),
+        ];
+
+        $heatmap = $this->heatmapBuckets($runs, weeks: 13, now: $now);
+        $byDungeon = $this->dungeonBreakdown($runs->where('completed_at', '>=', $now->subDays(30)));
+
+        // Exclude any runs from older than 365 days from "recent" so the
+        // table doesn't drift into prior-season noise. The list is ordered
+        // by completed_at desc already.
+        $recent = $runs->take(25);
+
+        return [
+            'summary' => $summary,
+            'heatmap' => $heatmap,
+            'by_dungeon' => $byDungeon,
+            'recent' => $recent,
+        ];
+    }
+
+    /**
+     * @param  Collection<int,MemberMplusRun>  $runs
+     * @return array{count:int,highest:?int,timed:int}
+     */
+    private function summariseWindow(Collection $runs, CarbonImmutable $cutoff): array
+    {
+        $window = $runs->filter(fn (MemberMplusRun $r) => $r->completed_at->greaterThanOrEqualTo($cutoff));
+        return [
+            'count' => $window->count(),
+            'highest' => $window->max('mythic_level'),
+            'timed' => $window->filter(fn (MemberMplusRun $r) => $r->isTimed())->count(),
+        ];
+    }
+
+    /**
+     * Bucket runs into per-day cells for the heatmap. Returns an
+     * associative array keyed by Y-m-d so the view can render a fixed
+     * grid even for days with zero activity.
+     *
+     * @param  Collection<int,MemberMplusRun>  $runs
+     * @return array{from:CarbonImmutable, to:CarbonImmutable, days:array<string,array{count:int,highest:int,timed:int}>}
+     */
+    private function heatmapBuckets(Collection $runs, int $weeks, CarbonImmutable $now): array
+    {
+        // Anchor the grid to a Monday so a week column is a real raid week.
+        $endOfWeek = $now->endOfDay();
+        $startOfWeek = $now->startOfWeek(Carbon::MONDAY)->subWeeks($weeks - 1)->startOfDay();
+
+        $days = [];
+        $cursor = $startOfWeek;
+        while ($cursor->lessThanOrEqualTo($endOfWeek)) {
+            $days[$cursor->format('Y-m-d')] = ['count' => 0, 'highest' => 0, 'timed' => 0];
+            $cursor = $cursor->addDay();
+        }
+
+        foreach ($runs as $r) {
+            $key = $r->completed_at->format('Y-m-d');
+            if (! isset($days[$key])) {
+                continue;
+            }
+            $days[$key]['count']++;
+            $days[$key]['highest'] = max($days[$key]['highest'], $r->mythic_level);
+            if ($r->isTimed()) {
+                $days[$key]['timed']++;
+            }
+        }
+
+        return [
+            'from' => $startOfWeek,
+            'to' => $endOfWeek,
+            'days' => $days,
+        ];
+    }
+
+    /**
+     * @param  Collection<int,MemberMplusRun>  $runs
+     * @return list<array{dungeon:string,short:?string,count:int,highest:int,timed:int}>
+     */
+    private function dungeonBreakdown(Collection $runs): array
+    {
+        $byKey = [];
+        foreach ($runs as $r) {
+            $key = $r->dungeon_short_name ?? $r->dungeon_name ?? 'unknown';
+            if (! isset($byKey[$key])) {
+                $byKey[$key] = [
+                    'dungeon' => $r->dungeon_name ?? $key,
+                    'short' => $r->dungeon_short_name,
+                    'count' => 0,
+                    'highest' => 0,
+                    'timed' => 0,
+                ];
+            }
+            $byKey[$key]['count']++;
+            $byKey[$key]['highest'] = max($byKey[$key]['highest'], $r->mythic_level);
+            if ($r->isTimed()) {
+                $byKey[$key]['timed']++;
+            }
+        }
+        usort($byKey, fn (array $a, array $b) => $b['count'] <=> $a['count']);
+        return array_values($byKey);
     }
 
     /**

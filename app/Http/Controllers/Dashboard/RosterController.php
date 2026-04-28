@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BisProfile;
 use App\Models\Member;
 use App\Models\MemberEquipmentSnapshot;
+use App\Models\MemberMplusRun;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
@@ -35,6 +36,7 @@ class RosterController extends Controller
     private const FILTERS = [
         'all', 'inactive_7d', 'inactive_14d', 'inactive_30d', 'inactive_60d', 'inactive_90d',
         'alts', 'mains', 'trial', 'action_queue', 'bis_issues', 'banned',
+        'no_keys_14d', 'no_keys_30d',
     ];
 
     public function index(Request $request): View
@@ -68,6 +70,7 @@ class RosterController extends Controller
             fputcsv($out, [
                 'name', 'realm', 'class', 'level', 'rank', 'team',
                 'ilvl', 'ilvl_source', 'mplus_score', 'mplus_keystone',
+                'keys_30d', 'keys_30d_highest', 'keys_30d_last_completed',
                 'bis_issues_total', 'bis_missing_enchants', 'bis_missing_gems',
                 'gear_health_total', 'gear_missing_enchants', 'gear_empty_sockets',
                 'last_online_at', 'main', 'flags',
@@ -77,6 +80,7 @@ class RosterController extends Controller
                 $snap = $row['snap'];
                 $bis = $row['bis_issues'];
                 $gh = $row['gear_health'];
+                $act = $row['mplus_activity'] ?? null;
                 fputcsv($out, [
                     $m->name,
                     $m->realm,
@@ -88,6 +92,9 @@ class RosterController extends Controller
                     $row['ilvl_source'],
                     $snap?->mplus_score,
                     $snap?->mplus_keystone,
+                    $act['count'] ?? 0,
+                    $act['highest'] ?? null,
+                    ($act['last_completed_at'] ?? null)?->toIso8601String(),
                     $bis['total'] ?? null,
                     $bis['missing_enchants'] ?? null,
                     $bis['missing_gems'] ?? null,
@@ -132,6 +139,7 @@ class RosterController extends Controller
         $groupIdsByMember = $this->altGroupIdsByMember($guildKey, $members);
         $bisIssuesByMember = $this->bisIssuesByMember($members, $snapsByMember);
         $gearHealthByMember = $this->gearHealthByMember($guildKey, $members);
+        $mplusActivityByMember = $this->mplusActivityByMember($members, days: 30);
         $staleMainByMember = $this->mainLooksStaleByMember($guildKey, $members);
 
         // 'bis_issues' filter is post-comparison: baseQuery returns all
@@ -153,7 +161,7 @@ class RosterController extends Controller
                 || ! in_array($m->main_member_id, $visibleIds, true))->values()
             : $members;
 
-        return $rowMembers->map(function (Member $m) use ($snapsByMember, $ilvlsByMember, $bisIssuesByMember, $gearHealthByMember, $groupIdsByMember, $altsByMainId, $staleMainByMember) {
+        return $rowMembers->map(function (Member $m) use ($snapsByMember, $ilvlsByMember, $bisIssuesByMember, $gearHealthByMember, $groupIdsByMember, $altsByMainId, $staleMainByMember, $mplusActivityByMember) {
             $ilvl = $ilvlsByMember->get($m->id, ['ilvl' => null, 'source' => null]);
             return [
                 'member' => $m,
@@ -162,6 +170,7 @@ class RosterController extends Controller
                 'ilvl_source' => $ilvl['source'],
                 'bis_issues' => $bisIssuesByMember->get($m->id),
                 'gear_health' => $gearHealthByMember->get($m->id),
+                'mplus_activity' => $mplusActivityByMember->get($m->id),
                 'main' => $m->main,
                 'flags' => $this->flagsFor($m, (bool) $staleMainByMember->get($m->id, false)),
                 // Full kick-and-alts cohort for this row: main + all alts
@@ -399,14 +408,65 @@ class RosterController extends Controller
                     ->orWhere('recommend_kick', true);
             }),
             'banned'  => $q->where('status', Member::STATUS_BANNED),
+            'no_keys_14d' => $this->withoutKeysSince($q, 14),
+            'no_keys_30d' => $this->withoutKeysSince($q, 30),
             default   => $q,
         };
+    }
+
+    /**
+     * Members with zero M+ runs completed in the last N days. The "did
+     * Joe run anything?" filter that drove this whole feature: a raid
+     * leader picks 14d or 30d and gets the inactivity list. Trial chars
+     * appear here too (no carve-out) because that's exactly the cohort
+     * an officer wants to flag.
+     */
+    private function withoutKeysSince(Builder $q, int $days): Builder
+    {
+        $cutoff = Carbon::now()->subDays($days);
+        return $q->whereNotIn('id', MemberMplusRun::query()
+            ->select('member_id')
+            ->where('completed_at', '>=', $cutoff));
     }
 
     private function inactive(Builder $q, int $days): Builder
     {
         return $q->whereNotNull('last_online_at')
             ->where('last_online_at', '<', Carbon::now()->subDays($days));
+    }
+
+    /**
+     * Recent M+ activity per member: count of timed/untimed runs in the
+     * trailing window plus the highest level seen and the most recent
+     * completion. Used by the roster "Keys Nd" column and the no_keys_*
+     * filter chips.
+     *
+     * One aggregate query, keyed by member_id. Members with zero runs
+     * in the window do not appear in the result; the view treats a
+     * missing entry as "no keys".
+     *
+     * @param  EloquentCollection<int, Member>  $members
+     * @return Collection<int, array{count:int, highest:int, last_completed_at:\Carbon\CarbonInterface}>
+     */
+    private function mplusActivityByMember(EloquentCollection $members, int $days): Collection
+    {
+        if ($members->isEmpty()) {
+            return collect();
+        }
+        $cutoff = Carbon::now()->subDays($days);
+
+        $rows = MemberMplusRun::query()
+            ->whereIn('member_id', $members->pluck('id')->all())
+            ->where('completed_at', '>=', $cutoff)
+            ->selectRaw('member_id, count(*) as run_count, max(mythic_level) as highest, max(completed_at) as last_completed_at')
+            ->groupBy('member_id')
+            ->get();
+
+        return $rows->mapWithKeys(fn ($r) => [(int) $r->member_id => [
+            'count' => (int) $r->run_count,
+            'highest' => (int) $r->highest,
+            'last_completed_at' => Carbon::parse((string) $r->last_completed_at),
+        ]]);
     }
 
     /**
