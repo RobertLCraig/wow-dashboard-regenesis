@@ -30,6 +30,8 @@
             ['key' => 'action_queue',  'label' => 'Action queue'],
             ['key' => 'bis_issues',    'label' => 'BiS issues'],
             ['key' => 'banned',        'label' => 'Banned'],
+            ['key' => 'no_keys_14d',   'label' => 'No keys 14d'],
+            ['key' => 'no_keys_30d',   'label' => 'No keys 30d'],
         ];
     @endphp
 
@@ -102,6 +104,10 @@
                         RIO <span class="text-muted" x-text="sortIcon('rio')"></span>
                         <x-column-explainer-toggle col="rio" />
                     </th>
+                    <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink text-right" @click="sortBy('keys30d')">
+                        Keys 30d <span class="text-muted" x-text="sortIcon('keys30d')"></span>
+                        <x-column-explainer-toggle col="keys30d" />
+                    </th>
                     <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink text-center" @click="sortBy('bis')">
                         BiS <span class="text-muted" x-text="sortIcon('bis')"></span>
                         <x-column-explainer-toggle col="bis" />
@@ -135,7 +141,7 @@
                 </tr>
             </thead>
             <tbody>
-                @php $colspan = auth()->user()?->can('roster.kick') ? 12 : 11; @endphp
+                @php $colspan = auth()->user()?->can('roster.kick') ? 13 : 12; @endphp
                 <tr x-show="openCol !== null" x-cloak class="border-t border-line bg-bg/40">
                     <td colspan="{{ $colspan }}"
                         class="px-4 py-3 text-xs text-muted leading-relaxed normal-case tracking-normal font-normal">
@@ -173,6 +179,16 @@
                                 <span class="block text-ink font-semibold mb-1">RIO</span>
                                 Highest mythic+ rating from raider.io across all dungeons in the
                                 current season. Updates whenever a raider.io scrape runs.
+                            </div>
+                        </template>
+                        <template x-if="openCol === 'keys30d'">
+                            <div>
+                                <span class="block text-ink font-semibold mb-1">Keys 30d</span>
+                                Number of mythic+ keys completed in the last 30 days, with the
+                                highest level seen in brackets. Sourced from raider.io and
+                                deduped across pulls. Empty cell = nothing in 30 days, which is
+                                also the No keys 30d filter chip. Hover to see the most recent
+                                completion timestamp.
                             </div>
                         </template>
                         <template x-if="openCol === 'bis'">
@@ -215,7 +231,10 @@
                                 <span class="block text-ink font-semibold mb-1">Flags</span>
                                 Suggestions raised by the ranking rules: promote, demote, kick,
                                 banned. Same source as the Action queue chip; an empty cell means
-                                no rule has fired on this character.
+                                no rule has fired on this character. "main?" appears on alt-group
+                                heads where at least one alt has been online 14+ days more
+                                recently than the main, a heads-up that the main designation in
+                                GRM may have drifted.
                             </div>
                         </template>
                         <template x-if="openCol === 'links'">
@@ -298,6 +317,21 @@
                         <td class="px-2 py-2 font-mono text-right" data-label="RIO" data-sort-key="rio" data-sort-value="{{ $snap?->mplus_score ?? 0 }}">
                             {{ $snap?->mplus_score !== null ? number_format($snap->mplus_score, 0) : '-' }}
                         </td>
+                        @php $act = $row['mplus_activity'] ?? null; @endphp
+                        <td class="px-2 py-2 font-mono text-right text-xs"
+                            data-label="Keys 30d"
+                            data-sort-key="keys30d"
+                            data-sort-value="{{ $act['count'] ?? 0 }}">
+                            @if ($act === null)
+                                <span class="text-muted">-</span>
+                            @else
+                                <span class="text-ink"
+                                      title="last: {{ $act['last_completed_at']->diffForHumans() }} ({{ $act['last_completed_at']->format('Y-m-d H:i') }})">
+                                    {{ $act['count'] }}
+                                    <span class="text-muted">(+{{ $act['highest'] }})</span>
+                                </span>
+                            @endif
+                        </td>
                         @php $bis = $row['bis_issues']; @endphp
                         <td class="px-2 py-2 font-mono text-center text-xs"
                             data-label="BiS"
@@ -353,10 +387,16 @@
                                         'promote' => 'border-emerald-700/50 text-emerald-300',
                                         'demote'  => 'border-amber-700/50 text-amber-300',
                                         'kick','banned' => 'border-rose-700/50 text-rose-300',
+                                        'main?' => 'border-amber-700/50 text-amber-300',
                                         default => 'border-line text-muted',
                                     };
+                                    $title = match ($flag) {
+                                        'main?' => 'An alt has logged in 14+ days more recently than this character. The main designation in GRM may be stale.',
+                                        default => null,
+                                    };
                                 @endphp
-                                <span class="inline-block text-[10px] uppercase tracking-wider border rounded px-1 py-0.5 mr-1 {{ $tone }}">
+                                <span class="inline-block text-[10px] uppercase tracking-wider border rounded px-1 py-0.5 mr-1 {{ $tone }}"
+                                      @if ($title) title="{{ $title }}" @endif>
                                     {{ $flag }}
                                 </span>
                             @endforeach

@@ -132,6 +132,7 @@ class RosterController extends Controller
         $groupIdsByMember = $this->altGroupIdsByMember($guildKey, $members);
         $bisIssuesByMember = $this->bisIssuesByMember($members, $snapsByMember);
         $gearHealthByMember = $this->gearHealthByMember($guildKey, $members);
+        $staleMainByMember = $this->mainLooksStaleByMember($guildKey, $members);
 
         // 'bis_issues' filter is post-comparison: baseQuery returns all
         // active members, then we keep only those with total > 0.
@@ -152,7 +153,7 @@ class RosterController extends Controller
                 || ! in_array($m->main_member_id, $visibleIds, true))->values()
             : $members;
 
-        return $rowMembers->map(function (Member $m) use ($snapsByMember, $ilvlsByMember, $bisIssuesByMember, $gearHealthByMember, $groupIdsByMember, $altsByMainId) {
+        return $rowMembers->map(function (Member $m) use ($snapsByMember, $ilvlsByMember, $bisIssuesByMember, $gearHealthByMember, $groupIdsByMember, $altsByMainId, $staleMainByMember) {
             $ilvl = $ilvlsByMember->get($m->id, ['ilvl' => null, 'source' => null]);
             return [
                 'member' => $m,
@@ -162,7 +163,7 @@ class RosterController extends Controller
                 'bis_issues' => $bisIssuesByMember->get($m->id),
                 'gear_health' => $gearHealthByMember->get($m->id),
                 'main' => $m->main,
-                'flags' => $this->flagsFor($m),
+                'flags' => $this->flagsFor($m, (bool) $staleMainByMember->get($m->id, false)),
                 // Full kick-and-alts cohort for this row: main + all alts
                 // in the same alt_group. Singletons just contain the row's
                 // own id. Used by the kick-macro modal as data-member-ids.
@@ -438,7 +439,7 @@ class RosterController extends Controller
     /**
      * @return list<string>
      */
-    private function flagsFor(Member $m): array
+    private function flagsFor(Member $m, bool $mainLooksStale = false): array
     {
         $flags = [];
         if ($m->recommend_promote) $flags[] = 'promote';
@@ -446,7 +447,63 @@ class RosterController extends Controller
         if ($m->recommend_kick)    $flags[] = 'kick';
         if ($m->recommend_special) $flags[] = 'special';
         if ($m->status === Member::STATUS_BANNED) $flags[] = 'banned';
+        if ($mainLooksStale) $flags[] = 'main?';
         return $flags;
+    }
+
+    /**
+     * "Main looks stale" heuristic: the row is the head of an alt group
+     * (main_member_id IS NULL but alt_group_id is set) AND at least one
+     * of its alts has logged in 14+ days more recently than the main.
+     *
+     * Threshold is 14 days because shorter windows trip on legitimate
+     * patterns (raid-only main + farming alt during a quiet patch week).
+     * Two raid weeks of consistent alt-only logins is the point where a
+     * silent main switch becomes worth surfacing.
+     *
+     * @param  EloquentCollection<int, Member>  $members
+     * @return Collection<int, bool>
+     */
+    private function mainLooksStaleByMember(string $guildKey, EloquentCollection $members): Collection
+    {
+        if ($members->isEmpty()) {
+            return collect();
+        }
+        $mainIds = $members
+            ->filter(fn (Member $m) => $m->main_member_id === null && $m->alt_group_id !== null && $m->last_online_at !== null)
+            ->pluck('id')
+            ->all();
+        if ($mainIds === []) {
+            return collect();
+        }
+
+        $alts = Member::query()
+            ->forGuild($guildKey)
+            ->active()
+            ->whereIn('main_member_id', $mainIds)
+            ->whereNotNull('last_online_at')
+            ->get(['main_member_id', 'last_online_at']);
+        if ($alts->isEmpty()) {
+            return collect();
+        }
+
+        $maxAltByMain = $alts->groupBy('main_member_id')
+            ->map(fn ($group) => $group->max('last_online_at'));
+
+        $stale = collect();
+        foreach ($members as $main) {
+            if ($main->main_member_id !== null || $main->alt_group_id === null || $main->last_online_at === null) {
+                continue;
+            }
+            $maxAlt = $maxAltByMain->get($main->id);
+            if ($maxAlt === null || $maxAlt->lessThanOrEqualTo($main->last_online_at)) {
+                continue;
+            }
+            if ($main->last_online_at->diffInDays($maxAlt) >= 14) {
+                $stale->put($main->id, true);
+            }
+        }
+        return $stale;
     }
 
     /**

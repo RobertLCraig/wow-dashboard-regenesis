@@ -223,6 +223,50 @@ it('flag pills render for the recommend_* columns', function () {
         ->assertSee('kick');
 });
 
+it('main? flag fires when an alt has logged in 14+ days more recently than its main', function () {
+    $altGroup = AltGroup::query()->create(['guild_key' => 'Regenesis-Silvermoon', 'group_label' => 'g-stale']);
+    $main = rosterMember('Stalemain-Silvermoon', [
+        'alt_group_id' => $altGroup->id,
+        'last_online_at' => now()->subDays(60),
+    ]);
+    rosterMember('Activealt-Silvermoon', [
+        'alt_group_id' => $altGroup->id,
+        'main_member_id' => $main->id,
+        'last_online_at' => now()->subDays(2),
+    ]);
+
+    $resp = $this->actingAs(rosterOfficer())->get('/roster');
+    $resp->assertOk()
+        // Tooltip text on the rendered flag pill, distinguishes from the
+        // column-explainer copy which mentions "main?" generically.
+        ->assertSee('designation in GRM may be stale', false);
+});
+
+it('main? flag does not fire when alts are within the 14-day grace window', function () {
+    $altGroup = AltGroup::query()->create(['guild_key' => 'Regenesis-Silvermoon', 'group_label' => 'g-fresh']);
+    $main = rosterMember('Freshmain-Silvermoon', [
+        'alt_group_id' => $altGroup->id,
+        'last_online_at' => now()->subDays(10),
+    ]);
+    rosterMember('Slightlyfresheralt-Silvermoon', [
+        'alt_group_id' => $altGroup->id,
+        'main_member_id' => $main->id,
+        'last_online_at' => now()->subDays(2), // 8-day gap, under threshold
+    ]);
+
+    $this->actingAs(rosterOfficer())
+        ->get('/roster')
+        ->assertDontSee('designation in GRM may be stale', false);
+});
+
+it('main? flag does not fire on solo characters with no alt group', function () {
+    rosterMember('Solo-Silvermoon', ['last_online_at' => now()->subDays(60)]);
+
+    $this->actingAs(rosterOfficer())
+        ->get('/roster')
+        ->assertDontSee('designation in GRM may be stale', false);
+});
+
 it('CSV export streams the filtered set with header row', function () {
     rosterMember('Stale-Silvermoon', ['last_online_at' => now()->subDays(45), 'realm' => 'Silvermoon']);
     rosterMember('Recent-Silvermoon', ['last_online_at' => now()->subDays(5), 'realm' => 'Silvermoon']);
