@@ -14,6 +14,7 @@ class Snapshot extends Model
     public const SOURCE_BLIZZARD_EQUIPMENT = 'blizzard_equipment';
     public const SOURCE_BLIZZARD_MPLUS = 'blizzard_mplus';
     public const SOURCE_BLIZZARD_RAIDS = 'blizzard_raids';
+    public const SOURCE_BLIZZARD_SOCIAL = 'blizzard_social';
 
     protected $fillable = [
         'guild_key',

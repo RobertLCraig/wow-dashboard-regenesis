@@ -1,0 +1,277 @@
+<?php
+
+namespace App\Services\Blizzard;
+
+use App\Models\Member;
+use App\Models\MemberSocialSnapshot;
+use App\Models\Snapshot;
+use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\Pool;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+/**
+ * Pull the per-character "social/cosmetic" data set: character media,
+ * achievements, and the four collections endpoints (mounts, pets,
+ * toys, transmogs).
+ *
+ * Six endpoints per character means the fan-out is six times as wide
+ * as the other importers. We dispatch one Http::pool batch per
+ * endpoint type sequentially: each batch is bounded to `concurrency`
+ * parallel requests (matching the other importers), and a missing
+ * resource on one endpoint type doesn't poison the others (e.g.
+ * /collections/transmogs 404 still records achievements).
+ *
+ * Snapshot dedupe via payload_hash means an unchanged collection set
+ * (the common case - mount drops are infrequent) reuses one row
+ * across pulls instead of bloating the table.
+ */
+class SocialSnapshotImporter
+{
+    private const COLLECTION_TYPES = ['mounts', 'pets', 'toys', 'transmogs'];
+
+    public function __construct(
+        private readonly BlizzardClient $client,
+        private readonly string $guildKey,
+        private readonly int $requestDelayMs = 50,
+        private readonly int $minLevel = 70,
+        private readonly int $concurrency = 10,
+    ) {}
+
+    /**
+     * @return array{
+     *   snapshot_id:int,
+     *   members_queried:int,
+     *   matched:int,
+     *   missing:int,
+     *   errored:int,
+     * }
+     */
+    public function pull(): array
+    {
+        if (! $this->client->isConfigured()) {
+            throw new \RuntimeException(
+                'Blizzard client credentials are not configured. '
+                . 'Set BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET.'
+            );
+        }
+
+        $members = Member::query()
+            ->forGuild($this->guildKey)
+            ->active()
+            ->where('level', '>=', $this->minLevel)
+            ->orderBy('id')
+            ->get();
+
+        $now = CarbonImmutable::now();
+        $perMember = [];   // [memberId => ['character_media' => [...], 'achievements' => [...], ...]]
+        $matched = 0;
+        $missing = 0;
+        $errored = 0;
+        $hadAny = [];      // memberIds that returned any 200
+
+        $endpointMakers = [
+            'character_media' => fn (string $slug, string $name) => $this->client->characterMediaEndpoint($slug, $name),
+            'achievements' => fn (string $slug, string $name) => $this->client->achievementsEndpoint($slug, $name),
+            'mounts' => fn (string $slug, string $name) => $this->client->collectionsEndpoint($slug, $name, 'mounts'),
+            'pets' => fn (string $slug, string $name) => $this->client->collectionsEndpoint($slug, $name, 'pets'),
+            'toys' => fn (string $slug, string $name) => $this->client->collectionsEndpoint($slug, $name, 'toys'),
+            'transmogs' => fn (string $slug, string $name) => $this->client->collectionsEndpoint($slug, $name, 'transmogs'),
+        ];
+
+        foreach ($endpointMakers as $type => $maker) {
+            $jobs = $this->resolveJobs($members, $maker);
+            $this->fanOut($jobs, $type, $perMember, $hadAny, $missing, $errored);
+        }
+
+        // Per-member matched count: any endpoint returning a 200 makes
+        // the character "matched". Members with all 404s are missing.
+        $matched = count($hadAny);
+        $matchedMembers = array_flip($hadAny);
+        $missingMembers = $members->reject(fn (Member $m) => isset($matchedMembers[$m->id]));
+        $missing = $missingMembers->count();
+
+        ksort($perMember);
+        $payloadHash = hash('sha256', json_encode($perMember, JSON_THROW_ON_ERROR));
+
+        return DB::transaction(function () use ($perMember, $payloadHash, $now, $matched, $missing, $errored, $members) {
+            $snapshot = Snapshot::query()->firstOrCreate(
+                [
+                    'guild_key' => $this->guildKey,
+                    'source' => Snapshot::SOURCE_BLIZZARD_SOCIAL,
+                    'payload_hash' => $payloadHash,
+                ],
+                [
+                    'captured_at' => $now,
+                    'member_count' => count($perMember),
+                ]
+            );
+
+            foreach ($perMember as $memberId => $blobs) {
+                $member = $members->firstWhere('id', $memberId);
+                if (! $member) {
+                    continue;
+                }
+
+                MemberSocialSnapshot::query()->updateOrCreate(
+                    [
+                        'snapshot_id' => $snapshot->id,
+                        'member_id' => $member->id,
+                    ],
+                    [
+                        'character_media' => $blobs['character_media'] ?? null,
+                        'achievements' => $blobs['achievements'] ?? null,
+                        'mounts' => $blobs['mounts'] ?? null,
+                        'pets' => $blobs['pets'] ?? null,
+                        'toys' => $blobs['toys'] ?? null,
+                        'transmogs' => $blobs['transmogs'] ?? null,
+                        'achievement_points' => $this->intOrNull($blobs['achievements']['total_points'] ?? null),
+                        'total_mounts' => $this->countQuantity($blobs['mounts'] ?? null),
+                        'total_pets' => $this->countQuantity($blobs['pets'] ?? null),
+                        'total_toys' => $this->countQuantity($blobs['toys'] ?? null),
+                    ]
+                );
+            }
+
+            return [
+                'snapshot_id' => $snapshot->id,
+                'members_queried' => $members->count(),
+                'matched' => $matched,
+                'missing' => $missing,
+                'errored' => $errored,
+            ];
+        });
+    }
+
+    /**
+     * @param  Collection<int, Member>  $members
+     * @param  callable(string, string): array{url:string, headers:array<string,string>, query:array<string,string>}  $maker
+     * @return array<int, array{member:Member, url:string, headers:array<string,string>, query:array<string,string>}>
+     */
+    private function resolveJobs(Collection $members, callable $maker): array
+    {
+        $jobs = [];
+        foreach ($members as $member) {
+            $charName = explode('-', $member->name, 2)[0] ?? null;
+            if ($charName === null || $charName === '') {
+                continue;
+            }
+            $slug = $member->realm_slug;
+            if ($slug === null || $slug === '') {
+                $slug = \App\Services\Raiderio\RealmSlug::slugifyCanonical($member->realm);
+            }
+            if ($slug === null || $slug === '') {
+                $collapsed = \App\Services\Raiderio\RealmSlug::realmFromMemberName($member->name);
+                $slug = \App\Services\Raiderio\RealmSlug::slugify($collapsed);
+            }
+            if ($slug === '') {
+                continue;
+            }
+            $jobs[$member->id] = $maker($slug, $charName) + ['member' => $member];
+        }
+        return $jobs;
+    }
+
+    /**
+     * @param  array<int, array{member:Member, url:string, headers:array<string,string>, query:array<string,string>}>  $jobs
+     * @param  array<int, array<string, array<string,mixed>>>  $perMember
+     * @param  list<int>  $hadAny
+     */
+    private function fanOut(array $jobs, string $type, array &$perMember, array &$hadAny, int &$missing, int &$errored): void
+    {
+        $batchSize = max(1, $this->concurrency);
+        $batches = array_chunk($jobs, $batchSize, preserve_keys: true);
+        $timeout = $this->client->timeoutSeconds();
+
+        foreach ($batches as $batchIndex => $batch) {
+            $responses = Http::pool(function (Pool $pool) use ($batch, $timeout) {
+                $reqs = [];
+                foreach ($batch as $memberId => $job) {
+                    $reqs[] = $pool
+                        ->as((string) $memberId)
+                        ->acceptJson()
+                        ->timeout($timeout)
+                        ->withHeaders($job['headers'])
+                        ->get($job['url'], $job['query']);
+                }
+                return $reqs;
+            });
+
+            foreach ($batch as $memberId => $job) {
+                $resp = $responses[(string) $memberId] ?? null;
+
+                if ($resp instanceof \Throwable) {
+                    Log::warning('blizzard social fetch failed', [
+                        'type' => $type,
+                        'member' => $job['member']->name,
+                        'message' => $resp->getMessage(),
+                    ]);
+                    $errored++;
+                    continue;
+                }
+                if ($resp === null) {
+                    $errored++;
+                    continue;
+                }
+                if ($resp->status() === 404) {
+                    // Don't increment $missing here - membership is
+                    // judged across all six endpoints together below.
+                    continue;
+                }
+                if (! $resp->successful()) {
+                    Log::warning('blizzard social non-2xx', [
+                        'type' => $type,
+                        'member' => $job['member']->name,
+                        'status' => $resp->status(),
+                    ]);
+                    $errored++;
+                    continue;
+                }
+                $body = $resp->json();
+                if (! is_array($body)) {
+                    $errored++;
+                    continue;
+                }
+                $perMember[$memberId][$type] = $body;
+                if (! in_array($memberId, $hadAny, true)) {
+                    $hadAny[] = $memberId;
+                }
+            }
+
+            if ($this->requestDelayMs > 0 && $batchIndex < count($batches) - 1) {
+                usleep($this->requestDelayMs * 1000);
+            }
+        }
+    }
+
+    private function intOrNull(mixed $v): ?int
+    {
+        return is_numeric($v) ? (int) $v : null;
+    }
+
+    /**
+     * Collections payloads carry their own "collected" array length
+     * plus a top-level total_quantity_collected on some payloads.
+     * Use the explicit total when present, otherwise count the
+     * collected items. Returns null for missing / malformed payloads.
+     *
+     * @param  array<string,mixed>|null  $payload
+     */
+    private function countQuantity(?array $payload): ?int
+    {
+        if ($payload === null) {
+            return null;
+        }
+        if (isset($payload['total_quantity_collected']) && is_numeric($payload['total_quantity_collected'])) {
+            return (int) $payload['total_quantity_collected'];
+        }
+        foreach (['mounts', 'pets', 'toys', 'transmogs', 'collected'] as $key) {
+            if (isset($payload[$key]) && is_array($payload[$key])) {
+                return count($payload[$key]);
+            }
+        }
+        return null;
+    }
+}

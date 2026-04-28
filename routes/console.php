@@ -95,6 +95,19 @@ Schedule::command('blizzard:pull-raids')
     ->onOneServer()
     ->withoutOverlapping();
 
+// Weekly Blizzard social/cosmetic pull (character media,
+// achievements, collections). Six endpoints per character so this is
+// the heaviest of the Blizzard pulls; weekly is plenty given how
+// slowly collections grow. Avatars / 3D renders hardly change in any
+// useful sense, so weekly cadence keeps the avatar URLs fresh enough
+// for the social pages without wasting requests. Short-circuits
+// cleanly when credentials are unset.
+Schedule::command('blizzard:pull-social')
+    ->weeklyOn(3, '04:30') // Wednesday 04:30 UK, post-reset
+    ->timezone(config('raidhelper.timezone', 'Europe/London'))
+    ->onOneServer()
+    ->withoutOverlapping();
+
 // Daily pull of every Raid-Helper event into the local cache. Webhooks
 // keep us in sync in real-time; this is the safety net that catches any
 // missed deliveries and any events created before the webhook was wired.

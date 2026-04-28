@@ -157,6 +157,53 @@ class BlizzardClient
     }
 
     /**
+     * Character media. Tiny payload with avatar / inset / main /
+     * main-raw render URLs. Used for social pages, transmog review,
+     * roster portraits.
+     *
+     * @return array{url: string, headers: array<string, string>, query: array<string, string>}
+     */
+    public function characterMediaEndpoint(string $realmSlug, string $name): array
+    {
+        return [
+            'url' => $this->characterUrl($realmSlug, $name) . '/character-media',
+            'headers' => $this->profileHeaders(),
+            'query' => ['locale' => $this->locale],
+        ];
+    }
+
+    /**
+     * Achievements: full list of completed achievements with
+     * timestamps. Drives AOTC/CE/Keystone Hero detection without
+     * member self-reporting.
+     *
+     * @return array{url: string, headers: array<string, string>, query: array<string, string>}
+     */
+    public function achievementsEndpoint(string $realmSlug, string $name): array
+    {
+        return [
+            'url' => $this->characterUrl($realmSlug, $name) . '/achievements',
+            'headers' => $this->profileHeaders(),
+            'query' => ['locale' => $this->locale],
+        ];
+    }
+
+    /**
+     * Collection sub-resource (mounts | pets | toys | transmogs).
+     * Each call returns just one collection type's payload.
+     *
+     * @return array{url: string, headers: array<string, string>, query: array<string, string>}
+     */
+    public function collectionsEndpoint(string $realmSlug, string $name, string $collection): array
+    {
+        return [
+            'url' => $this->characterUrl($realmSlug, $name) . '/collections/' . rawurlencode($collection),
+            'headers' => $this->profileHeaders(),
+            'query' => ['locale' => $this->locale],
+        ];
+    }
+
+    /**
      * Encounters > raids. Returns expansions[] -> instances[] ->
      * modes[] (per difficulty) -> progress with per-encounter
      * completed_count + last_kill_timestamp. No opt-in needed (unlike
