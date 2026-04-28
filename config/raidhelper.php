@@ -65,6 +65,7 @@ return [
         ['id' => '1247281653777301714', 'name' => 'heroic-raid-signup',  'label' => '✍ heroic-raid-signup'],
         ['id' => '1423413329954603039', 'name' => 'mythic-raid-signup',  'label' => '✍ mythic-raid-signup'],
         ['id' => '1341149654045429962', 'name' => 'keynight-signup',     'label' => '✍ keynight-signup'],
+        ['id' => '1497723393787822102', 'name' => 'dj-stuff',            'label' => 'dj-stuff (officer testing)'],
     ],
 
     /*
@@ -102,7 +103,13 @@ return [
             'label' => 'Social Event',
             'channel_id' => '1430231966686511124', // social-events
             'raid_days' => [],                     // ad-hoc, no fixed cadence
-            'template_id' => '1',                  // accept / maybe / decline
+            'template_id' => '1',                  // accept / maybe / decline (default)
+            // Socials cover both casual (template 1) and drunken/transmog
+            // raid nights that need a role + spec picker (template 9). The
+            // quick-create widget renders a dropdown when this list is set
+            // and has more than one entry; other teams omit it and stay
+            // pinned to template_id above.
+            'template_choices' => ['1', '9'],
         ],
     ],
 

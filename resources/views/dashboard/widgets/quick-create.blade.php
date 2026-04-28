@@ -49,6 +49,18 @@
     $defaultAnnouncementChannelName = collect(config('raidhelper.channels', []))
         ->firstWhere('id', $preset['channel_id'] ?? null)['name'] ?? '';
     $defaultAnnouncements = config('raidhelper.default_announcements', []);
+
+    // Template chooser. When the preset declares more than one
+    // template_choices entry, surface a dropdown so the officer can
+    // pick (e.g. socials toggle between accept/maybe/decline and
+    // role+spec). Otherwise the panel stays simple and pins to the
+    // single configured template_id via a hidden input.
+    $defaultTemplateId = (string) ($preset['template_id'] ?? '9');
+    $templateOptions = collect(config('raidhelper.templates', []))
+        ->whereIn('id', $preset['template_choices'] ?? [])
+        ->values()
+        ->all();
+    $showTemplatePicker = count($templateOptions) > 1;
 @endphp
 
 <section class="bg-panel border border-line rounded-lg overflow-hidden" x-data="{ explain: false }">
@@ -79,7 +91,9 @@
              validation; quick-create users never see them. --}}
         <input type="hidden" name="channel_id" value="{{ $preset['channel_id'] ?? '' }}">
         <input type="hidden" name="_channel_mode" value="preset">
-        <input type="hidden" name="template_id" value="{{ $preset['template_id'] ?? '9' }}">
+        @unless ($showTemplatePicker)
+            <input type="hidden" name="template_id" value="{{ $defaultTemplateId }}">
+        @endunless
         <input type="hidden" name="leader_id" value="{{ auth()->user()->discord_id }}">
         <input type="hidden" name="duration_mode" value="duration">
         @foreach ($defaultAnnouncements as $i => $a)
@@ -104,6 +118,20 @@
                    placeholder="e.g. Manaforge Omega"
                    class="w-full bg-bg border border-line rounded px-3 py-2 text-sm focus:outline-none focus:border-accent">
         </div>
+
+        @if ($showTemplatePicker)
+            <div>
+                <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="qc_template_id">Template</label>
+                <select id="qc_template_id" name="template_id" required
+                        class="w-full bg-bg border border-line rounded px-3 py-2 text-sm focus:outline-none focus:border-accent">
+                    @foreach ($templateOptions as $tpl)
+                        <option value="{{ $tpl['id'] }}" @selected(old('template_id', $defaultTemplateId) === $tpl['id'])>
+                            {{ $tpl['label'] }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+        @endif
 
         <div>
             <label class="block text-xs uppercase tracking-wider text-muted mb-1">Start</label>
@@ -145,7 +173,9 @@
 
         <p class="text-xs text-muted leading-relaxed">
             Posts to <code class="text-ink">#{{ $defaultAnnouncementChannelName ?: 'configured channel' }}</code>
-            using template <code class="text-ink">{{ $preset['template_id'] ?? '9' }}</code>
+            @if (! $showTemplatePicker)
+                using template <code class="text-ink">{{ $defaultTemplateId }}</code>
+            @endif
             with the standard reminder pings.
         </p>
     </form>

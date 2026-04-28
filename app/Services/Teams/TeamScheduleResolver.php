@@ -16,6 +16,7 @@ use App\Models\TeamSchedule;
  *   label: ?string,
  *   channel_id: ?string,
  *   template_id: ?string,
+ *   template_choices: list<string>,
  *   raid_days: list<int>,
  *   raid_time: string,
  *   source: 'override'|'config',
@@ -38,6 +39,10 @@ class TeamScheduleResolver
             'label' => $config['label'] ?? null,
             'channel_id' => $config['channel_id'] ?? null,
             'template_id' => $config['template_id'] ?? '9',
+            // Optional whitelist for the quick-create template picker
+            // (rendered only when 2+ entries exist). Empty by default,
+            // which pins the panel to template_id above.
+            'template_choices' => array_values(array_map('strval', (array) ($config['template_choices'] ?? []))),
             'raid_days' => array_values(array_map('intval', (array) $raidDays)),
             'raid_time' => (string) $raidTime,
             'source' => $override ? 'override' : 'config',
