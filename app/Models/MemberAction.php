@@ -24,6 +24,10 @@ class MemberAction extends Model
     // the officer reviewed the recommendation on the General page.
     public const TYPE_PROMOTE_MACRO = 'promote_macro';
     public const TYPE_DEMOTE_MACRO = 'demote_macro';
+    // Audit-only: officer generated a /run GRM_API.EditCustomNote
+    // macro. Targets GRM's own custom-note slot, never the Blizzard
+    // Public/Officer notes.
+    public const TYPE_CUSTOM_NOTE_MACRO = 'custom_note_macro';
 
     public const DECISION_ACCEPTED = 'accepted';
     public const DECISION_DISMISSED = 'dismissed';

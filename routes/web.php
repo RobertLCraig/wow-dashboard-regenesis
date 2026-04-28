@@ -66,6 +66,13 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::post('/roster/rank-macro', [\App\Http\Controllers\Dashboard\RosterRankMacroController::class, 'preview'])->name('roster.rank-macro.preview');
     Route::post('/roster/rank-macro/confirm', [\App\Http\Controllers\Dashboard\RosterRankMacroController::class, 'confirm'])->name('roster.rank-macro.confirm');
 
+    // /run GRM_API.EditCustomNote(...) macro generator. Targets GRM's
+    // own custom-note slot, never the Blizzard Public/Officer notes.
+    // Per-member; the modal sends the typed note + replace flag and
+    // gets back a single macro line + the current note for context.
+    Route::post('/roster/custom-note', [\App\Http\Controllers\Dashboard\RosterCustomNoteMacroController::class, 'preview'])->name('roster.custom-note.preview');
+    Route::post('/roster/custom-note/confirm', [\App\Http\Controllers\Dashboard\RosterCustomNoteMacroController::class, 'confirm'])->name('roster.custom-note.confirm');
+
     // Warcraft Logs reports browser. /reports lists the recent reports;
     // /reports/{code} expands one report into fights + per-actor parses.
     Route::get('/reports', [\App\Http\Controllers\Dashboard\ReportsController::class, 'index'])->name('reports.index');

@@ -421,6 +421,15 @@
                         </td>
                         @can('roster.kick')
                             <td class="px-4 py-2 text-right whitespace-nowrap" data-label="Actions">
+                                {{-- Note edit is the lowest-stakes action so it sits first
+                                     in the cell. Always available; Note has no membership
+                                     prereq (anyone in the guild can have one). --}}
+                                <button type="button"
+                                        @click="$dispatch('open-custom-note', { id: {{ $m->id }}, name: @js($m->name), class: @js($m->class ?? '') })"
+                                        class="text-[10px] uppercase tracking-wider px-2 py-0.5 mr-1 rounded border border-sky-700/50 text-sky-300 hover:bg-sky-950/30"
+                                        title="Edit GRM custom note for {{ $m->name }}">
+                                    Note
+                                </button>
                                 {{-- Promote/Demote only show on rows where the recommendation
                                      fired, to keep the cell tidy on the long tail of "no
                                      action needed" rows. Officers can still see them via the
@@ -472,5 +481,6 @@
         <x-kick-macro-modal />
         <x-set-main-macro-modal />
         <x-rank-macro-modal />
+        <x-custom-note-macro-modal />
     @endcan
 @endsection
