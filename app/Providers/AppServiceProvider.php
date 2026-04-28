@@ -20,6 +20,14 @@ class AppServiceProvider extends ServiceProvider
             fn () => \App\Services\RaidHelper\RaidHelperClient::fromConfig());
         $this->app->scoped(\App\Services\Wowaudit\WowauditClient::class,
             fn () => \App\Services\Wowaudit\WowauditClient::fromConfig());
+        $this->app->scoped(\App\Services\Blizzard\BlizzardClient::class,
+            fn () => \App\Services\Blizzard\BlizzardClient::fromConfig());
+
+        // The dictionary loads two JSON files lazily on first lookup.
+        // scoped() so the cached arrays live for the duration of one
+        // request / command and don't leak across tests.
+        $this->app->scoped(\App\Support\WowDictionary::class,
+            fn () => new \App\Support\WowDictionary());
     }
 
     public function boot(): void

@@ -70,6 +70,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Static namespace (region-derived by default)
+    |--------------------------------------------------------------------------
+    |
+    | Used for rarely-changing reference data (item details, item
+    | enchantments, journal/encounter info). Format is `static-{region}`,
+    | e.g. `static-eu`. Empty means derive from region.
+    */
+    'static_namespace' => env('BLIZZARD_STATIC_NAMESPACE', ''),
+
+    /*
+    |--------------------------------------------------------------------------
     | Guild identity (for the guild roster endpoint)
     |--------------------------------------------------------------------------
     |

@@ -1,0 +1,35 @@
+{
+    "_meta": {
+        "updated_at": "2026-04-28",
+        "patch": "Midnight S1",
+        "notes": "Edit by hand each new patch. Run `php artisan wow:dictionary:scan` to list every enchant_id currently referenced by bis_profiles, then look up unknown IDs via wago.tools (https://wago.tools/db2/SpellItemEnchantment/csv?build=<latest>&filter%5BID%5D=<id> returns the Name_lang field). Strip the trailing chat-icon `|A:Professions-ChatIcon-...|a` suffix when pasting. spell_id is optional, only worth filling if you want a richer Wowhead tooltip - the dictionary falls back to wowhead.com/item-enchantment/<id> when null."
+    },
+    "entries": {
+        "3368": {"name": "Rune of the Fallen Crusader", "spell_id": null},
+        "6245": {"name": "Rune of the Apocalypse", "spell_id": null},
+        "7935": {"name": "Permanent Stat Bonus (Int + Stamina)", "spell_id": null},
+        "7937": {"name": "Permanent Stat Bonus (Int + Mana regen)", "spell_id": null},
+        "7961": {"name": "Enchant Helm - Empowered Hex of Leeching", "spell_id": null},
+        "7963": {"name": "Enchant Boots - Lynx's Dexterity", "spell_id": null},
+        "7967": {"name": "Enchant Ring - Eyes of the Eagle", "spell_id": null},
+        "7969": {"name": "Enchant Ring - Zul'jin's Mastery", "spell_id": null},
+        "7971": {"name": "Enchant Shoulders - Flight of the Eagle", "spell_id": null},
+        "7973": {"name": "Enchant Shoulders - Akil'zon's Swiftness", "spell_id": null},
+        "7981": {"name": "Enchant Weapon - Jan'alai's Precision", "spell_id": null},
+        "7983": {"name": "Enchant Weapon - Berserker's Rage", "spell_id": null},
+        "7987": {"name": "Enchant Chest - Mark of the Worldsoul", "spell_id": null},
+        "7991": {"name": "Enchant Helm - Empowered Blessing of Speed", "spell_id": null},
+        "7993": {"name": "Enchant Boots - Shaladrassil's Roots", "spell_id": null},
+        "7997": {"name": "Enchant Ring - Nature's Fury", "spell_id": null},
+        "8001": {"name": "Enchant Shoulders - Amirdrassil's Grace", "spell_id": null},
+        "8017": {"name": "Enchant Helm - Empowered Rune of Avoidance", "spell_id": null},
+        "8019": {"name": "Enchant Boots - Farstrider's Hunt", "spell_id": null},
+        "8025": {"name": "Enchant Ring - Silvermoon's Alacrity", "spell_id": null},
+        "8031": {"name": "Enchant Shoulders - Silvermoon's Mending", "spell_id": null},
+        "8039": {"name": "Enchant Weapon - Acuity of the Ren'dorei", "spell_id": null},
+        "8041": {"name": "Enchant Weapon - Arcane Mastery", "spell_id": null},
+        "8159": {"name": "Permanent Stat Bonus (Agi/Str + Stamina)", "spell_id": null},
+        "8161": {"name": "Permanent Stat Bonus (Agi/Str)", "spell_id": null},
+        "8163": {"name": "Permanent Stat Bonus (Agi/Str + Armor)", "spell_id": null}
+    }
+}

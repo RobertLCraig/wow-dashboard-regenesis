@@ -1,0 +1,57 @@
+{
+    "_meta": {
+        "updated_at": "2026-04-28",
+        "patch": "Midnight S1",
+        "notes": "Edit by hand each new patch. Gems are items, so https://www.wowhead.com/item={id} is the canonical lookup."
+    },
+    "entries": {
+        "240858": {
+            "name": "Deadly Peridot"
+        },
+        "240888": {
+            "name": "Flawless Quick Peridot"
+        },
+        "240890": {
+            "name": "Flawless Deadly Peridot"
+        },
+        "240892": {
+            "name": "Flawless Masterful Peridot"
+        },
+        "240894": {
+            "name": "Flawless Versatile Peridot"
+        },
+        "240898": {
+            "name": "Flawless Deadly Amethyst"
+        },
+        "240900": {
+            "name": "Flawless Quick Amethyst"
+        },
+        "240902": {
+            "name": "Flawless Versatile Amethyst"
+        },
+        "240906": {
+            "name": "Flawless Quick Garnet"
+        },
+        "240908": {
+            "name": "Flawless Masterful Garnet"
+        },
+        "240910": {
+            "name": "Flawless Versatile Garnet"
+        },
+        "240914": {
+            "name": "Flawless Deadly Lapis"
+        },
+        "240916": {
+            "name": "Flawless Quick Lapis"
+        },
+        "240918": {
+            "name": "Flawless Masterful Lapis"
+        },
+        "240967": {
+            "name": "Powerful Eversong Diamond"
+        },
+        "240983": {
+            "name": "Indecipherable Eversong Diamond"
+        }
+    }
+}

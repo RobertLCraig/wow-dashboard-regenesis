@@ -44,6 +44,7 @@ class BlizzardClient
         private readonly string $oauthTokenUrl,
         private readonly string $namespace,
         private readonly string $dynamicNamespace,
+        private readonly string $staticNamespace,
         private readonly string $locale = 'en_GB',
         private readonly int $timeoutSeconds = 10,
         private readonly int $tokenCacheTtlSeconds = 82800,
@@ -55,6 +56,7 @@ class BlizzardClient
         $apiBase = (string) (config('blizzard.api_base_url') ?: "https://{$region}.api.blizzard.com");
         $namespace = (string) (config('blizzard.namespace') ?: "profile-{$region}");
         $dynamicNamespace = (string) (config('blizzard.dynamic_namespace') ?: "dynamic-{$region}");
+        $staticNamespace = (string) (config('blizzard.static_namespace') ?: "static-{$region}");
 
         return new self(
             clientId: (string) config('blizzard.client_id', ''),
@@ -63,6 +65,7 @@ class BlizzardClient
             oauthTokenUrl: (string) config('blizzard.oauth_token_url', 'https://oauth.battle.net/token'),
             namespace: $namespace,
             dynamicNamespace: $dynamicNamespace,
+            staticNamespace: $staticNamespace,
             locale: (string) config('blizzard.locale', 'en_GB'),
             timeoutSeconds: (int) config('blizzard.timeout', 10),
             tokenCacheTtlSeconds: (int) config('blizzard.token_cache_ttl', 82800),
@@ -279,6 +282,39 @@ class BlizzardClient
             );
     }
 
+    /**
+     * Reference data: a single permanent item enchantment by its
+     * Blizzard "ItemEnchantmentID" (matches SimC's `enchant_id`).
+     * Static namespace because this data only changes on patch days.
+     * Returns the raw Response so the caller can branch on 404.
+     */
+    public function itemEnchantment(int $enchantmentId): Response
+    {
+        return Http::acceptJson()
+            ->timeout($this->timeoutSeconds)
+            ->withHeaders($this->staticHeaders())
+            ->get(
+                sprintf('%s/data/wow/item-enchantment/%d', $this->apiBaseUrl, $enchantmentId),
+                ['locale' => $this->locale],
+            );
+    }
+
+    /**
+     * Reference data: a single item by ID. Used to resolve gem names
+     * (gems are items) and any other static item lookup. Static
+     * namespace.
+     */
+    public function item(int $itemId): Response
+    {
+        return Http::acceptJson()
+            ->timeout($this->timeoutSeconds)
+            ->withHeaders($this->staticHeaders())
+            ->get(
+                sprintf('%s/data/wow/item/%d', $this->apiBaseUrl, $itemId),
+                ['locale' => $this->locale],
+            );
+    }
+
     /** Forget the cached token, e.g. after a 401 from a profile call. */
     public function forgetToken(): void
     {
@@ -315,6 +351,15 @@ class BlizzardClient
         return [
             'Authorization' => 'Bearer ' . $this->accessToken(),
             'Battlenet-Namespace' => $this->dynamicNamespace,
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function staticHeaders(): array
+    {
+        return [
+            'Authorization' => 'Bearer ' . $this->accessToken(),
+            'Battlenet-Namespace' => $this->staticNamespace,
         ];
     }
 
