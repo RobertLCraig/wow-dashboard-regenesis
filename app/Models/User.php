@@ -18,6 +18,7 @@ class User extends Authenticatable
     public const TIER_GM = 'gm';
     public const TIER_BIG6 = 'big6';
     public const TIER_OFFICER = 'officer';
+    public const TIER_RAID_LEADER = 'raid_leader';
 
     public const DISPLAY_STANDARD = 'standard';
     public const DISPLAY_CLEAR = 'clear';
@@ -97,18 +98,29 @@ class User extends Authenticatable
     }
 
     /**
-     * Holds any of the three Discord officer tiers. Used by the
-     * registered Gates in AppServiceProvider; v1 returns true for any
-     * tier, v2 may narrow per-Gate without touching call sites.
+     * Holds any of the four authorised Discord tiers (gm, big6, officer,
+     * raid_leader). Used by the registered Gates in AppServiceProvider;
+     * v1 returns true for any tier, v2 may narrow per-Gate without
+     * touching call sites.
      */
     public function isOfficerTier(): bool
     {
-        return in_array($this->tier, [self::TIER_GM, self::TIER_BIG6, self::TIER_OFFICER], true);
+        return in_array($this->tier, [
+            self::TIER_GM,
+            self::TIER_BIG6,
+            self::TIER_OFFICER,
+            self::TIER_RAID_LEADER,
+        ], true);
     }
 
     public function isAtLeast(string $tier): bool
     {
-        $rank = [self::TIER_OFFICER => 1, self::TIER_BIG6 => 2, self::TIER_GM => 3];
+        $rank = [
+            self::TIER_RAID_LEADER => 1,
+            self::TIER_OFFICER => 2,
+            self::TIER_BIG6 => 3,
+            self::TIER_GM => 4,
+        ];
         $mine = $rank[$this->tier] ?? 0;
         $needed = $rank[$tier] ?? 0;
         return $mine >= $needed;

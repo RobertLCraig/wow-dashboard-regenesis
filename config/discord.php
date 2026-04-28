@@ -13,7 +13,7 @@ return [
     'guild_id' => env('DISCORD_GUILD_ID', '1247256415542841416'),
 
     /*
-    | Permission tiers, highest authority first. v1 treats all three the
+    | Permission tiers, highest authority first. v1 treats all four the
     | same (membership in any grants full dashboard access). v2 will tie
     | individual Laravel Gates to specific tiers without touching call
     | sites - the data is here from day 1.
@@ -22,6 +22,7 @@ return [
         'gm' => env('DISCORD_ROLE_GM'),
         'big6' => env('DISCORD_ROLE_BIG6'),
         'officer' => env('DISCORD_ROLE_OFFICER'),
+        'raid_leader' => env('DISCORD_ROLE_RAID_LEADER'),
     ],
 
     /*

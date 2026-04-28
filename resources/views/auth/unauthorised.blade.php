@@ -25,7 +25,7 @@
         </picture>
     </div>
     <h1>You don't have access</h1>
-    <p>This dashboard is restricted to members of the Regenesis Discord server with an Officer, Big6, or GuildMaster role.</p>
+    <p>This dashboard is restricted to members of the Regenesis Discord server with a Raid Leader, Officer, Big6, or GuildMaster role.</p>
     <p>If you should have access, ask an officer to verify your role assignment, then <a href="{{ route('auth.discord.start') }}">sign in again</a>.</p>
 </div>
 </body>

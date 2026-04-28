@@ -15,6 +15,7 @@ beforeEach(function () {
             'gm' => '1247279261434384415',
             'big6' => '1490762074584780951',
             'officer' => '1247278529163296789',
+            'raid_leader' => '1247653009014395031',
         ],
         'discord.role_cache_ttl_minutes' => 5,
     ]);
@@ -56,10 +57,11 @@ it('rerolls Discord when the cached tier is stale', function () {
     $this->actingAs($user)->get('/dashboard')->assertStatus(403);
 });
 
-it('isOfficerTier returns true for any of the three tiers', function () {
+it('isOfficerTier returns true for any of the four tiers', function () {
     expect((new User(['tier' => User::TIER_GM]))->isOfficerTier())->toBeTrue();
     expect((new User(['tier' => User::TIER_BIG6]))->isOfficerTier())->toBeTrue();
     expect((new User(['tier' => User::TIER_OFFICER]))->isOfficerTier())->toBeTrue();
+    expect((new User(['tier' => User::TIER_RAID_LEADER]))->isOfficerTier())->toBeTrue();
     expect((new User(['tier' => null]))->isOfficerTier())->toBeFalse();
     expect((new User(['tier' => 'guildie']))->isOfficerTier())->toBeFalse();
 });
@@ -68,29 +70,39 @@ it('isAtLeast respects the tier ladder', function () {
     $gm = new User(['tier' => User::TIER_GM]);
     $big6 = new User(['tier' => User::TIER_BIG6]);
     $officer = new User(['tier' => User::TIER_OFFICER]);
+    $raidLeader = new User(['tier' => User::TIER_RAID_LEADER]);
 
+    expect($gm->isAtLeast(User::TIER_RAID_LEADER))->toBeTrue();
     expect($gm->isAtLeast(User::TIER_OFFICER))->toBeTrue();
     expect($gm->isAtLeast(User::TIER_BIG6))->toBeTrue();
     expect($gm->isAtLeast(User::TIER_GM))->toBeTrue();
 
+    expect($big6->isAtLeast(User::TIER_RAID_LEADER))->toBeTrue();
     expect($big6->isAtLeast(User::TIER_OFFICER))->toBeTrue();
     expect($big6->isAtLeast(User::TIER_BIG6))->toBeTrue();
     expect($big6->isAtLeast(User::TIER_GM))->toBeFalse();
 
+    expect($officer->isAtLeast(User::TIER_RAID_LEADER))->toBeTrue();
     expect($officer->isAtLeast(User::TIER_OFFICER))->toBeTrue();
     expect($officer->isAtLeast(User::TIER_BIG6))->toBeFalse();
     expect($officer->isAtLeast(User::TIER_GM))->toBeFalse();
+
+    expect($raidLeader->isAtLeast(User::TIER_RAID_LEADER))->toBeTrue();
+    expect($raidLeader->isAtLeast(User::TIER_OFFICER))->toBeFalse();
+    expect($raidLeader->isAtLeast(User::TIER_BIG6))->toBeFalse();
+    expect($raidLeader->isAtLeast(User::TIER_GM))->toBeFalse();
 });
 
 it('RoleVerifier picks the highest matching tier', function () {
     $verifier = new RoleVerifier(
         guildId: 'guild',
-        tierRoleIds: ['gm' => 'GM', 'big6' => 'BIG', 'officer' => 'OFF'],
+        tierRoleIds: ['gm' => 'GM', 'big6' => 'BIG', 'officer' => 'OFF', 'raid_leader' => 'RL'],
     );
 
+    expect($verifier->tierFromRoles(['random', 'RL']))->toBe('raid_leader');
     expect($verifier->tierFromRoles(['random', 'OFF']))->toBe('officer');
-    expect($verifier->tierFromRoles(['BIG', 'OFF']))->toBe('big6');
-    expect($verifier->tierFromRoles(['GM', 'BIG', 'OFF']))->toBe('gm');
+    expect($verifier->tierFromRoles(['BIG', 'OFF', 'RL']))->toBe('big6');
+    expect($verifier->tierFromRoles(['GM', 'BIG', 'OFF', 'RL']))->toBe('gm');
     expect($verifier->tierFromRoles(['unrelated']))->toBeNull();
     expect($verifier->tierFromRoles([]))->toBeNull();
 });

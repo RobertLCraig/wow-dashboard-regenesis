@@ -97,14 +97,14 @@ class RoleVerifier
     }
 
     /**
-     * Highest-precedence tier wins (gm > big6 > officer).
+     * Highest-precedence tier wins (gm > big6 > officer > raid_leader).
      *
      * @param  array<int,string>  $roleIds
      */
     public function tierFromRoles(array $roleIds): ?string
     {
         $set = array_flip(array_map('strval', $roleIds));
-        foreach (['gm', 'big6', 'officer'] as $tier) {
+        foreach (['gm', 'big6', 'officer', 'raid_leader'] as $tier) {
             $needed = $this->tierRoleIds[$tier] ?? null;
             if ($needed && isset($set[(string) $needed])) {
                 return $tier;
