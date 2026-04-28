@@ -24,9 +24,9 @@
     $regionUpper = strtoupper($region);
 
     $links = [
+        ['label' => 'ARM', 'title' => 'WoW Armory',    'url' => "https://worldofwarcraft.com/en-gb/character/{$region}/{$slug}/{$name}"],
         ['label' => 'RIO', 'title' => 'Raider.IO',     'url' => "https://raider.io/characters/{$region}/{$slug}/{$name}"],
         ['label' => 'WCL', 'title' => 'Warcraft Logs', 'url' => "https://www.warcraftlogs.com/character/{$region}/{$slug}/{$name}"],
-        ['label' => 'ARM', 'title' => 'WoW Armory',    'url' => "https://worldofwarcraft.com/en-gb/character/{$region}/{$slug}/{$name}"],
         ['label' => 'WA',  'title' => 'WoW Analyzer',  'url' => "https://wowanalyzer.com/character/{$regionUpper}/{$slug}/{$name}"],
         ['label' => 'MUR', 'title' => 'Murlok.io',     'url' => "https://murlok.io/character/{$region}/{$slug}/{$name}"],
     ];
