@@ -105,10 +105,10 @@
                     $m = $row['member'];
                     $snap = $row['snap'];
                     $cls = 'cls-' . strtoupper($m->class ?? '');
-                    $isTrial = in_array($m->team, [
+                    $isTrial = (bool) array_intersect($m->teamValues(), [
                         \App\Models\TeamMapping::TEAM_HEROIC_TRIAL,
                         \App\Models\TeamMapping::TEAM_MYTHIC_TRIAL,
-                    ], true);
+                    ]);
                 @endphp
                 <tr class="border-t border-line" data-row>
                     <td class="px-4 py-2 truncate max-w-[260px]" data-sort-key="character" data-sort-value="{{ strtolower($m->name) }}">

@@ -13,7 +13,12 @@
 @section('content')
     @php
         $cls = 'cls-' . strtoupper($member->class ?? '');
-        $teamLabel = $member->team ? \App\Models\TeamMapping::teamLabel($member->team) : null;
+        $teamValues = $member->teamValues();
+        $teamLabel = $teamValues
+            ? implode(' | ', array_map(fn ($t) => \App\Models\TeamMapping::teamLabel($t), $teamValues))
+            : null;
+        $hasOverride = $member->hasTeamOverride();
+        $rankDerivedTeam = app(\App\Services\Teams\TeamResolver::class)->forRank($member->rank_name);
         $statusTone = match ($member->status) {
             'active' => 'border-emerald-700/50 text-emerald-300',
             'left' => 'border-amber-700/50 text-amber-300',
@@ -21,6 +26,12 @@
             default => 'border-line text-muted',
         };
     @endphp
+
+    @if (session('status'))
+        <div class="mb-4 p-3 rounded border border-green-700 bg-green-900/30 text-sm text-green-200">
+            {{ session('status') }}
+        </div>
+    @endif
 
     <div class="flex items-start justify-between gap-4 mb-6">
         <div>
@@ -39,7 +50,13 @@
                     <span class="text-line">|</span>
                 @endif
                 @if ($teamLabel)
-                    <span>{{ $teamLabel }}</span>
+                    <span>
+                        {{ $teamLabel }}
+                        @if ($hasOverride)
+                            <span class="ml-1 text-[10px] uppercase tracking-wider text-amber-300/80 border border-amber-700/40 rounded px-1 py-0.5"
+                                  title="Officer-set; ignores the rank-to-team mapping under /admin/teams">override</span>
+                        @endif
+                    </span>
                     <span class="text-line">|</span>
                 @endif
                 <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border {{ $statusTone }}">
@@ -271,6 +288,52 @@
                     </p>
                 </section>
             @endif
+
+            <section class="bg-panel border border-line rounded-lg overflow-hidden">
+                <header class="px-4 py-3 border-b border-line">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider">Team assignment</h2>
+                </header>
+                <div class="p-4 space-y-3">
+                    <p class="text-xs text-muted">
+                        Tick the team(s) this character actually plays in. Saving sets an
+                        override that sticks across rank changes. Empty + Save (or Clear)
+                        reverts to the rank-derived team.
+                    </p>
+                    <p class="text-xs text-muted">
+                        Rank-derived team:
+                        @if ($rankDerivedTeam)
+                            <span class="text-ink">{{ \App\Models\TeamMapping::teamLabel($rankDerivedTeam) }}</span>
+                        @else
+                            <span class="italic">none</span>
+                        @endif
+                    </p>
+                    <form method="POST" action="{{ route('character.teams.update', $member->name) }}" class="space-y-2">
+                        @csrf
+                        <div class="grid grid-cols-2 gap-1.5">
+                            @foreach (\App\Models\TeamMapping::TEAMS as $team)
+                                <label class="flex items-center gap-2 text-sm">
+                                    <input type="checkbox" name="teams[]" value="{{ $team }}"
+                                           @checked(in_array($team, $teamValues, true))
+                                           class="bg-bg border border-line rounded">
+                                    <span>{{ \App\Models\TeamMapping::teamLabel($team) }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        <div class="flex items-center gap-2 pt-2">
+                            <button type="submit" name="action" value="save"
+                                    class="px-3 py-1.5 rounded bg-accent text-white text-xs font-medium hover:opacity-90">
+                                Save override
+                            </button>
+                            @if ($hasOverride)
+                                <button type="submit" name="action" value="clear"
+                                        class="px-3 py-1.5 rounded border border-line text-xs hover:bg-bg">
+                                    Clear override
+                                </button>
+                            @endif
+                        </div>
+                    </form>
+                </div>
+            </section>
 
             <section class="bg-panel border border-line rounded-lg overflow-hidden">
                 <header class="px-4 py-3 border-b border-line">

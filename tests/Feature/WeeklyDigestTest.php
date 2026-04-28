@@ -23,7 +23,10 @@ beforeEach(function () {
 
 function digestMember(string $name, array $overrides = []): Member
 {
-    return Member::query()->create(array_replace([
+    $team = $overrides['team'] ?? null;
+    unset($overrides['team']);
+
+    $member = Member::query()->create(array_replace([
         'guild_key' => 'Regenesis-Silvermoon',
         'name' => $name,
         'class' => 'PRIEST',
@@ -33,6 +36,16 @@ function digestMember(string $name, array $overrides = []): Member
         'first_seen_at' => now(),
         'last_seen_at' => now(),
     ], $overrides));
+
+    if ($team !== null) {
+        \App\Models\MemberTeam::query()->create([
+            'member_id' => $member->id,
+            'team' => $team,
+            'is_override' => false,
+        ]);
+    }
+
+    return $member;
 }
 
 it('digest includes roster delta over the past 7 days', function () {

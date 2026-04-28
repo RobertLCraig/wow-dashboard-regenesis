@@ -87,7 +87,7 @@ class RosterController extends Controller
                     $m->class,
                     $m->level,
                     $m->rank_name,
-                    $m->team,
+                    implode('|', $m->teamValues()),
                     $row['ilvl'],
                     $row['ilvl_source'],
                     $snap?->mplus_score,
@@ -130,7 +130,7 @@ class RosterController extends Controller
         $guildKey = (string) config('grm.guild_key');
 
         $members = $this->baseQuery($guildKey, $filter)
-            ->with('main:id,name')
+            ->with(['main:id,name', 'teams'])
             ->orderBy('name')
             ->get();
 
@@ -406,7 +406,7 @@ class RosterController extends Controller
             'inactive_90d' => $this->inactive($q, 90),
             'alts'    => $q->whereNotNull('main_member_id'),
             'mains'   => $q->whereNull('main_member_id')->whereNotNull('alt_group_id'),
-            'trial'   => $q->whereIn('team', [TeamMapping::TEAM_HEROIC_TRIAL, TeamMapping::TEAM_MYTHIC_TRIAL]),
+            'trial'   => $q->onAnyTeam([TeamMapping::TEAM_HEROIC_TRIAL, TeamMapping::TEAM_MYTHIC_TRIAL]),
             'action_queue' => $q->where(function (Builder $sub) {
                 $sub->where('recommend_promote', true)
                     ->orWhere('recommend_demote', true)

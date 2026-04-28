@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Member;
+use App\Models\MemberTeam;
 use App\Models\TeamMapping;
 use App\Models\User;
 use App\Services\Discord\RoleVerifier;
@@ -10,6 +11,22 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
+
+/**
+ * Pull a member's team list from the pivot. Helper so each test can
+ * read what GrmNormalizer / TeamResolver wrote without re-loading the
+ * model; sorted so order is stable for the equality assertions.
+ *
+ * @return list<string>
+ */
+function teamsFor(string $name): array
+{
+    $member = Member::query()->where('name', $name)->first();
+    if (! $member) return [];
+    $teams = MemberTeam::query()->where('member_id', $member->id)->pluck('team')->all();
+    sort($teams);
+    return $teams;
+}
 
 uses(RefreshDatabase::class);
 
@@ -109,38 +126,181 @@ it('GrmNormalizer sets members.team from rank_name on upsert', function () {
 
     (new GrmNormalizer('Regenesis-Silvermoon'))->apply($snapshot, $payload);
 
-    expect(Member::query()->where('name', 'Heroguy-Silvermoon')->value('team'))->toBe('heroic');
-    expect(Member::query()->where('name', 'Mythbro-Silvermoon')->value('team'))->toBe('mythic');
+    expect(teamsFor('Heroguy-Silvermoon'))->toBe(['heroic']);
+    expect(teamsFor('Mythbro-Silvermoon'))->toBe(['mythic']);
     // Officer rank deliberately maps to null - we don't infer team from it.
-    expect(Member::query()->where('name', 'Officerdude-Silvermoon')->value('team'))->toBeNull();
+    expect(teamsFor('Officerdude-Silvermoon'))->toBe([]);
 });
 
 it('recomputeMembers updates team for members already in the DB', function () {
     seedMappings();
 
-    Member::query()->create([
+    $heroguy = Member::query()->create([
         'guild_key' => 'Regenesis-Silvermoon',
         'name' => 'Heroguy-Silvermoon',
         'rank_name' => 'Heroic Raider',
-        'team' => null, // pretend the mapping was added after this member was ingested
+        // No team rows yet; pretend the mapping was added after this
+        // member was ingested.
         'first_seen_at' => now(),
         'last_seen_at' => now(),
     ]);
 
-    Member::query()->create([
+    $stale = Member::query()->create([
         'guild_key' => 'Regenesis-Silvermoon',
         'name' => 'Stale-Silvermoon',
         'rank_name' => 'Heroic Raider',
-        'team' => 'mythic', // stale value - should be corrected
         'first_seen_at' => now(),
         'last_seen_at' => now(),
+    ]);
+    // Stale rank-derived row that should be corrected to heroic.
+    MemberTeam::query()->create([
+        'member_id' => $stale->id,
+        'team' => 'mythic',
+        'is_override' => false,
     ]);
 
     $updated = app(TeamResolver::class)->recomputeMembers('Regenesis-Silvermoon');
 
     expect($updated)->toBe(2);
-    expect(Member::query()->where('name', 'Heroguy-Silvermoon')->value('team'))->toBe('heroic');
-    expect(Member::query()->where('name', 'Stale-Silvermoon')->value('team'))->toBe('heroic');
+    expect(teamsFor('Heroguy-Silvermoon'))->toBe(['heroic']);
+    expect(teamsFor('Stale-Silvermoon'))->toBe(['heroic']);
+});
+
+it('recomputeMembers leaves overridden members alone', function () {
+    seedMappings();
+
+    $member = Member::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'name' => 'Officerinheroic-Silvermoon',
+        'rank_name' => 'Officer', // rank says null
+        'first_seen_at' => now(),
+        'last_seen_at' => now(),
+    ]);
+
+    // Officer set this player to heroic because they actually raid there.
+    app(TeamResolver::class)->setOverrides($member, ['heroic'], userId: null);
+
+    $updated = app(TeamResolver::class)->recomputeMembers('Regenesis-Silvermoon');
+
+    // The override should not have been disturbed.
+    expect(teamsFor('Officerinheroic-Silvermoon'))->toBe(['heroic']);
+
+    // Updated count is whatever rank-recompute changed elsewhere; the
+    // overridden member must be excluded.
+    $row = MemberTeam::query()->where('member_id', $member->id)->first();
+    expect($row?->is_override)->toBeTrue();
+});
+
+it('a member can be overridden onto multiple teams', function () {
+    seedMappings();
+
+    $member = Member::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'name' => 'Crossteam-Silvermoon',
+        'rank_name' => 'Heroic Raider',
+        'first_seen_at' => now(),
+        'last_seen_at' => now(),
+    ]);
+
+    app(TeamResolver::class)->setOverrides($member, ['heroic', 'mythic'], userId: null);
+
+    expect(teamsFor('Crossteam-Silvermoon'))->toBe(['heroic', 'mythic']);
+    expect($member->fresh()->load('teams')->teamValues())->toBe(['mythic', 'heroic']);
+});
+
+it('clearOverrides reverts to rank-derived rows', function () {
+    seedMappings();
+
+    $member = Member::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'name' => 'Tobereverted-Silvermoon',
+        'rank_name' => 'Heroic Raider',
+        'first_seen_at' => now(),
+        'last_seen_at' => now(),
+    ]);
+
+    $resolver = app(TeamResolver::class);
+    $resolver->setOverrides($member, ['mythic'], userId: null);
+    expect(teamsFor('Tobereverted-Silvermoon'))->toBe(['mythic']);
+
+    $resolver->clearOverrides($member);
+    expect(teamsFor('Tobereverted-Silvermoon'))->toBe(['heroic']);
+
+    $row = MemberTeam::query()->where('member_id', $member->id)->first();
+    expect($row?->is_override)->toBeFalse();
+});
+
+it('character team override route saves an override and shows the badge', function () {
+    seedMappings();
+
+    $member = Member::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'name' => 'Webuser-Silvermoon',
+        'rank_name' => 'Officer',
+        'class' => 'PALADIN',
+        'level' => 80,
+        'rank_index' => 1,
+        'status' => Member::STATUS_ACTIVE,
+        'first_seen_at' => now(),
+        'last_seen_at' => now(),
+    ]);
+    $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
+
+    $this->actingAs($user)
+        ->post('/character/Webuser-Silvermoon/teams', [
+            'teams' => ['heroic', 'mythic'],
+            'action' => 'save',
+        ])
+        ->assertRedirect('/character/Webuser-Silvermoon');
+
+    expect(teamsFor('Webuser-Silvermoon'))->toBe(['heroic', 'mythic']);
+
+    // The character page renders both teams + the override badge.
+    $resp = $this->actingAs($user)->get('/character/Webuser-Silvermoon');
+    $resp->assertOk()
+        ->assertSee('Heroic')
+        ->assertSee('Mythic')
+        ->assertSee('override');
+});
+
+it('clearing the override via the form reverts to rank-derived', function () {
+    seedMappings();
+
+    $member = Member::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'name' => 'Reverter-Silvermoon',
+        'rank_name' => 'Heroic Raider',
+        'class' => 'PALADIN',
+        'level' => 80,
+        'rank_index' => 4,
+        'status' => Member::STATUS_ACTIVE,
+        'first_seen_at' => now(),
+        'last_seen_at' => now(),
+    ]);
+    app(TeamResolver::class)->setOverrides($member, ['mythic'], userId: null);
+
+    $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
+
+    $this->actingAs($user)
+        ->post('/character/Reverter-Silvermoon/teams', ['action' => 'clear'])
+        ->assertRedirect('/character/Reverter-Silvermoon');
+
+    expect(teamsFor('Reverter-Silvermoon'))->toBe(['heroic']);
+});
+
+it('non-officer cannot set or clear team overrides', function () {
+    $member = Member::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'name' => 'Lockdown-Silvermoon',
+        'rank_name' => 'Member',
+        'first_seen_at' => now(),
+        'last_seen_at' => now(),
+    ]);
+    $user = User::factory()->create(['tier' => null, 'last_role_check_at' => now()]);
+
+    $this->actingAs($user)
+        ->post('/character/Lockdown-Silvermoon/teams', ['teams' => ['mythic']])
+        ->assertStatus(403);
 });
 
 it('RoleVerifier sets users.team from the configured Discord role mapping', function () {
@@ -218,5 +378,5 @@ it('admin UI saves new role + recomputes members.team', function () {
         ->where('source', 'discord_role')
         ->where('key', '987654321098765432')
         ->value('team'))->toBe('heroic');
-    expect(Member::query()->where('name', 'Newrank-Silvermoon')->value('team'))->toBe('heroic_trial');
+    expect(teamsFor('Newrank-Silvermoon'))->toBe(['heroic_trial']);
 });

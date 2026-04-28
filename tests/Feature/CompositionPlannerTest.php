@@ -30,17 +30,22 @@ beforeEach(function () {
 
 function compMember(string $name, string $team, string $class = 'PRIEST'): Member
 {
-    return Member::query()->create([
+    $member = Member::query()->create([
         'guild_key' => 'Regenesis-Silvermoon',
         'name' => $name,
         'class' => $class,
         'level' => 80,
         'rank_index' => 5,
-        'team' => $team,
         'status' => Member::STATUS_ACTIVE,
         'first_seen_at' => now(),
         'last_seen_at' => now(),
     ]);
+    \App\Models\MemberTeam::query()->create([
+        'member_id' => $member->id,
+        'team' => $team,
+        'is_override' => false,
+    ]);
+    return $member;
 }
 
 function compFight(int $daysAgo = 2, int $difficulty = WclFight::DIFFICULTY_HEROIC): WclFight
@@ -118,7 +123,7 @@ it('builds buckets keyed by inferred role with members sorted by avg parse desc'
     compParse($f, $dps1, 60,  'frost',      WclActorParse::ROLE_DPS);
     compParse($f, $dps2, 80,  'frost',      WclActorParse::ROLE_DPS);
 
-    $members = Member::query()->whereIn('team', [TeamMapping::TEAM_HEROIC])->get();
+    $members = Member::query()->onAnyTeam([TeamMapping::TEAM_HEROIC])->with('teams')->get();
     $buckets = (new TeamCompositionBuilder)->build($members, days: 14);
 
     expect(array_keys($buckets))->toContain(SpecRoleMap::ROLE_TANK, SpecRoleMap::ROLE_HEALER, SpecRoleMap::ROLE_RANGED);
@@ -138,7 +143,7 @@ it('respects the days window when aggregating parses', function () {
     $oldFight = compFight(daysAgo: 30);
     compParse($oldFight, $m, 90, 'frost');
 
-    $members = Member::query()->whereIn('team', [TeamMapping::TEAM_HEROIC])->get();
+    $members = Member::query()->onAnyTeam([TeamMapping::TEAM_HEROIC])->with('teams')->get();
     $buckets = (new TeamCompositionBuilder)->build($members, days: 14);
 
     // The 30-day-old parse is outside the 14d window, so the member
@@ -158,7 +163,7 @@ it('filters by difficulty when requested', function () {
     compParse($hFight, $m, 60, 'frost');
     compParse($mFight, $m, 95, 'frost');
 
-    $members = Member::query()->whereIn('team', [TeamMapping::TEAM_HEROIC])->get();
+    $members = Member::query()->onAnyTeam([TeamMapping::TEAM_HEROIC])->with('teams')->get();
 
     $heroicOnly = (new TeamCompositionBuilder)->build($members, days: 14, difficulties: [WclFight::DIFFICULTY_HEROIC]);
     expect($heroicOnly[SpecRoleMap::ROLE_RANGED][0]['avg_parse'])->toBe(60.0);

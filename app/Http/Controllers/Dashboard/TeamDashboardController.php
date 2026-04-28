@@ -47,7 +47,8 @@ class TeamDashboardController extends Controller
         $members = Member::query()
             ->forGuild($guildKey)
             ->active()
-            ->whereIn('team', $teamKeys)
+            ->onAnyTeam($teamKeys)
+            ->with('teams')
             ->orderBy('name')
             ->get();
 

@@ -186,7 +186,6 @@ class GrmNormalizer
             'faction' => is_string($row['faction'] ?? null) ? $row['faction'] : null,
             'rank_name' => is_string($row['rankName'] ?? null) ? $row['rankName'] : null,
             'rank_index' => $uint($row['rankIndex'] ?? null),
-            'team' => $this->teams()->forRank(is_string($row['rankName'] ?? null) ? $row['rankName'] : null),
             'join_date' => $joinDate?->toDateString(),
             'join_date_unknown' => (bool) ($row['joinDateUnknown'] ?? false),
             'last_online_at' => $lastOnline,
@@ -213,6 +212,11 @@ class GrmNormalizer
             'banned_at' => $bannedAt,
             'last_seen_at' => $now,
         ])->save();
+
+        // Sync the member_teams pivot from the just-written rank_name.
+        // The resolver leaves the member alone if an officer has set an
+        // override, so manual team assignments survive rank changes.
+        $this->teams()->syncRankRowsForMember($member);
 
         // Per-snapshot row. Carries the volatile fields plus the full
         // per-member raw payload for replay/debugging.

@@ -96,6 +96,12 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::get('/character/{nameRealm}', [\App\Http\Controllers\Dashboard\CharacterController::class, 'show'])
         ->where('nameRealm', '[^/]+')->name('character.show');
 
+    // Per-member team override. Officers tick which teams a character
+    // belongs to from the character page; the resolver keeps the rank-
+    // derived team for everyone else. Empty selection reverts to rank.
+    Route::post('/character/{nameRealm}/teams', [\App\Http\Controllers\Dashboard\CharacterTeamOverrideController::class, 'update'])
+        ->where('nameRealm', '[^/]+')->name('character.teams.update');
+
     Route::get('/events', [\App\Http\Controllers\Events\EventController::class, 'index'])->name('events.index');
     Route::get('/events/new', [\App\Http\Controllers\Events\EventController::class, 'create'])->name('events.create');
     Route::post('/events', [\App\Http\Controllers\Events\EventController::class, 'store'])->name('events.store');

@@ -171,10 +171,12 @@ class WeeklyDigestBuilder
             ->get()
             ->keyBy('member_id');
 
-        $membersByTeam = Member::active()->forGuild($this->guildKey)
-            ->whereNotNull('team')
-            ->get()
-            ->groupBy('team');
+        $membersByTeam = Member::groupByTeam(
+            Member::active()->forGuild($this->guildKey)
+                ->hasAnyTeam()
+                ->with('teams')
+                ->get()
+        );
 
         $out = [];
         foreach (TeamMapping::TEAMS as $team) {

@@ -82,12 +82,16 @@ class DashboardController extends Controller
 
         // Even with no raiderio snapshot we still group active members by
         // team so officers see who's on which team in the empty state.
-        $membersByTeam = Member::query()
-            ->forGuild($guildKey)
-            ->active()
-            ->whereNotNull('team')
-            ->get()
-            ->groupBy('team');
+        // groupByTeam() handles members on multiple teams by pushing
+        // them into each team's bucket.
+        $membersByTeam = Member::groupByTeam(
+            Member::query()
+                ->forGuild($guildKey)
+                ->active()
+                ->hasAnyTeam()
+                ->with('teams')
+                ->get()
+        );
 
         $snapsByMember = collect();
         if ($latest) {

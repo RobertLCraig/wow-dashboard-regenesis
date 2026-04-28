@@ -86,7 +86,8 @@ class CompositionController extends Controller
         $members = Member::query()
             ->forGuild($guildKey)
             ->active()
-            ->whereIn('team', $config['keys'])
+            ->onAnyTeam($config['keys'])
+            ->with('teams')
             ->orderBy('name')
             ->get();
 

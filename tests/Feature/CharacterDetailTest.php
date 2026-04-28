@@ -34,18 +34,30 @@ beforeEach(function () {
 
 function characterMember(string $name, array $overrides = []): Member
 {
-    return Member::query()->create(array_replace([
+    $team = array_key_exists('team', $overrides) ? $overrides['team'] : TeamMapping::TEAM_HEROIC;
+    unset($overrides['team']);
+
+    $member = Member::query()->create(array_replace([
         'guild_key' => 'Regenesis-Silvermoon',
         'name' => $name,
         'class' => 'PALADIN',
         'level' => 80,
         'rank_index' => 5,
         'rank_name' => 'Heroic Raider',
-        'team' => TeamMapping::TEAM_HEROIC,
         'status' => Member::STATUS_ACTIVE,
         'first_seen_at' => now(),
         'last_seen_at' => now(),
     ], $overrides));
+
+    if ($team !== null) {
+        \App\Models\MemberTeam::query()->create([
+            'member_id' => $member->id,
+            'team' => $team,
+            'is_override' => false,
+        ]);
+    }
+
+    return $member;
 }
 
 function characterOfficer(): User
