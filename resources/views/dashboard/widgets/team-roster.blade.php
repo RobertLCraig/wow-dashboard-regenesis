@@ -67,8 +67,8 @@
                     <td class="px-2 py-2 font-mono text-right" data-label="RIO" data-sort-key="rio" data-sort-value="{{ $snap?->mplus_score ?? 0 }}">
                         {{ $snap?->mplus_score !== null ? number_format($snap->mplus_score, 0) : '-' }}
                     </td>
-                    <td class="px-2 py-2 font-mono text-right" data-label="Weekly key" data-sort-key="key" data-sort-value="{{ $snap?->mplus_keystone ?? 0 }}">
-                        {{ $snap?->mplus_keystone !== null ? '+' . $snap->mplus_keystone : '-' }}
+                    <td class="relative px-2 py-2 text-right" data-label="Weekly key" data-sort-key="key" data-sort-value="{{ $snap?->mplus_keystone ?? 0 }}">
+                        <x-weekly-key-cell :snap="$snap" />
                     </td>
                     <td class="px-2 py-2 font-mono text-xs" data-label="Raid">
                         {{ $row['raid_summary'] ?? '-' }}

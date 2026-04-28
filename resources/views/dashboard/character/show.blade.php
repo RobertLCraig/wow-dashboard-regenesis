@@ -93,7 +93,9 @@
                             </div>
                             <div>
                                 <div class="text-[10px] uppercase tracking-wider text-muted">Weekly key</div>
-                                <div class="font-mono">{{ $snap->mplus_keystone !== null ? '+' . $snap->mplus_keystone : '-' }}</div>
+                                <div class="font-mono">
+                                    <x-weekly-key-cell :snap="$snap" align="left" />
+                                </div>
                             </div>
                             <div>
                                 <div class="text-[10px] uppercase tracking-wider text-muted">Best raid</div>
