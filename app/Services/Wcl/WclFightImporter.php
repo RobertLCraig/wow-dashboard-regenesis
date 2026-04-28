@@ -169,6 +169,7 @@ class WclFightImporter
             $rankings = $this->indexRankingsForOneFight(
                 $deep['dpsRankings'] ?? null,
                 $deep['hpsRankings'] ?? null,
+                (int) $f['id'],
             );
 
             $written = $this->writeParsesForFight($fightRow, $damage, $healing, $rankings, $members);
@@ -451,13 +452,18 @@ class WclFightImporter
      * Tank rankings come from the dpsRankings query (their bucket lives
      * under roles.tanks alongside dps).
      *
+     * The rankings GraphQL response is a `data[]` array keyed per fight
+     * (each entry carries a `fightID`). WCL scopes by `fightIDs:[...]`,
+     * but we still filter locally so a noisy multi-fight payload can't
+     * leak ranks across pulls.
+     *
      * @return array{
      *   by_role: array<string, array<string, array{rank:?int,bracket:?int}>>,
      *   role_for: array<string, string>,
      *   ranked_count: int
      * }
      */
-    private function indexRankingsForOneFight(mixed $dpsJson, mixed $hpsJson): array
+    private function indexRankingsForOneFight(mixed $dpsJson, mixed $hpsJson, int $fightId): array
     {
         $byRole = [
             WclActorParse::ROLE_DPS => [],
@@ -481,6 +487,7 @@ class WclFightImporter
 
             foreach ($entries as $entry) {
                 if (! is_array($entry)) continue;
+                if ((int) ($entry['fightID'] ?? 0) !== $fightId) continue;
                 $roleNode = $entry['roles'][$source['pickRole']] ?? null;
                 $characters = is_array($roleNode['characters'] ?? null) ? $roleNode['characters'] : [];
                 foreach ($characters as $c) {
