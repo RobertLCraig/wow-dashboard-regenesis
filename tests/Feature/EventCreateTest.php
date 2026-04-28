@@ -264,14 +264,32 @@ it('sends announcements to the API as both array and singular fields', function 
         ]))
         ->assertRedirect();
 
+    // Channel name resolves to its config snowflake (the live API
+    // returns 404 "unknown announcement channel or keyword" if we
+    // send the name, so the controller looks it up).
     Http::assertSent(function ($r) {
         return is_array($r['announcements'] ?? null)
             && count($r['announcements']) === 2
-            && $r['announcements'][0]['minutesBefore'] === 30
+            && $r['announcements'][0]['time'] === 30
             && $r['announcements'][0]['message'] === '30 mins!'
-            && $r['announcements'][0]['channel'] === 'heroic-raid-signup'
-            && ($r['announcement']['minutesBefore'] ?? null) === 30; // first one mirrored as singular
+            && $r['announcements'][0]['channel'] === '1247281653777301714'
+            && ($r['announcement']['time'] ?? null) === 30 // first one mirrored as singular
+            && ($r['announcement']['channel'] ?? null) === '1247281653777301714';
     });
+});
+
+it('passes a pasted snowflake announcement channel through unchanged', function () {
+    Http::fake(['raid-helper.xyz/*' => Http::response(fakeRaidHelperEvent(), 200)]);
+
+    $this->actingAs(officer())
+        ->post(route('events.store'), basePayload([
+            'announcements' => [
+                ['minutes' => 30, 'message' => '30 mins!', 'channel' => '999888777666555444'],
+            ],
+        ]))
+        ->assertRedirect();
+
+    Http::assertSent(fn ($r) => ($r['announcement']['channel'] ?? null) === '999888777666555444');
 });
 
 it('strips empty announcement rows before validation', function () {

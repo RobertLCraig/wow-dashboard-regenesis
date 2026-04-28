@@ -121,24 +121,44 @@ class EventController extends Controller
             $payload['advancedSettings'] = $advancedSettings;
         }
 
-        // Announcements. The Raid-Helper API docs describe a single
-        // `announcement` object; the /quickcreate slash command supports
-        // multiples via repeated [announcement: ...] tokens. We send an
-        // `announcements` array (best-guess plural) AND a singular
-        // `announcement` object for the first one, so whichever the API
-        // accepts, we're covered. The /quickcreate command preview on
-        // the form is the always-correct fallback the user can copy
-        // into Discord if the API rejects.
+        // Announcements. Two API quirks are baked in here:
+        //
+        //   1. Each entry needs a `time` field (minutes before start),
+        //      NOT `minutesBefore`: sending `minutesBefore` produces a
+        //      400 {"error":"missing announcement time"}.
+        //
+        //   2. The `channel` field must be a Discord channel snowflake,
+        //      NOT the channel name: sending a name produces a 404
+        //      {"error":"unknown announcement channel or keyword"}.
+        //      The form takes the name (officer-friendly) and we
+        //      resolve it to the snowflake from
+        //      config('raidhelper.channels'). Pure-digit values are
+        //      passed through, so officers can also paste an arbitrary
+        //      channel ID for any unlisted channel.
+        //
+        // We post both an `announcements` array AND a singular
+        // `announcement` object for the first row; the live API
+        // consumes the singular one, and the array is harmless
+        // redundancy in case a future version starts honouring it.
         if (! empty($validated['announcements'])) {
+            $channelLookup = collect(config('raidhelper.channels', []))
+                ->mapWithKeys(fn ($c) => [$c['name'] => $c['id']]);
+            $resolveChannel = function (string $value) use ($channelLookup): string {
+                if (preg_match('/^\d{15,25}$/', $value)) {
+                    return $value;
+                }
+                return $channelLookup->get($value, $value);
+            };
+
             $payload['announcements'] = array_map(fn ($a) => [
-                'channel' => $a['channel'],
-                'minutesBefore' => (int) $a['minutes'],
+                'channel' => $resolveChannel($a['channel']),
+                'time' => (int) $a['minutes'],
                 'message' => $a['message'],
             ], $validated['announcements']);
             $first = $validated['announcements'][0];
             $payload['announcement'] = [
-                'channel' => $first['channel'],
-                'minutesBefore' => (int) $first['minutes'],
+                'channel' => $resolveChannel($first['channel']),
+                'time' => (int) $first['minutes'],
                 'message' => $first['message'],
             ];
         }
