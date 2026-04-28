@@ -60,6 +60,12 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::post('/roster/set-main', [\App\Http\Controllers\Dashboard\RosterSetMainMacroController::class, 'preview'])->name('roster.set-main.preview');
     Route::post('/roster/set-main/confirm', [\App\Http\Controllers\Dashboard\RosterSetMainMacroController::class, 'confirm'])->name('roster.set-main.confirm');
 
+    // /gpromote and /gdemote macro generator. Single endpoint, the
+    // op is in the request body so the modal can swap between the
+    // two without re-routing.
+    Route::post('/roster/rank-macro', [\App\Http\Controllers\Dashboard\RosterRankMacroController::class, 'preview'])->name('roster.rank-macro.preview');
+    Route::post('/roster/rank-macro/confirm', [\App\Http\Controllers\Dashboard\RosterRankMacroController::class, 'confirm'])->name('roster.rank-macro.confirm');
+
     // Warcraft Logs reports browser. /reports lists the recent reports;
     // /reports/{code} expands one report into fights + per-actor parses.
     Route::get('/reports', [\App\Http\Controllers\Dashboard\ReportsController::class, 'index'])->name('reports.index');

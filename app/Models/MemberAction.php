@@ -19,6 +19,11 @@ class MemberAction extends Model
     // macro. Same pattern: the dashboard never mutates GRM data, the
     // ingest catches up after the macro runs in-game.
     public const TYPE_SET_MAIN_MACRO = 'set_main_macro';
+    // Audit-only: officer generated a /gpromote or /gdemote rank macro.
+    // Distinct from the bare TYPE_PROMOTE/TYPE_DEMOTE which mark that
+    // the officer reviewed the recommendation on the General page.
+    public const TYPE_PROMOTE_MACRO = 'promote_macro';
+    public const TYPE_DEMOTE_MACRO = 'demote_macro';
 
     public const DECISION_ACCEPTED = 'accepted';
     public const DECISION_DISMISSED = 'dismissed';

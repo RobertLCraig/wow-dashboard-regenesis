@@ -421,6 +421,26 @@
                         </td>
                         @can('roster.kick')
                             <td class="px-4 py-2 text-right whitespace-nowrap" data-label="Actions">
+                                {{-- Promote/Demote only show on rows where the recommendation
+                                     fired, to keep the cell tidy on the long tail of "no
+                                     action needed" rows. Officers can still see them via the
+                                     Action queue chip. --}}
+                                @if ($m->recommend_promote)
+                                    <button type="button"
+                                            @click="$dispatch('open-rank-macro', { op: 'promote', ids: [{{ $m->id }}] })"
+                                            class="text-[10px] uppercase tracking-wider px-2 py-0.5 mr-1 rounded border border-emerald-700/50 text-emerald-300 hover:bg-emerald-950/30"
+                                            title="Generate /gpromote macro for {{ $m->name }}">
+                                        Promote
+                                    </button>
+                                @endif
+                                @if ($m->recommend_demote)
+                                    <button type="button"
+                                            @click="$dispatch('open-rank-macro', { op: 'demote', ids: [{{ $m->id }}] })"
+                                            class="text-[10px] uppercase tracking-wider px-2 py-0.5 mr-1 rounded border border-amber-700/50 text-amber-300 hover:bg-amber-950/30"
+                                            title="Generate /gdemote macro for {{ $m->name }}">
+                                        Demote
+                                    </button>
+                                @endif
                                 {{-- Set Main only makes sense for characters that are in an
                                      alt group. Hide elsewhere to keep the actions cell clean. --}}
                                 @if ($m->alt_group_id !== null)
@@ -451,5 +471,6 @@
     @can('roster.kick')
         <x-kick-macro-modal />
         <x-set-main-macro-modal />
+        <x-rank-macro-modal />
     @endcan
 @endsection
