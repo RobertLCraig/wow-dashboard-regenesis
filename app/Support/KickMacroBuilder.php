@@ -6,19 +6,19 @@ namespace App\Support;
  * Splits a list of character names into one or more `/gremove` macro
  * strings, each capped at WoW's 255-byte macro limit.
  *
- * Output is what an officer pastes into the in-game macro UI. Each line
- * is `/gremove <Name>` separated by `\n`. WoW counts the total byte
- * length of the macro body (including newlines) against 255.
- *
- * Names are written to the macro in input order. Anyone whose
- * `/gremove <name>` line on its own would already exceed 255 bytes is
- * skipped and reported in the second return value (impossible in
+ * Output is what an officer pastes into the in-game macro UI. Each
+ * line is `/gremove <Name>` separated by `\n`. Names whose
+ * `/gremove <name>` line on its own would already exceed 255 bytes
+ * are skipped and reported in the second return value (impossible in
  * practice for retail char names, which max out around 12 characters,
  * but defensive against weird inputs).
+ *
+ * Packing logic lives in {@see LineMacroBuilder} so the same byte-
+ * limit handling is shared across kick / set-main / set-note flows.
  */
 class KickMacroBuilder
 {
-    public const MACRO_BYTE_LIMIT = 255;
+    public const MACRO_BYTE_LIMIT = LineMacroBuilder::MACRO_BYTE_LIMIT;
 
     /**
      * @param  iterable<string>  $names  Character names without realm.
@@ -26,39 +26,30 @@ class KickMacroBuilder
      */
     public static function build(iterable $names): array
     {
-        $macros = [];
-        $oversized = [];
-        $current = '';
-
+        $linesByName = [];
         foreach ($names as $name) {
             $name = trim((string) $name);
             if ($name === '') {
                 continue;
             }
-            $line = "/gremove {$name}";
+            $linesByName[$name] = "/gremove {$name}";
+        }
 
-            // A single line that already overshoots 255 bytes can never
-            // fit in any macro - report and skip rather than silently
-            // truncating. strlen (not mb_strlen) because WoW char names
-            // are ASCII-only.
-            if (strlen($line) > self::MACRO_BYTE_LIMIT) {
-                $oversized[] = $name;
-                continue;
-            }
+        $packed = LineMacroBuilder::pack(array_values($linesByName));
 
-            $candidate = $current === '' ? $line : $current . "\n" . $line;
-            if (strlen($candidate) > self::MACRO_BYTE_LIMIT) {
-                $macros[] = $current;
-                $current = $line;
-            } else {
-                $current = $candidate;
+        // LineMacroBuilder returns oversized *lines*; this builder's
+        // contract is to return oversized *names*. Map back via the
+        // name->line map we built above.
+        $oversizedNames = [];
+        if ($packed['oversized'] !== []) {
+            $lineToName = array_flip($linesByName);
+            foreach ($packed['oversized'] as $line) {
+                if (isset($lineToName[$line])) {
+                    $oversizedNames[] = $lineToName[$line];
+                }
             }
         }
 
-        if ($current !== '') {
-            $macros[] = $current;
-        }
-
-        return ['macros' => $macros, 'oversized' => $oversized];
+        return ['macros' => $packed['macros'], 'oversized' => $oversizedNames];
     }
 }

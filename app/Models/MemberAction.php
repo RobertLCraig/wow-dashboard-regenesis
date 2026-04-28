@@ -15,6 +15,10 @@ class MemberAction extends Model
     // Doesn't change member status; the next GRM ingest does that once
     // the macro actually runs in-game.
     public const TYPE_KICK_MACRO = 'kick_macro';
+    // Audit-only: officer generated (and confirmed) a /run GRM.SetMain
+    // macro. Same pattern: the dashboard never mutates GRM data, the
+    // ingest catches up after the macro runs in-game.
+    public const TYPE_SET_MAIN_MACRO = 'set_main_macro';
 
     public const DECISION_ACCEPTED = 'accepted';
     public const DECISION_DISMISSED = 'dismissed';

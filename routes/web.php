@@ -53,6 +53,13 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::post('/roster/kick-macro', [\App\Http\Controllers\Dashboard\RosterKickMacroController::class, 'preview'])->name('roster.kick-macro.preview');
     Route::post('/roster/kick-macro/confirm', [\App\Http\Controllers\Dashboard\RosterKickMacroController::class, 'confirm'])->name('roster.kick-macro.confirm');
 
+    // /run GRM.SetMain(...) macro generator. Fixes drifted "main"
+    // designations that the dashboard can't mutate directly because
+    // GRM data lives in the WoW client. Same preview / confirm shape
+    // as the kick-macro flow.
+    Route::post('/roster/set-main', [\App\Http\Controllers\Dashboard\RosterSetMainMacroController::class, 'preview'])->name('roster.set-main.preview');
+    Route::post('/roster/set-main/confirm', [\App\Http\Controllers\Dashboard\RosterSetMainMacroController::class, 'confirm'])->name('roster.set-main.confirm');
+
     // Warcraft Logs reports browser. /reports lists the recent reports;
     // /reports/{code} expands one report into fights + per-actor parses.
     Route::get('/reports', [\App\Http\Controllers\Dashboard\ReportsController::class, 'index'])->name('reports.index');

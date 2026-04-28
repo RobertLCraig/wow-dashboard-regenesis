@@ -420,7 +420,17 @@
                             <x-character-links :member="$m" />
                         </td>
                         @can('roster.kick')
-                            <td class="px-4 py-2 text-right" data-label="Actions">
+                            <td class="px-4 py-2 text-right whitespace-nowrap" data-label="Actions">
+                                {{-- Set Main only makes sense for characters that are in an
+                                     alt group. Hide elsewhere to keep the actions cell clean. --}}
+                                @if ($m->alt_group_id !== null)
+                                    <button type="button"
+                                            @click="$dispatch('open-set-main', { ids: [{{ $m->id }}] })"
+                                            class="text-[10px] uppercase tracking-wider px-2 py-0.5 mr-1 rounded border border-amber-700/50 text-amber-300 hover:bg-amber-950/30"
+                                            title="Generate /run GRM.SetMain macro for {{ $m->name }}">
+                                        Main
+                                    </button>
+                                @endif
                                 <button type="button"
                                         @click="$dispatch('open-kick-macro', { ids: {{ json_encode($row['group_member_ids']) }} })"
                                         class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border border-rose-700/50 text-rose-300 hover:bg-rose-950/30"
@@ -440,5 +450,6 @@
 
     @can('roster.kick')
         <x-kick-macro-modal />
+        <x-set-main-macro-modal />
     @endcan
 @endsection
