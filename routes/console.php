@@ -25,13 +25,18 @@ Schedule::command('wowaudit:pull')
     ->onOneServer()
     ->withoutOverlapping();
 
-// Twice-daily Raider.IO pull covering every active member in the local
-// roster (no per-team gating, unlike wowaudit). One HTTP call per
-// member, paced to stay well under RIO's unwritten ~600/min cap.
-// Two pulls a day matches RIO's own profile refresh cadence and gives
-// the heroic team's fluid roster a snapshot before each raid window.
+// Three-hourly Raider.IO pull covering every active member in the
+// local roster (no per-team gating, unlike wowaudit). One HTTP call
+// per member, paced to stay well under RIO's unwritten ~600/min cap.
+// The cadence is the load-bearing input to the per-day M+ run tracker:
+// RIO's `mythic_plus_recent_runs` returns the last 10 runs, so we
+// need to sample faster than anyone realistically completes 10 keys.
+// Three hours puts the bar at "would have to clear a key every 18
+// minutes for three hours straight to lose a row", which only the
+// most extreme pushers manage. See the runs upsert in
+// RaiderioSnapshotImporter.
 Schedule::command('raiderio:pull')
-    ->twiceDaily(7, 18)
+    ->cron('0 */3 * * *') // 00:00, 03:00, 06:00, ... UK
     ->timezone(config('raidhelper.timezone', 'Europe/London'))
     ->onOneServer()
     ->withoutOverlapping();

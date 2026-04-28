@@ -27,16 +27,29 @@ return [
     | size, so we keep this lean. Documented at
     | https://raider.io/api#!/Character/get_characters_profile.
     |
-    |   gear                                       - item_level_equipped + items
-    |   raid_progression                           - per-instance H/M kills
-    |   mythic_plus_scores_by_season:current       - season RIO score
-    |   mythic_plus_weekly_highest_level_runs      - this week's best key
+    |   gear                                            - item_level_equipped + items
+    |   raid_progression                                - per-instance H/M kills
+    |   mythic_plus_scores_by_season:current            - season RIO score
+    |   mythic_plus_weekly_highest_level_runs           - this week's best key per dungeon
+    |   mythic_plus_previous_weekly_highest_level_runs  - last week's best (closes the gap when recent_runs rolls over)
+    |   mythic_plus_recent_runs                         - up to 10 most recent runs (timed and untimed). Drives the per-day activity tracker
+    |   mythic_plus_best_runs                           - season best per dungeon (one row each, the score-counting set)
+    |   mythic_plus_alternate_runs                      - season second-best per dungeon (tyrannical/fortified pair-mate of best_runs)
+    |
+    | The four "runs" fields above all share the same row shape - dungeon,
+    | mythic_level, completed_at, num_keystone_upgrades, score - so the
+    | importer can dedupe across them by completed_at when persisting
+    | individual run rows.
     */
     'profile_fields' => [
         'gear',
         'raid_progression',
         'mythic_plus_scores_by_season:current',
         'mythic_plus_weekly_highest_level_runs',
+        'mythic_plus_previous_weekly_highest_level_runs',
+        'mythic_plus_recent_runs',
+        'mythic_plus_best_runs',
+        'mythic_plus_alternate_runs',
     ],
 
     /*

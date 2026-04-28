@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Member;
+use App\Models\MemberMplusRun;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use App\Services\Raiderio\RaiderioClient;
@@ -392,4 +393,158 @@ it('slugifyCanonical handles spaces, apostrophes, accents-friendly inputs', func
     expect(RealmSlug::slugifyCanonical("The Sha'tar"))->toBe('the-shatar');
     expect(RealmSlug::slugifyCanonical(null))->toBeNull();
     expect(RealmSlug::slugifyCanonical(''))->toBeNull();
+});
+
+it('upserts individual runs from each RIO field, dedupes by completed_at', function () {
+    config([
+        'raiderio.profile_fields' => [
+            'gear', 'raid_progression',
+            'mythic_plus_scores_by_season:current',
+            'mythic_plus_weekly_highest_level_runs',
+            'mythic_plus_previous_weekly_highest_level_runs',
+            'mythic_plus_recent_runs',
+            'mythic_plus_best_runs',
+            'mythic_plus_alternate_runs',
+        ],
+    ]);
+    makeMember('Sheday-Silvermoon');
+
+    // Same physical run shows up in best_runs (with score) and recent_runs
+    // (without score). After dedupe it should be one row, with the score
+    // preserved.
+    $sharedRun = [
+        'dungeon' => 'Halls of Atonement',
+        'short_name' => 'HoA',
+        'mythic_level' => 14,
+        'completed_at' => '2026-04-27T18:00:00.000Z',
+        'clear_time_ms' => 1500000,
+        'par_time_ms' => 1800000,
+        'num_keystone_upgrades' => 2,
+        'map_challenge_mode_id' => 391,
+    ];
+
+    Http::fake([
+        '*' => Http::response(rioProfile([
+            'mythic_plus_best_runs' => [
+                $sharedRun + ['score' => 250.5],
+            ],
+            'mythic_plus_recent_runs' => [
+                $sharedRun, // no score field on this copy
+                [
+                    'dungeon' => 'Theatre of Pain',
+                    'short_name' => 'TOP',
+                    'mythic_level' => 10,
+                    'completed_at' => '2026-04-26T20:00:00.000Z',
+                    'num_keystone_upgrades' => 1,
+                    'map_challenge_mode_id' => 381,
+                    'clear_time_ms' => 1700000,
+                    'par_time_ms' => 1800000,
+                ],
+                [
+                    // Untimed run - num_keystone_upgrades = 0
+                    'dungeon' => 'Atal\'Dazar',
+                    'short_name' => 'AD',
+                    'mythic_level' => 8,
+                    'completed_at' => '2026-04-25T19:00:00.000Z',
+                    'num_keystone_upgrades' => 0,
+                    'map_challenge_mode_id' => 244,
+                    'clear_time_ms' => 2400000,
+                    'par_time_ms' => 1800000,
+                ],
+            ],
+        ]), 200),
+    ]);
+
+    (new RaiderioSnapshotImporter(
+        client: RaiderioClient::fromConfig(),
+        guildKey: 'Regenesis-Silvermoon',
+        requestDelayMs: 0,
+    ))->pull();
+
+    // Three distinct completed_at values across the response = three rows.
+    expect(MemberMplusRun::query()->count())->toBe(3);
+
+    $halls = MemberMplusRun::query()->where('dungeon_short_name', 'HoA')->first();
+    expect($halls)->not->toBeNull();
+    expect($halls->mythic_level)->toBe(14);
+    expect($halls->num_keystone_upgrades)->toBe(2);
+    expect($halls->source)->toBe(MemberMplusRun::SOURCE_SEASON_BEST); // higher-priority source wins
+    expect($halls->score)->toBe(250.5);                                // score from best_runs preserved
+    expect($halls->season_slug)->toBe('season-tww-3');                 // tagged from current season
+
+    $atal = MemberMplusRun::query()->where('dungeon_short_name', 'AD')->first();
+    expect($atal->isTimed())->toBeFalse();                             // untimed completion
+    expect($atal->num_keystone_upgrades)->toBe(0);
+});
+
+it('re-upserting the same run only bumps last_seen_at', function () {
+    config([
+        'raiderio.profile_fields' => [
+            'gear', 'mythic_plus_scores_by_season:current',
+            'mythic_plus_recent_runs',
+        ],
+    ]);
+    makeMember('Sheday-Silvermoon');
+
+    Http::fake([
+        '*' => Http::response(rioProfile([
+            'mythic_plus_recent_runs' => [[
+                'dungeon' => 'Halls of Atonement',
+                'short_name' => 'HoA',
+                'mythic_level' => 14,
+                'completed_at' => '2026-04-27T18:00:00.000Z',
+                'num_keystone_upgrades' => 2,
+                'map_challenge_mode_id' => 391,
+            ]],
+        ]), 200),
+    ]);
+
+    $importer = new RaiderioSnapshotImporter(
+        client: RaiderioClient::fromConfig(),
+        guildKey: 'Regenesis-Silvermoon',
+        requestDelayMs: 0,
+    );
+    $importer->pull();
+
+    $first = MemberMplusRun::query()->first();
+    $firstSeenAt = $first->first_seen_at;
+
+    // Second pull a second later - the run is already in the DB.
+    sleep(1);
+    $importer->pull();
+
+    expect(MemberMplusRun::query()->count())->toBe(1);
+    $second = MemberMplusRun::query()->first();
+    expect($second->first_seen_at->equalTo($firstSeenAt))->toBeTrue();
+    expect($second->last_seen_at->greaterThan($firstSeenAt))->toBeTrue();
+});
+
+it('skips RIO run rows that lack a parseable completed_at', function () {
+    // Pre-existing test fixtures ship runs with only mythic_level + dungeon.
+    // Those should not produce member_mplus_runs rows - they're missing the
+    // dedupe key and would corrupt the per-day timeline if persisted.
+    config([
+        'raiderio.profile_fields' => [
+            'gear', 'mythic_plus_scores_by_season:current',
+            'mythic_plus_weekly_highest_level_runs',
+        ],
+    ]);
+    makeMember('Sheday-Silvermoon');
+
+    Http::fake([
+        '*' => Http::response(rioProfile([
+            'mythic_plus_weekly_highest_level_runs' => [
+                ['mythic_level' => 12, 'dungeon' => 'Theatre of Pain'],
+                ['mythic_level' => 14, 'dungeon' => 'Halls of Atonement'],
+            ],
+        ]), 200),
+    ]);
+
+    (new RaiderioSnapshotImporter(
+        client: RaiderioClient::fromConfig(),
+        guildKey: 'Regenesis-Silvermoon',
+        requestDelayMs: 0,
+    ))->pull();
+
+    expect(MemberMplusRun::query()->count())->toBe(0);
 });

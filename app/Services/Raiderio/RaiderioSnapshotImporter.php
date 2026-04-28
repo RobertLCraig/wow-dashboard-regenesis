@@ -3,6 +3,7 @@
 namespace App\Services\Raiderio;
 
 use App\Models\Member;
+use App\Models\MemberMplusRun;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use Carbon\CarbonImmutable;
@@ -215,6 +216,8 @@ class RaiderioSnapshotImporter
                         'mplus_keystone' => $this->highestWeeklyKeystone($body),
                     ]
                 );
+
+                $this->upsertRuns($body, $member->id, $snapshot->id, $now);
             }
 
             return [
@@ -334,5 +337,178 @@ class RaiderioSnapshotImporter
             $runs
         ));
         return $levels ? max($levels) : null;
+    }
+
+    /**
+     * Persist individual M+ runs from any of RIO's run-bearing fields,
+     * deduped by (member_id, completed_at). Same physical run can appear
+     * in several fields at once - season best is also recent, weekly best
+     * is also recent, etc. - so we walk fields in priority order
+     * (most authoritative first) and let the first occurrence win.
+     *
+     * Two upserts per member at most: one for rows with a meaningful
+     * score (so we update the score column on conflict), one for rows
+     * without (so we don't blank out a previously-stored score from a
+     * recent_runs hit that lacks one).
+     *
+     * @param  array<string,mixed>  $body
+     */
+    private function upsertRuns(array $body, int $memberId, int $snapshotId, CarbonImmutable $now): void
+    {
+        $seasonSlug = $this->currentSeasonSlug($body);
+        $rows = $this->extractRuns($body, $memberId, $snapshotId, $seasonSlug, $now);
+        if ($rows === []) {
+            return;
+        }
+
+        // Split by whether we have a score, so the score column update on
+        // conflict is conditional. Without this an authoritative score
+        // already in the DB could get nulled out by a recent_runs row.
+        $withScore = [];
+        $withoutScore = [];
+        foreach ($rows as $row) {
+            if ($row['score'] === null) {
+                $withoutScore[] = $row;
+            } else {
+                $withScore[] = $row;
+            }
+        }
+
+        if ($withScore !== []) {
+            DB::table('member_mplus_runs')->upsert(
+                $withScore,
+                ['member_id', 'completed_at'],
+                ['last_seen_at', 'score', 'raw_json', 'updated_at'],
+            );
+        }
+        if ($withoutScore !== []) {
+            DB::table('member_mplus_runs')->upsert(
+                $withoutScore,
+                ['member_id', 'completed_at'],
+                ['last_seen_at', 'raw_json', 'updated_at'],
+            );
+        }
+    }
+
+    /**
+     * Walk RIO's run-bearing fields in priority order and return one row
+     * per unique completed_at. Priority: season best > alternate >
+     * weekly best > previous weekly best > recent. Scores backfill from
+     * later sources when the priority winner had none.
+     *
+     * @param  array<string,mixed>  $body
+     * @return list<array<string,mixed>>
+     */
+    private function extractRuns(array $body, int $memberId, int $snapshotId, ?string $seasonSlug, CarbonImmutable $now): array
+    {
+        $sources = [
+            'mythic_plus_best_runs' => MemberMplusRun::SOURCE_SEASON_BEST,
+            'mythic_plus_alternate_runs' => MemberMplusRun::SOURCE_ALTERNATE,
+            'mythic_plus_weekly_highest_level_runs' => MemberMplusRun::SOURCE_WEEKLY_BEST,
+            'mythic_plus_previous_weekly_highest_level_runs' => MemberMplusRun::SOURCE_PREV_WEEKLY_BEST,
+            'mythic_plus_recent_runs' => MemberMplusRun::SOURCE_RECENT,
+        ];
+
+        $byKey = [];
+        foreach ($sources as $field => $source) {
+            $list = $body[$field] ?? null;
+            if (! is_array($list)) {
+                continue;
+            }
+            foreach ($list as $raw) {
+                if (! is_array($raw)) {
+                    continue;
+                }
+                $row = $this->normalizeRun($raw, $source, $memberId, $snapshotId, $seasonSlug, $now);
+                if ($row === null) {
+                    continue;
+                }
+                $key = $row['completed_at'];
+                if (! isset($byKey[$key])) {
+                    $byKey[$key] = $row;
+                    continue;
+                }
+                if ($byKey[$key]['score'] === null && $row['score'] !== null) {
+                    $byKey[$key]['score'] = $row['score'];
+                }
+            }
+        }
+        return array_values($byKey);
+    }
+
+    /**
+     * Convert a single RIO run dict into a member_mplus_runs row.
+     * Returns null if the row is missing the bare minimum (a parseable
+     * completed_at and a mythic_level); we'd rather skip than persist
+     * incoherent data.
+     *
+     * @param  array<string,mixed>  $raw
+     * @return array<string,mixed>|null
+     */
+    private function normalizeRun(array $raw, string $source, int $memberId, int $snapshotId, ?string $seasonSlug, CarbonImmutable $now): ?array
+    {
+        $completedRaw = $raw['completed_at'] ?? null;
+        if (! is_string($completedRaw) || $completedRaw === '') {
+            return null;
+        }
+        try {
+            $completedAt = CarbonImmutable::parse($completedRaw);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $level = $raw['mythic_level'] ?? null;
+        if (! is_int($level) || $level <= 0) {
+            return null;
+        }
+
+        $upgrades = $raw['num_keystone_upgrades'] ?? 0;
+        $upgrades = is_int($upgrades) ? max(0, min(3, $upgrades)) : 0;
+
+        $clear = $raw['clear_time_ms'] ?? null;
+        $par = $raw['par_time_ms'] ?? null;
+        $score = $raw['score'] ?? null;
+
+        return [
+            'member_id' => $memberId,
+            'completed_at' => $completedAt->toDateTimeString(),
+            'mythic_level' => $level,
+            'dungeon_id' => is_int($raw['map_challenge_mode_id'] ?? null) ? $raw['map_challenge_mode_id'] : null,
+            'dungeon_short_name' => is_string($raw['short_name'] ?? null) ? mb_substr($raw['short_name'], 0, 16) : null,
+            'dungeon_name' => is_string($raw['dungeon'] ?? null) ? mb_substr($raw['dungeon'], 0, 64) : null,
+            'clear_time_ms' => is_int($clear) && $clear >= 0 ? $clear : null,
+            'par_time_ms' => is_int($par) && $par >= 0 ? $par : null,
+            'num_keystone_upgrades' => $upgrades,
+            'score' => is_numeric($score) ? round((float) $score, 1) : null,
+            'affixes' => isset($raw['affixes']) && is_array($raw['affixes']) ? json_encode($raw['affixes']) : null,
+            'season_slug' => $seasonSlug,
+            'source' => $source,
+            'first_seen_snapshot_id' => $snapshotId,
+            'first_seen_at' => $now->toDateTimeString(),
+            'last_seen_at' => $now->toDateTimeString(),
+            'raw_json' => json_encode($raw),
+            'created_at' => $now->toDateTimeString(),
+            'updated_at' => $now->toDateTimeString(),
+        ];
+    }
+
+    /**
+     * Best-effort current-season slug. RIO's score blob carries it under
+     * `mythic_plus_scores_by_season[0].season`. Used to tag every run
+     * we ingest in this pull; technically a recent_runs row could span
+     * the season boundary at reset, but the error is one-sided (a few
+     * post-reset runs tagged with the prior season for ~24h until the
+     * RIO blob updates), and not worth the per-row season inference.
+     *
+     * @param  array<string,mixed>  $body
+     */
+    private function currentSeasonSlug(array $body): ?string
+    {
+        $seasons = $body['mythic_plus_scores_by_season'] ?? null;
+        if (! is_array($seasons) || $seasons === []) {
+            return null;
+        }
+        $slug = $seasons[0]['season'] ?? null;
+        return is_string($slug) && $slug !== '' ? mb_substr($slug, 0, 32) : null;
     }
 }
