@@ -39,10 +39,7 @@
     empty="No log entries yet."
 >
     <x-slot:header>
-        <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
-            <span>Recent activity</span>
-            <x-explainer-toggle />
-        </h2>
+        <h2 class="text-sm font-semibold uppercase tracking-wider">Recent activity</h2>
     </x-slot:header>
 
     <x-slot:filters>
@@ -55,31 +52,53 @@
         </select>
     </x-slot:filters>
 
-    <x-slot:explainer>
-        <x-explainer-panel title="Recent activity">
-            Time-ordered guild log: promotions, demotions, joins, leaves, kicks, bans,
-            level ups, name changes, returns from inactivity, anniversaries, officer
-            notes. Pulled from GRM SavedVariables on each sync, so it's only as fresh as
-            the last upload. Sort any column, filter by type, or search the message text
-            to skim for what's happened between log-ins without scrolling Discord.
-        </x-explainer-panel>
-    </x-slot:explainer>
-
-    <table class="w-full text-sm clarity-tabular">
+    <table class="w-full text-sm clarity-tabular" x-data="{ openCol: null }">
         <thead>
             <tr class="text-left text-xs uppercase tracking-wider text-muted">
                 <th class="px-4 py-2 font-medium cursor-pointer select-none hover:text-ink whitespace-nowrap" @click="sortBy('when')">
                     When <span class="text-muted" x-text="sortIcon('when')"></span>
+                    <x-column-explainer-toggle col="when" />
                 </th>
                 <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink whitespace-nowrap" @click="sortBy('type')">
                     Type <span class="text-muted" x-text="sortIcon('type')"></span>
+                    <x-column-explainer-toggle col="type" />
                 </th>
                 <th class="px-4 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('message')">
                     Message <span class="text-muted" x-text="sortIcon('message')"></span>
+                    <x-column-explainer-toggle col="message" />
                 </th>
             </tr>
         </thead>
         <tbody>
+            <tr x-show="openCol !== null" x-cloak class="border-t border-line bg-bg/40">
+                <td colspan="3" class="px-4 py-3 text-xs text-muted leading-relaxed normal-case tracking-normal font-normal">
+                    <template x-if="openCol === 'when'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">When</span>
+                            When the event was recorded by GRM. Hover the cell for the absolute
+                            timestamp; the small line underneath is the relative time. The whole
+                            timeline is only as fresh as the last GRM SavedVariables sync.
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'type'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Type</span>
+                            Event class: PROMOTED, DEMOTED, JOINED, LEFT, KICKED, BANNED, LEVEL_UP,
+                            NAME_CHANGE, INACTIVE_RETURN, anniversary events, officer notes, and a
+                            handful more. Use the dropdown above the table to filter to a single
+                            type.
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'message'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Message</span>
+                            Plain-text description of the event, generated from the GRM payload.
+                            Searchable from the box above; sort here to group identical messages
+                            (handy for spotting repeated kicks or rename storms).
+                        </div>
+                    </template>
+                </td>
+            </tr>
             @foreach ($timeline as $log)
                 @php
                     $type = $log->type_name ?? 'UNKNOWN';

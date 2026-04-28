@@ -39,48 +39,86 @@
     :empty="$emptyMessage"
 >
     <x-slot:header>
-        <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
-            <span>Great Vault progress (this week)</span>
-            <x-explainer-toggle />
-        </h2>
+        <h2 class="text-sm font-semibold uppercase tracking-wider">Great Vault progress (this week)</h2>
     </x-slot:header>
 
-    <x-slot:explainer>
-        <x-explainer-panel title="Great Vault progress">
-            For each character, how many of the 9 Great Vault slots have been unlocked
-            this reset (3 from raid bosses, 3 from M+ keys, 3 from world activities) and
-            the highest item level the vault would currently award. Sourced from
-            wowaudit's per-character snapshot. Use it to chase up raiders who haven't
-            capped their vault before reset (free loot left on the table) and to spot
-            anyone who's clearly not engaging with their character that week. 9/9 turns
-            green, 6+ turns amber.
-        </x-explainer-panel>
-    </x-slot:explainer>
-
-    <table class="w-full text-sm clarity-tabular">
+    <table class="w-full text-sm clarity-tabular" x-data="{ openCol: null }">
         <thead>
             <tr class="text-left text-xs uppercase tracking-wider text-muted">
                 <th class="px-4 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('character')">
                     Character <span class="text-muted" x-text="sortIcon('character')"></span>
+                    <x-column-explainer-toggle col="character" />
                 </th>
                 <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('raids')">
                     Raid <span class="text-muted" x-text="sortIcon('raids')"></span>
+                    <x-column-explainer-toggle col="raids" />
                 </th>
                 <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('dungeons')">
                     M+ <span class="text-muted" x-text="sortIcon('dungeons')"></span>
+                    <x-column-explainer-toggle col="dungeons" />
                 </th>
                 <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('world')">
                     World <span class="text-muted" x-text="sortIcon('world')"></span>
+                    <x-column-explainer-toggle col="world" />
                 </th>
                 <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('total')">
                     Total <span class="text-muted" x-text="sortIcon('total')"></span>
+                    <x-column-explainer-toggle col="total" />
                 </th>
                 <th class="px-4 py-2 font-medium text-right cursor-pointer select-none hover:text-ink" @click="sortBy('best')">
                     Best <span class="text-muted" x-text="sortIcon('best')"></span>
+                    <x-column-explainer-toggle col="best" />
                 </th>
             </tr>
         </thead>
         <tbody>
+            <tr x-show="openCol !== null" x-cloak class="border-t border-line bg-bg/40">
+                <td colspan="6" class="px-4 py-3 text-xs text-muted leading-relaxed normal-case tracking-normal font-normal">
+                    <template x-if="openCol === 'character'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Character</span>
+                            Character coloured by class. All numbers in this row are sourced from
+                            wowaudit's per-character snapshot for the current reset.
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'raids'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Raid</span>
+                            Raid vault slots unlocked this reset, out of 3. Each slot represents a
+                            tier of raid boss kills (2 / 4 / 7 bosses).
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'dungeons'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">M+</span>
+                            Mythic+ vault slots unlocked, out of 3. Each slot represents a tier of
+                            keystone runs this week (1 / 4 / 8 dungeons).
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'world'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">World</span>
+                            World content vault slots unlocked, out of 3. Slot tiers come from
+                            world activities (delves, world bosses, etc.).
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'total'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Total</span>
+                            Combined vault slots unlocked, out of 9. Green at 9/9, amber at 6+.
+                            Anything below is leaving free loot on the table; chase those before
+                            weekly reset.
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'best'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Best</span>
+                            Highest item level the Great Vault would currently award this character.
+                            A blank cell means no slots unlocked yet this reset.
+                        </div>
+                    </template>
+                </td>
+            </tr>
             @foreach ($rows as $row)
                 @php $cls = 'cls-' . strtoupper($row['member']->class ?? ''); @endphp
                 <tr class="border-t border-line" data-row>

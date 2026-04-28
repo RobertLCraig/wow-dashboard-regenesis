@@ -6,34 +6,54 @@
     empty="No bans on record."
 >
     <x-slot:header>
-        <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
-            <span>Ban list</span>
-            <x-explainer-toggle />
-        </h2>
+        <h2 class="text-sm font-semibold uppercase tracking-wider">Ban list</h2>
     </x-slot:header>
 
-    <x-slot:explainer>
-        <x-explainer-panel title="Ban list">
-            Names recorded as banned, either flagged in the GRM addon or via the
-            dashboard. Reason and date shown when set. Use as a quick reference before
-            re-inviting someone you don't recognise, or before vouching for a returning
-            player. Bans without a reason should be back-filled when you spot them.
-        </x-explainer-panel>
-    </x-slot:explainer>
-
-    <table class="w-full text-sm clarity-tabular">
+    <table class="w-full text-sm clarity-tabular" x-data="{ openCol: null }">
         <thead>
             <tr class="text-left text-xs uppercase tracking-wider text-muted">
                 <th class="px-4 py-2 cursor-pointer select-none hover:text-ink" @click="sortBy('name')">
                     Name <span class="text-muted" x-text="sortIcon('name')"></span>
+                    <x-column-explainer-toggle col="name" />
                 </th>
-                <th class="px-2 py-2">Reason</th>
+                <th class="px-2 py-2">
+                    Reason
+                    <x-column-explainer-toggle col="reason" />
+                </th>
                 <th class="px-4 py-2 text-right cursor-pointer select-none hover:text-ink" @click="sortBy('when')">
                     When <span class="text-muted" x-text="sortIcon('when')"></span>
+                    <x-column-explainer-toggle col="when" />
                 </th>
             </tr>
         </thead>
         <tbody>
+            <tr x-show="openCol !== null" x-cloak class="border-t border-line bg-bg/40">
+                <td colspan="3" class="px-4 py-3 text-xs text-muted leading-relaxed normal-case tracking-normal font-normal">
+                    <template x-if="openCol === 'name'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Name</span>
+                            Character recorded as banned, either flagged in the GRM addon or via the
+                            dashboard. Class colour, level and last known rank shown next to the name.
+                            Use as a quick reference before re-inviting someone you don't recognise.
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'reason'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Reason</span>
+                            Reason the ban was applied. Empty entries should be back-filled when you
+                            spot them, since "no reason recorded" is hard to defend if the player
+                            asks why.
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'when'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">When</span>
+                            When the ban was applied. Shown relative to now; sort here to see the
+                            most recent bans first.
+                        </div>
+                    </template>
+                </td>
+            </tr>
             @foreach ($bans as $b)
                 @php $cls = 'cls-' . strtoupper($b->class ?? ''); @endphp
                 <tr class="border-t border-line" data-row>

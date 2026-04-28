@@ -79,40 +79,147 @@
             </h2>
         </x-slot:header>
 
-        <table class="w-full text-sm clarity-tabular">
+        <table class="w-full text-sm clarity-tabular" x-data="{ openCol: null }">
             <thead>
                 <tr class="text-left text-xs uppercase tracking-wider text-muted">
                     <th class="px-4 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('name')">
                         Name <span class="text-muted" x-text="sortIcon('name')"></span>
+                        <x-column-explainer-toggle col="name" />
                     </th>
                     <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('class')">
                         Class <span class="text-muted" x-text="sortIcon('class')"></span>
+                        <x-column-explainer-toggle col="class" />
                     </th>
                     <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('rank')">
                         Rank <span class="text-muted" x-text="sortIcon('rank')"></span>
+                        <x-column-explainer-toggle col="rank" />
                     </th>
                     <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink text-right" @click="sortBy('ilvl')">
                         ilvl <span class="text-muted" x-text="sortIcon('ilvl')"></span>
+                        <x-column-explainer-toggle col="ilvl" />
                     </th>
                     <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink text-right" @click="sortBy('rio')">
                         RIO <span class="text-muted" x-text="sortIcon('rio')"></span>
+                        <x-column-explainer-toggle col="rio" />
                     </th>
-                    <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink text-center" @click="sortBy('bis')"
-                        title="Total BiS issues: missing or wrong enchants + missing or wrong gem slots, vs the SimulationCraft profile for class+spec">
+                    <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink text-center" @click="sortBy('bis')">
                         BiS <span class="text-muted" x-text="sortIcon('bis')"></span>
+                        <x-column-explainer-toggle col="bis" />
                     </th>
                     <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('lastseen')">
                         Last seen <span class="text-muted" x-text="sortIcon('lastseen')"></span>
+                        <x-column-explainer-toggle col="lastseen" />
                     </th>
-                    <th class="px-2 py-2 font-medium">Alt of</th>
-                    <th class="px-2 py-2 font-medium">Flags</th>
-                    <th class="px-2 py-2 font-medium text-right">Links</th>
+                    <th class="px-2 py-2 font-medium">
+                        Alt of
+                        <x-column-explainer-toggle col="altof" />
+                    </th>
+                    <th class="px-2 py-2 font-medium">
+                        Flags
+                        <x-column-explainer-toggle col="flags" />
+                    </th>
+                    <th class="px-2 py-2 font-medium text-right">
+                        Links
+                        <x-column-explainer-toggle col="links" />
+                    </th>
                     @can('roster.kick')
-                        <th class="px-4 py-2 font-medium text-right">Actions</th>
+                        <th class="px-4 py-2 font-medium text-right">
+                            Actions
+                            <x-column-explainer-toggle col="actions" />
+                        </th>
                     @endcan
                 </tr>
             </thead>
             <tbody>
+                @php $colspan = auth()->user()?->can('roster.kick') ? 11 : 10; @endphp
+                <tr x-show="openCol !== null" x-cloak class="border-t border-line bg-bg/40">
+                    <td colspan="{{ $colspan }}"
+                        class="px-4 py-3 text-xs text-muted leading-relaxed normal-case tracking-normal font-normal">
+                        <template x-if="openCol === 'name'">
+                            <div>
+                                <span class="block text-ink font-semibold mb-1">Name</span>
+                                Character name, coloured by class. Click the name to open the character page.
+                                In Group alts mode, mains with linked alts show an expand caret and a "+ N alts"
+                                marker; expanding lists each alt with its own last-seen.
+                            </div>
+                        </template>
+                        <template x-if="openCol === 'class'">
+                            <div>
+                                <span class="block text-ink font-semibold mb-1">Class</span>
+                                WoW class as recorded by GRM. Click the header to sort alphabetically.
+                            </div>
+                        </template>
+                        <template x-if="openCol === 'rank'">
+                            <div>
+                                <span class="block text-ink font-semibold mb-1">Rank</span>
+                                In-game guild rank from GRM. Sort order matches the in-game ranking,
+                                so Guild Master sorts first and the lowest rank sorts last.
+                            </div>
+                        </template>
+                        <template x-if="openCol === 'ilvl'">
+                            <div>
+                                <span class="block text-ink font-semibold mb-1">ilvl</span>
+                                Equipped item level. Falls back through raider.io, GRM and the WCL
+                                fight roster, whichever number is freshest. Hover the value to see
+                                which source it came from.
+                            </div>
+                        </template>
+                        <template x-if="openCol === 'rio'">
+                            <div>
+                                <span class="block text-ink font-semibold mb-1">RIO</span>
+                                Highest mythic+ rating from raider.io across all dungeons in the
+                                current season. Updates whenever a raider.io scrape runs.
+                            </div>
+                        </template>
+                        <template x-if="openCol === 'bis'">
+                            <div>
+                                <span class="block text-ink font-semibold mb-1">BiS</span>
+                                Best-in-slot issues against the SimulationCraft profile for this
+                                character's class and spec: missing or wrong enchants, plus missing
+                                or wrong gem slots. OK is none, amber is 1 to 3, red is 4 or more.
+                                Hover the number for the breakdown.
+                            </div>
+                        </template>
+                        <template x-if="openCol === 'lastseen'">
+                            <div>
+                                <span class="block text-ink font-semibold mb-1">Last seen</span>
+                                Last in-game login from GRM's per-character timestamp. Anything past
+                                90 days is highlighted in red and lines up with the inactive_90d chip.
+                                "never" means GRM has the character but no login on record yet.
+                            </div>
+                        </template>
+                        <template x-if="openCol === 'altof'">
+                            <div>
+                                <span class="block text-ink font-semibold mb-1">Alt of</span>
+                                Main this character is linked under, taken from GRM officer notes.
+                                Manage groupings in the Alt groups widget on the General page.
+                            </div>
+                        </template>
+                        <template x-if="openCol === 'flags'">
+                            <div>
+                                <span class="block text-ink font-semibold mb-1">Flags</span>
+                                Suggestions raised by the ranking rules: promote, demote, kick,
+                                banned. Same source as the Action queue chip; an empty cell means
+                                no rule has fired on this character.
+                            </div>
+                        </template>
+                        <template x-if="openCol === 'links'">
+                            <div>
+                                <span class="block text-ink font-semibold mb-1">Links</span>
+                                External profile links: Warcraft Logs, raider.io and the in-game
+                                armoury. Each opens in a new tab.
+                            </div>
+                        </template>
+                        <template x-if="openCol === 'actions'">
+                            <div>
+                                <span class="block text-ink font-semibold mb-1">Actions</span>
+                                Builds a /gremove macro for this character plus any linked alts.
+                                It does not kick anyone by itself; paste the macro into in-game
+                                chat to actually remove them.
+                            </div>
+                        </template>
+                    </td>
+                </tr>
                 @foreach ($rows as $row)
                     @php
                         $m = $row['member'];

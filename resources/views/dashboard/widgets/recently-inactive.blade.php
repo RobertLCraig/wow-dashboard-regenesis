@@ -7,38 +7,66 @@
     empty="No members inactive over 30 days."
 >
     <x-slot:header>
-        <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
-            <span>Recently inactive</span>
-            <x-explainer-toggle />
+        <h2 class="text-sm font-semibold uppercase tracking-wider">
+            Recently inactive
         </h2>
     </x-slot:header>
 
-    <x-slot:explainer>
-        <x-explainer-panel title="Recently inactive">
-            Active members who have crossed the 30-day no-login threshold but are not
-            yet in the action queue. Sort by last seen to find the longest-gone, or by
-            rank to spot officers and raiders that should be demoted or moved into an
-            alt group. Anything past 90 days is highlighted in red. Last-online comes
-            from GRM's per-character timestamp.
-        </x-explainer-panel>
-    </x-slot:explainer>
-
-    <table class="w-full text-sm clarity-tabular">
+    <table class="w-full text-sm clarity-tabular" x-data="{ openCol: null }">
         <thead>
             <tr class="text-left text-xs uppercase tracking-wider text-muted">
                 <th class="px-4 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('name')">
                     Name <span class="text-muted" x-text="sortIcon('name')"></span>
+                    <x-column-explainer-toggle col="name" />
                 </th>
                 <th class="px-4 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('rank')">
                     Rank <span class="text-muted" x-text="sortIcon('rank')"></span>
+                    <x-column-explainer-toggle col="rank" />
                 </th>
                 <th class="px-4 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('lastseen')">
                     Last seen <span class="text-muted" x-text="sortIcon('lastseen')"></span>
+                    <x-column-explainer-toggle col="lastseen" />
                 </th>
-                <th class="px-4 py-2 font-medium text-right">Links</th>
+                <th class="px-4 py-2 font-medium text-right">
+                    Links
+                    <x-column-explainer-toggle col="links" />
+                </th>
             </tr>
         </thead>
         <tbody>
+            <tr x-show="openCol !== null" x-cloak class="border-t border-line bg-bg/40">
+                <td colspan="4" class="px-4 py-3 text-xs text-muted leading-relaxed normal-case tracking-normal font-normal">
+                    <template x-if="openCol === 'name'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Name</span>
+                            Character name, coloured by class. These are active members who have crossed
+                            the 30-day no-login threshold but are not yet in the action queue. Click the
+                            name to open the character page.
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'rank'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Rank</span>
+                            In-game guild rank from GRM. Sort by rank to spot officers and raiders who
+                            should be demoted or moved into an alt group.
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'lastseen'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Last seen</span>
+                            Days since last in-game login from GRM's per-character timestamp. Anything
+                            past 90 days is highlighted in red. Sort here to find the longest-gone first.
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'links'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Links</span>
+                            External profile links: Warcraft Logs, raider.io and the in-game armoury.
+                            Each opens in a new tab.
+                        </div>
+                    </template>
+                </td>
+            </tr>
             @foreach ($inactive as $m)
                 @php
                     $cls = 'cls-' . strtoupper($m->class ?? '');

@@ -19,37 +19,53 @@
     empty="No M+ data yet (or no one has run a key this week)."
 >
     <x-slot:header>
-        <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
-            <span>Mythic+ this week</span>
-            <x-explainer-toggle />
-        </h2>
+        <h2 class="text-sm font-semibold uppercase tracking-wider">Mythic+ this week</h2>
     </x-slot:header>
 
-    <x-slot:explainer>
-        <x-explainer-panel title="Mythic+ this week">
-            Top 20 keystone runs this reset, sorted by key level. Each row is the
-            highest key that character has timed (or completed) since weekly reset.
-            Sourced from wowaudit's dungeons_done history. Useful for finding M+ groups,
-            picking trial keys to push, and spotting raiders who haven't done their
-            weekly chores. +20 or above goes amber, +15-19 green.
-        </x-explainer-panel>
-    </x-slot:explainer>
-
-    <table class="w-full text-sm clarity-tabular">
+    <table class="w-full text-sm clarity-tabular" x-data="{ openCol: null }">
         <thead>
             <tr class="text-left text-xs uppercase tracking-wider text-muted">
                 <th class="px-4 py-2 w-8 text-right cursor-pointer select-none hover:text-ink" @click="sortBy('rank')">
                     # <span class="text-muted" x-text="sortIcon('rank')"></span>
+                    <x-column-explainer-toggle col="rank" />
                 </th>
                 <th class="px-2 py-2 cursor-pointer select-none hover:text-ink" @click="sortBy('character')">
                     Character <span class="text-muted" x-text="sortIcon('character')"></span>
+                    <x-column-explainer-toggle col="character" />
                 </th>
                 <th class="px-4 py-2 text-right cursor-pointer select-none hover:text-ink" @click="sortBy('key')">
                     Key <span class="text-muted" x-text="sortIcon('key')"></span>
+                    <x-column-explainer-toggle col="key" />
                 </th>
             </tr>
         </thead>
         <tbody>
+            <tr x-show="openCol !== null" x-cloak class="border-t border-line bg-bg/40">
+                <td colspan="3" class="px-4 py-3 text-xs text-muted leading-relaxed normal-case tracking-normal font-normal">
+                    <template x-if="openCol === 'rank'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">#</span>
+                            Position in this week's keystone leaderboard, top 20 only. Resets when
+                            the next wowaudit sync runs after weekly reset.
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'character'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Character</span>
+                            Character coloured by class. Useful for finding M+ groups, picking trial
+                            keys to push, and spotting raiders who haven't done their weekly chores.
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'key'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Key</span>
+                            Highest keystone this character has timed or completed since weekly reset,
+                            sourced from wowaudit's dungeons_done history. +20 or above goes amber,
+                            +15 to +19 green.
+                        </div>
+                    </template>
+                </td>
+            </tr>
             @foreach ($rows as $i => $snap)
                 @php
                     $cls = 'cls-' . strtoupper($snap->member->class ?? '');

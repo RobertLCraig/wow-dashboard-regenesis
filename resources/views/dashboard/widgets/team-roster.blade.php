@@ -15,34 +15,91 @@
     :empty="$emptyMessage"
 >
     <x-slot:header>
-        <h2 class="text-sm font-semibold uppercase tracking-wider">
-            Roster
-            <span class="text-muted text-xs font-normal normal-case ml-2">
+        <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+            <span>Roster</span>
+            <span class="text-muted text-xs font-normal normal-case">
                 {{ $roster['rows']->count() }} {{ \Illuminate\Support\Str::plural('member', $roster['rows']->count()) }}
             </span>
         </h2>
     </x-slot:header>
 
-    <table class="w-full text-sm clarity-tabular">
+    <table class="w-full text-sm clarity-tabular" x-data="{ openCol: null }">
         <thead>
             <tr class="text-left text-xs uppercase tracking-wider text-muted">
                 <th class="px-4 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('character')">
                     Character <span class="text-muted" x-text="sortIcon('character')"></span>
+                    <x-column-explainer-toggle col="character" />
                 </th>
                 <th class="px-2 py-2 font-medium text-right cursor-pointer select-none hover:text-ink" @click="sortBy('ilvl')">
                     ilvl <span class="text-muted" x-text="sortIcon('ilvl')"></span>
+                    <x-column-explainer-toggle col="ilvl" />
                 </th>
                 <th class="px-2 py-2 font-medium text-right cursor-pointer select-none hover:text-ink" @click="sortBy('rio')">
                     RIO <span class="text-muted" x-text="sortIcon('rio')"></span>
+                    <x-column-explainer-toggle col="rio" />
                 </th>
                 <th class="px-2 py-2 font-medium text-right cursor-pointer select-none hover:text-ink" @click="sortBy('key')">
                     Key <span class="text-muted" x-text="sortIcon('key')"></span>
+                    <x-column-explainer-toggle col="key" />
                 </th>
-                <th class="px-2 py-2 font-medium">Raid</th>
-                <th class="px-4 py-2 font-medium text-right">Links</th>
+                <th class="px-2 py-2 font-medium">
+                    Raid
+                    <x-column-explainer-toggle col="raid" />
+                </th>
+                <th class="px-4 py-2 font-medium text-right">
+                    Links
+                    <x-column-explainer-toggle col="links" />
+                </th>
             </tr>
         </thead>
         <tbody>
+            <tr x-show="openCol !== null" x-cloak class="border-t border-line bg-bg/40">
+                <td colspan="6" class="px-4 py-3 text-xs text-muted leading-relaxed normal-case tracking-normal font-normal">
+                    <template x-if="openCol === 'character'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Character</span>
+                            Active members on this team, coloured by class. Trial members carry a
+                            yellow Trial badge; everyone else is on the main team roster.
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'ilvl'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">ilvl</span>
+                            Equipped item level from the latest raider.io snapshot. A missing value
+                            usually means we haven't scraped that character yet rather than that
+                            they're inactive.
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'rio'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">RIO</span>
+                            Mythic+ rating from the latest raider.io snapshot, highest score across
+                            all dungeons in the current season.
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'key'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Key</span>
+                            Highest keystone this character has done this week, from raider.io.
+                            Combined with the dungeon shorthand if known.
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'raid'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Raid</span>
+                            Best raid summary string from raider.io for the current tier, e.g.
+                            "8/8H 4/8M". A dash means no progression recorded yet.
+                        </div>
+                    </template>
+                    <template x-if="openCol === 'links'">
+                        <div>
+                            <span class="block text-ink font-semibold mb-1">Links</span>
+                            External profile links: Warcraft Logs, raider.io and the in-game
+                            armoury. Each opens in a new tab.
+                        </div>
+                    </template>
+                </td>
+            </tr>
             @foreach ($roster['rows'] as $row)
                 @php
                     $m = $row['member'];

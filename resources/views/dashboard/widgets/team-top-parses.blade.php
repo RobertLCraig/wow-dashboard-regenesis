@@ -20,19 +20,94 @@
         </div>
     @else
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="w-full text-sm" x-data="{ openCol: null }">
                 <thead>
                     <tr class="text-left text-xs uppercase tracking-wider text-muted">
-                        <th class="px-4 py-2 w-8 text-right">#</th>
-                        <th class="px-2 py-2">Player</th>
-                        <th class="px-2 py-2 text-right">Parse</th>
-                        <th class="px-2 py-2">Boss</th>
-                        <th class="px-2 py-2">Diff</th>
-                        <th class="px-2 py-2 text-right">Per second</th>
-                        <th class="px-4 py-2 text-right">When</th>
+                        <th class="px-4 py-2 w-8 text-right">
+                            #
+                            <x-column-explainer-toggle col="rank" />
+                        </th>
+                        <th class="px-2 py-2">
+                            Player
+                            <x-column-explainer-toggle col="player" />
+                        </th>
+                        <th class="px-2 py-2 text-right">
+                            Parse
+                            <x-column-explainer-toggle col="parse" />
+                        </th>
+                        <th class="px-2 py-2">
+                            Boss
+                            <x-column-explainer-toggle col="boss" />
+                        </th>
+                        <th class="px-2 py-2">
+                            Diff
+                            <x-column-explainer-toggle col="diff" />
+                        </th>
+                        <th class="px-2 py-2 text-right">
+                            Per second
+                            <x-column-explainer-toggle col="per_second" />
+                        </th>
+                        <th class="px-4 py-2 text-right">
+                            When
+                            <x-column-explainer-toggle col="when" />
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
+                    <tr x-show="openCol !== null" x-cloak class="border-t border-line bg-bg/40">
+                        <td colspan="7" class="px-4 py-3 text-xs text-muted leading-relaxed normal-case tracking-normal font-normal">
+                            <template x-if="openCol === 'rank'">
+                                <div>
+                                    <span class="block text-ink font-semibold mb-1">#</span>
+                                    Rank within the last 14 days; the member with the highest parse
+                                    percentile is first. Members with no ranked parse in the window
+                                    are dropped, so an empty list usually means no recent WCL sync
+                                    rather than a team of bad players.
+                                </div>
+                            </template>
+                            <template x-if="openCol === 'player'">
+                                <div>
+                                    <span class="block text-ink font-semibold mb-1">Player</span>
+                                    Character coloured by class. Click to open the dashboard
+                                    character page.
+                                </div>
+                            </template>
+                            <template x-if="openCol === 'parse'">
+                                <div>
+                                    <span class="block text-ink font-semibold mb-1">Parse</span>
+                                    Best WCL parse percentile this character has logged in the last
+                                    14 days. 95+ is gold, 75+ is purple, 50 is the median.
+                                </div>
+                            </template>
+                            <template x-if="openCol === 'boss'">
+                                <div>
+                                    <span class="block text-ink font-semibold mb-1">Boss</span>
+                                    Boss the parse came from. Click to open the dashboard view of
+                                    the WCL report.
+                                </div>
+                            </template>
+                            <template x-if="openCol === 'diff'">
+                                <div>
+                                    <span class="block text-ink font-semibold mb-1">Diff</span>
+                                    WCL difficulty (Normal, Heroic, Mythic, etc.).
+                                </div>
+                            </template>
+                            <template x-if="openCol === 'per_second'">
+                                <div>
+                                    <span class="block text-ink font-semibold mb-1">Per second</span>
+                                    DPS for damage dealers and HPS for healers, averaged over the
+                                    full pull duration.
+                                </div>
+                            </template>
+                            <template x-if="openCol === 'when'">
+                                <div>
+                                    <span class="block text-ink font-semibold mb-1">When</span>
+                                    When the pull happened, relative to now. To pick up newer logs,
+                                    run a WCL sync from /admin/sync.
+                                </div>
+                            </template>
+                        </td>
+                    </tr>
                     @foreach ($topParses as $i => $row)
                         @php
                             $m = $row['member'];

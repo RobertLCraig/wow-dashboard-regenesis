@@ -11,8 +11,25 @@
     };
 @endphp
 
-<section class="bg-panel border border-line rounded-lg p-5">
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm clarity-keep-grid">
+<section class="bg-panel border border-line rounded-lg overflow-hidden" x-data="{ explain: false }">
+    <header class="px-5 pt-4 pb-2 flex items-center justify-between">
+        <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+            <span>Team summary</span>
+            <x-explainer-toggle />
+        </h2>
+    </header>
+    <x-explainer-panel title="Team summary">
+        Headline numbers for this team. Members is the active GRM-derived count; the
+        sub-line shows how many of those have been picked up by raider.io. Best
+        progression is the highest raid summary string anyone on the team has logged
+        for the current tier, with the instance name underneath. Avg ilvl is the team
+        mean across raider.io snapshots, blank when nobody has been scraped yet. Top
+        RIO and the top weekly key are the single best values on the team, not
+        averages, so they tell you the ceiling rather than the floor. All raider.io
+        values get stale if no scrape has run recently; the Roster widget below has
+        the captured-at timestamp.
+    </x-explainer-panel>
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm clarity-keep-grid p-5 pt-3">
         <div>
             <div class="text-xs uppercase tracking-wider text-muted">Members</div>
             <div class="text-2xl font-semibold mt-0.5">{{ $raidSummary['count'] }}</div>
