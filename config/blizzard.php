@@ -58,6 +58,31 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Dynamic namespace (region-derived by default)
+    |--------------------------------------------------------------------------
+    |
+    | Used for guild data and frequently-changing game data
+    | (/data/wow/guild/..., /data/wow/mythic-keystone/...). Format is
+    | `dynamic-{region}`, e.g. `dynamic-eu`. Empty means derive from
+    | region.
+    */
+    'dynamic_namespace' => env('BLIZZARD_DYNAMIC_NAMESPACE', ''),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Guild identity (for the guild roster endpoint)
+    |--------------------------------------------------------------------------
+    |
+    | The /data/wow/guild/{realmSlug}/{nameSlug}/roster call needs both
+    | parts in slug form: lowercase, hyphenated (e.g. realm
+    | `twisting-nether`, guild name `regenesis`). Empty values disable
+    | the guild roster pull cleanly.
+    */
+    'guild_realm_slug' => env('BLIZZARD_GUILD_REALM_SLUG', 'silvermoon'),
+    'guild_name_slug' => env('BLIZZARD_GUILD_NAME_SLUG', 'regenesis'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Locale
     |--------------------------------------------------------------------------
     |

@@ -7,19 +7,33 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 /**
- * Thin wrapper around Blizzard's WoW Profile API. Unlike Raider.IO this
- * one needs OAuth: a client_credentials token (good for ~24h) is fetched
- * on first use and cached, then attached as a bearer to every profile
- * request along with the region-specific `Battlenet-Namespace` header.
+ * Thin wrapper around Blizzard's WoW APIs. OAuth is client_credentials
+ * (good for ~24h, fetched on first use and cached) and attached as a
+ * bearer to every request along with the appropriate `Battlenet-Namespace`
+ * header. Battle.net partitions data by namespace:
+ *
+ *   profile-{region}   character profile + sub-resources
+ *                      (/profile/wow/character/...)
+ *   dynamic-{region}   guild data + frequently-changing game data
+ *                      (/data/wow/guild/..., /data/wow/mythic-keystone/...)
+ *   static-{region}    rarely-changing reference data (item details,
+ *                      icons, journal/encounter info)
  *
  * Endpoint inventory:
  *   POST  https://oauth.battle.net/token
  *     grant_type=client_credentials, HTTP Basic id:secret. Returns
  *     { access_token, expires_in, ... }.
  *   GET   /profile/wow/character/{realm-slug}/{character-name-lower}
- *     Returns the character's profile summary (level, faction, average +
- *     equipped item level, last_login_timestamp, active_spec, etc).
- *     404 for unknown / never-logged-in chars.
+ *     Profile summary (level, faction, equipped/average ilvl,
+ *     last_login_timestamp, active spec). 404 = unknown character.
+ *   GET   /profile/wow/character/{realm-slug}/{character-name-lower}/status
+ *     { id, is_valid }. Cheap canary for "this character still exists".
+ *   GET   /profile/wow/character/{realm-slug}/{character-name-lower}/equipment
+ *     Per-piece gear with enchants, gems, sockets, bonus IDs.
+ *   GET   /data/wow/guild/{realm-slug}/{name-slug}/roster
+ *     Authoritative guild roster: name, realm, level, race, class,
+ *     rank index, character ID. No notes, no join dates - GRM still
+ *     owns those.
  */
 class BlizzardClient
 {
@@ -29,6 +43,7 @@ class BlizzardClient
         private readonly string $apiBaseUrl,
         private readonly string $oauthTokenUrl,
         private readonly string $namespace,
+        private readonly string $dynamicNamespace,
         private readonly string $locale = 'en_GB',
         private readonly int $timeoutSeconds = 10,
         private readonly int $tokenCacheTtlSeconds = 82800,
@@ -39,6 +54,7 @@ class BlizzardClient
         $region = strtolower((string) config('blizzard.region', 'eu'));
         $apiBase = (string) (config('blizzard.api_base_url') ?: "https://{$region}.api.blizzard.com");
         $namespace = (string) (config('blizzard.namespace') ?: "profile-{$region}");
+        $dynamicNamespace = (string) (config('blizzard.dynamic_namespace') ?: "dynamic-{$region}");
 
         return new self(
             clientId: (string) config('blizzard.client_id', ''),
@@ -46,6 +62,7 @@ class BlizzardClient
             apiBaseUrl: rtrim($apiBase, '/'),
             oauthTokenUrl: (string) config('blizzard.oauth_token_url', 'https://oauth.battle.net/token'),
             namespace: $namespace,
+            dynamicNamespace: $dynamicNamespace,
             locale: (string) config('blizzard.locale', 'en_GB'),
             timeoutSeconds: (int) config('blizzard.timeout', 10),
             tokenCacheTtlSeconds: (int) config('blizzard.token_cache_ttl', 82800),
@@ -71,29 +88,94 @@ class BlizzardClient
     }
 
     /**
-     * Pre-computed url + headers + query for one character. The importer
-     * uses this to dispatch many fetches through Http::pool() without
-     * reaching into client internals.
+     * Pre-computed url + headers + query for one character profile.
+     * The importer uses this to dispatch many fetches through Http::pool()
+     * without reaching into client internals.
      *
      * @return array{url: string, headers: array<string, string>, query: array<string, string>}
      */
     public function profileEndpoint(string $realmSlug, string $name): array
     {
         return [
-            'url' => sprintf(
-                '%s/profile/wow/character/%s/%s',
-                $this->apiBaseUrl,
-                rawurlencode($realmSlug),
-                rawurlencode(mb_strtolower($name)),
-            ),
-            'headers' => [
-                'Authorization' => 'Bearer ' . $this->accessToken(),
-                'Battlenet-Namespace' => $this->namespace,
-            ],
-            'query' => [
-                'locale' => $this->locale,
-            ],
+            'url' => $this->characterUrl($realmSlug, $name),
+            'headers' => $this->profileHeaders(),
+            'query' => ['locale' => $this->locale],
         ];
+    }
+
+    /**
+     * Status sub-resource. Returns { id, is_valid } - tiny payload, ideal
+     * for a periodic canary to flag deleted/transferred characters
+     * without re-pulling the full profile blob.
+     */
+    public function status(string $realmSlug, string $name): Response
+    {
+        ['url' => $url, 'headers' => $headers, 'query' => $query] = $this->statusEndpoint($realmSlug, $name);
+        return Http::acceptJson()
+            ->timeout($this->timeoutSeconds)
+            ->withHeaders($headers)
+            ->get($url, $query);
+    }
+
+    /**
+     * @return array{url: string, headers: array<string, string>, query: array<string, string>}
+     */
+    public function statusEndpoint(string $realmSlug, string $name): array
+    {
+        return [
+            'url' => $this->characterUrl($realmSlug, $name) . '/status',
+            'headers' => $this->profileHeaders(),
+            'query' => ['locale' => $this->locale],
+        ];
+    }
+
+    /**
+     * Equipment sub-resource. Returns the equipped_items array with one
+     * entry per slot, each carrying item id, slot, enchantments, sockets,
+     * bonus list, item level, and inventory_type. The pre-raid readiness
+     * checks read this for "missing enchant / empty socket" signals.
+     */
+    public function equipment(string $realmSlug, string $name): Response
+    {
+        ['url' => $url, 'headers' => $headers, 'query' => $query] = $this->equipmentEndpoint($realmSlug, $name);
+        return Http::acceptJson()
+            ->timeout($this->timeoutSeconds)
+            ->withHeaders($headers)
+            ->get($url, $query);
+    }
+
+    /**
+     * @return array{url: string, headers: array<string, string>, query: array<string, string>}
+     */
+    public function equipmentEndpoint(string $realmSlug, string $name): array
+    {
+        return [
+            'url' => $this->characterUrl($realmSlug, $name) . '/equipment',
+            'headers' => $this->profileHeaders(),
+            'query' => ['locale' => $this->locale],
+        ];
+    }
+
+    /**
+     * Guild roster. Uses dynamic-{region} (not profile-{region}). The
+     * payload is { guild: {...}, members: [{ character: { name, id,
+     * realm: { slug, name } }, rank: int }, ...] }. One call covers
+     * every member, no fan-out needed.
+     */
+    public function guildRoster(string $realmSlug, string $guildNameSlug): Response
+    {
+        return Http::acceptJson()
+            ->timeout($this->timeoutSeconds)
+            ->withHeaders($this->dynamicHeaders())
+            ->get(
+                sprintf(
+                    '%s/data/wow/guild/%s/%s/roster',
+                    $this->apiBaseUrl,
+                    rawurlencode($realmSlug),
+                    rawurlencode($guildNameSlug),
+                ),
+                ['locale' => $this->locale],
+            );
     }
 
     /** Forget the cached token, e.g. after a 401 from a profile call. */
@@ -105,6 +187,34 @@ class BlizzardClient
     public function timeoutSeconds(): int
     {
         return $this->timeoutSeconds;
+    }
+
+    private function characterUrl(string $realmSlug, string $name): string
+    {
+        return sprintf(
+            '%s/profile/wow/character/%s/%s',
+            $this->apiBaseUrl,
+            rawurlencode($realmSlug),
+            rawurlencode(mb_strtolower($name)),
+        );
+    }
+
+    /** @return array<string, string> */
+    private function profileHeaders(): array
+    {
+        return [
+            'Authorization' => 'Bearer ' . $this->accessToken(),
+            'Battlenet-Namespace' => $this->namespace,
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function dynamicHeaders(): array
+    {
+        return [
+            'Authorization' => 'Bearer ' . $this->accessToken(),
+            'Battlenet-Namespace' => $this->dynamicNamespace,
+        ];
     }
 
     private function accessToken(): string

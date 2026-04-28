@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Services\Blizzard\BlizzardClient;
 use App\Services\Blizzard\BlizzardSnapshotImporter;
+use App\Services\Blizzard\GuildRosterImporter;
 use App\Services\Sync\SyncStatus;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -46,12 +47,44 @@ class SyncBlizzardSnapshotJob implements ShouldQueue
         @set_time_limit(180);
 
         try {
-            $result = (new BlizzardSnapshotImporter(
-                client: BlizzardClient::fromConfig(),
+            $client = BlizzardClient::fromConfig();
+
+            // Roster first: it creates new member rows and stamps
+            // blizzard_character_id + realm_slug, which the profile
+            // importer keys off when picking who to fetch. Skipped
+            // cleanly when guild slugs are unconfigured.
+            $rosterRealmSlug = (string) config('blizzard.guild_realm_slug', '');
+            $rosterNameSlug = (string) config('blizzard.guild_name_slug', '');
+            $rosterResult = null;
+            if ($rosterRealmSlug !== '' && $rosterNameSlug !== '') {
+                $rosterResult = (new GuildRosterImporter(
+                    client: $client,
+                    guildKey: $this->guildKey,
+                    guildRealmSlug: $rosterRealmSlug,
+                    guildNameSlug: $rosterNameSlug,
+                ))->pull();
+            }
+
+            $profileResult = (new BlizzardSnapshotImporter(
+                client: $client,
                 guildKey: $this->guildKey,
                 requestDelayMs: (int) config('blizzard.request_delay_ms', 50),
                 concurrency: (int) config('blizzard.sync_concurrency', 10),
             ))->pull();
+
+            // Flat keys so the sync dashboard's generic key/value
+            // renderer surfaces them. The view skips array values.
+            $result = [
+                'roster_total' => $rosterResult['total_in_roster'] ?? null,
+                'roster_inserted' => $rosterResult['inserted'] ?? null,
+                'roster_updated' => $rosterResult['updated'] ?? null,
+                'roster_not_seen' => $rosterResult['not_seen_this_pull'] ?? null,
+                'profile_snapshot_id' => $profileResult['snapshot_id'] ?? null,
+                'profile_members_queried' => $profileResult['members_queried'] ?? null,
+                'profile_matched' => $profileResult['matched'] ?? null,
+                'profile_missing' => $profileResult['missing'] ?? null,
+                'profile_errored' => $profileResult['errored'] ?? null,
+            ];
 
             SyncStatus::set(SyncStatus::SOURCE_BLIZZARD, [
                 'status' => SyncStatus::DONE,

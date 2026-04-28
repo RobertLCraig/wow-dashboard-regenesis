@@ -12,6 +12,7 @@ beforeEach(function () {
         'blizzard.api_base_url' => 'https://eu.api.blizzard.test',
         'blizzard.oauth_token_url' => 'https://oauth.battle.test/token',
         'blizzard.namespace' => 'profile-eu',
+        'blizzard.dynamic_namespace' => 'dynamic-eu',
         'blizzard.locale' => 'en_GB',
         'blizzard.timeout' => 5,
         'blizzard.token_cache_ttl' => 60,
@@ -24,6 +25,7 @@ it('derives the api base and namespace from region when overrides are blank', fu
         'blizzard.region' => 'us',
         'blizzard.api_base_url' => '',
         'blizzard.namespace' => '',
+        'blizzard.dynamic_namespace' => '',
     ]);
 
     Http::fake([
@@ -157,4 +159,44 @@ it('isConfigured tracks whether credentials are present', function () {
 
     config(['blizzard.client_id' => 'x', 'blizzard.client_secret' => '']);
     expect(BlizzardClient::fromConfig()->isConfigured())->toBeFalse();
+});
+
+it('hits the status sub-resource with the profile namespace', function () {
+    Http::fake([
+        'oauth.battle.test/token' => Http::response(['access_token' => 'tok', 'expires_in' => 86399], 200),
+        'eu.api.blizzard.test/*' => Http::response(['id' => 1, 'is_valid' => true], 200),
+    ]);
+
+    BlizzardClient::fromConfig()->status('silvermoon', 'Sheday');
+
+    Http::assertSent(fn ($req) =>
+        str_contains($req->url(), '/profile/wow/character/silvermoon/sheday/status')
+        && $req->hasHeader('Battlenet-Namespace', 'profile-eu'));
+});
+
+it('hits the equipment sub-resource with the profile namespace', function () {
+    Http::fake([
+        'oauth.battle.test/token' => Http::response(['access_token' => 'tok', 'expires_in' => 86399], 200),
+        'eu.api.blizzard.test/*' => Http::response(['equipped_items' => []], 200),
+    ]);
+
+    BlizzardClient::fromConfig()->equipment('silvermoon', 'Sheday');
+
+    Http::assertSent(fn ($req) =>
+        str_contains($req->url(), '/profile/wow/character/silvermoon/sheday/equipment')
+        && $req->hasHeader('Battlenet-Namespace', 'profile-eu'));
+});
+
+it('hits the guild roster endpoint with the dynamic namespace', function () {
+    Http::fake([
+        'oauth.battle.test/token' => Http::response(['access_token' => 'tok', 'expires_in' => 86399], 200),
+        'eu.api.blizzard.test/*' => Http::response(['guild' => [], 'members' => []], 200),
+    ]);
+
+    BlizzardClient::fromConfig()->guildRoster('silvermoon', 'regenesis');
+
+    Http::assertSent(fn ($req) =>
+        str_contains($req->url(), '/data/wow/guild/silvermoon/regenesis/roster')
+        && $req->hasHeader('Battlenet-Namespace', 'dynamic-eu')
+        && $req->hasHeader('Authorization', 'Bearer tok'));
 });

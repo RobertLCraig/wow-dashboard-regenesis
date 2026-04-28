@@ -78,11 +78,11 @@ class SyncDashboardController extends Controller
             ],
             SyncStatus::SOURCE_BLIZZARD => [
                 'label' => 'Battle.net (Blizzard)',
-                'description' => 'Authoritative gear / ilvl source. Profile data refreshes within minutes of a character logging out, so this beats Raider.IO for parked-alt staleness. Requires BLIZZARD_CLIENT_ID + BLIZZARD_CLIENT_SECRET.',
+                'description' => 'Authoritative source for both guild roster (who is in the guild + character IDs) and per-character profile (gear, ilvl). One click runs both: roster first to upsert new members, then profile fan-out for ilvl. GRM still owns notes, alts, join dates and officer flags.',
                 'last_seen_at' => $bnet?->captured_at,
                 'last_summary' => $bnet ? "{$bnet->member_count} members" : null,
                 'state' => SyncStatus::get(SyncStatus::SOURCE_BLIZZARD),
-                'cadence' => 'Pull: twice daily (07:00 + 18:00 UK).',
+                'cadence' => 'Pull: roster daily 06:45 UK, profile twice-daily (07:00 + 18:00 UK). Manual button runs both.',
                 'has_button' => true,
                 'has_upload' => false,
             ],

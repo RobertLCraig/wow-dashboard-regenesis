@@ -48,6 +48,18 @@ Schedule::command('blizzard:pull')
     ->onOneServer()
     ->withoutOverlapping();
 
+// Daily Blizzard guild roster pull. Authoritative "who is in the guild
+// right now" source - one HTTP call covers the whole roster, no
+// fan-out. Hybrid model: this owns membership, GRM still owns notes /
+// alts / join dates / officer flags. Daily is plenty (Blizzard's
+// roster cache lags by minutes anyway). Short-circuits cleanly when
+// credentials or guild slugs are unset.
+Schedule::command('blizzard:pull-roster')
+    ->dailyAt('06:45')
+    ->timezone(config('raidhelper.timezone', 'Europe/London'))
+    ->onOneServer()
+    ->withoutOverlapping();
+
 // Daily pull of every Raid-Helper event into the local cache. Webhooks
 // keep us in sync in real-time; this is the safety net that catches any
 // missed deliveries and any events created before the webhook was wired.

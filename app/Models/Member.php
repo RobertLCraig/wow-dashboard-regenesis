@@ -27,6 +27,7 @@ class Member extends Model
             'banned_at' => 'datetime',
             'first_seen_at' => 'datetime',
             'last_seen_at' => 'datetime',
+            'last_blizzard_seen_at' => 'datetime',
             'is_online' => 'boolean',
             'is_mobile' => 'boolean',
             'join_date_unknown' => 'boolean',
@@ -35,6 +36,7 @@ class Member extends Model
             'recommend_demote' => 'boolean',
             'recommend_kick' => 'boolean',
             'recommend_special' => 'boolean',
+            'is_valid_at_blizzard' => 'boolean',
         ];
     }
 
