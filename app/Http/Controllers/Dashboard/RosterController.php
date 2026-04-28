@@ -47,11 +47,24 @@ class RosterController extends Controller
         $grouped = $this->normaliseGrouped($request->query('group'));
         $rows = $this->rows($filter, $grouped);
 
+        // Datalist source for the Add-alt modal: every active member
+        // name in the guild so the officer can link to anyone, not just
+        // rows the current filter happens to surface.
+        $allMemberNames = auth()->user()?->can('roster.kick')
+            ? Member::query()
+                ->forGuild((string) config('grm.guild_key'))
+                ->active()
+                ->orderBy('name')
+                ->pluck('name')
+                ->all()
+            : [];
+
         return view('dashboard.roster', [
             'rows' => $rows,
             'filter' => $filter,
             'grouped' => $grouped,
             'counts' => $this->chipCounts(),
+            'allMemberNames' => $allMemberNames,
         ]);
     }
 

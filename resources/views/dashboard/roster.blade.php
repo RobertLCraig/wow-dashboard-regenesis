@@ -447,8 +447,16 @@
                                         Demote
                                     </button>
                                 @endif
-                                {{-- Set Main and Unlink only make sense for characters that
-                                     are in an alt group. Hidden elsewhere to keep the cell tidy. --}}
+                                {{-- Add-alt link is available on every row: officer types
+                                     a target name and the macro links the two. Set Main and
+                                     Unlink only make sense for characters that are already
+                                     in an alt group. --}}
+                                <button type="button"
+                                        @click="$dispatch('open-add-alt', { id: {{ $m->id }}, name: @js($m->name), class: @js($m->class ?? '') })"
+                                        class="text-[10px] uppercase tracking-wider px-2 py-0.5 mr-1 rounded border border-violet-700/50 text-violet-300 hover:bg-violet-950/30"
+                                        title="Generate /run GRM.AddAlt macro to link {{ $m->name }} with another character">
+                                    +Alt
+                                </button>
                                 @if ($m->alt_group_id !== null)
                                     <button type="button"
                                             @click="$dispatch('open-set-main', { ids: [{{ $m->id }}] })"
@@ -481,10 +489,20 @@
     </x-clarity-table>
 
     @can('roster.kick')
+        {{-- Datalist source for the Add-alt modal. One <option> per active
+             guild member so the browser does the autocomplete natively.
+             Rendered outside the table so it doesn't blow up colspans. --}}
+        <datalist id="roster-member-names">
+            @foreach ($allMemberNames as $name)
+                <option value="{{ $name }}"></option>
+            @endforeach
+        </datalist>
+
         <x-kick-macro-modal />
         <x-set-main-macro-modal />
         <x-rank-macro-modal />
         <x-custom-note-macro-modal />
         <x-unlink-alt-macro-modal />
+        <x-add-alt-macro-modal />
     @endcan
 @endsection

@@ -31,6 +31,9 @@ class MemberAction extends Model
     // Audit-only: officer generated a /run GRM.RemovePlayerFromAltGroup
     // macro to unlink a character from its alt group.
     public const TYPE_UNLINK_ALT_MACRO = 'unlink_alt_macro';
+    // Audit-only: officer generated a /run GRM.AddAlt macro to link
+    // two characters as alts of each other.
+    public const TYPE_ADD_ALT_MACRO = 'add_alt_macro';
 
     public const DECISION_ACCEPTED = 'accepted';
     public const DECISION_DISMISSED = 'dismissed';

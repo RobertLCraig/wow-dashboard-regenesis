@@ -72,10 +72,12 @@ it('inactive_30d filter shows only members past the 30-day cutoff', function () 
     rosterMember('Recent-Silvermoon', ['last_online_at' => now()->subDays(5)]);
     rosterMember('Stale-Silvermoon', ['last_online_at' => now()->subDays(45)]);
 
+    // The character page link only renders for rows; bare names also
+    // appear in the Add-alt datalist for every active member.
     $this->actingAs(rosterOfficer())
         ->get('/roster?filter=inactive_30d')
-        ->assertSee('Stale-Silvermoon')
-        ->assertDontSee('Recent-Silvermoon');
+        ->assertSee('character/Stale-Silvermoon', false)
+        ->assertDontSee('character/Recent-Silvermoon', false);
 });
 
 it('alts filter shows only rows with main_member_id set', function () {
@@ -93,8 +95,8 @@ it('mains filter shows only mains-with-alt-group rows', function () {
     rosterMember('GroupMain-Silvermoon', ['alt_group_id' => $altGroup->id]); // in mains filter
 
     $resp = $this->actingAs(rosterOfficer())->get('/roster?filter=mains');
-    $resp->assertSee('GroupMain-Silvermoon')
-        ->assertDontSee('SoloMain-Silvermoon');
+    $resp->assertSee('character/GroupMain-Silvermoon', false)
+        ->assertDontSee('character/SoloMain-Silvermoon', false);
 });
 
 it('trial filter shows heroic_trial + mythic_trial members', function () {
@@ -103,9 +105,9 @@ it('trial filter shows heroic_trial + mythic_trial members', function () {
     rosterMember('Heroic-Silvermoon', ['team' => TeamMapping::TEAM_HEROIC]);
 
     $resp = $this->actingAs(rosterOfficer())->get('/roster?filter=trial');
-    $resp->assertSee('HTrial-Silvermoon')
-        ->assertSee('MTrial-Silvermoon')
-        ->assertDontSee('Heroic-Silvermoon');
+    $resp->assertSee('character/HTrial-Silvermoon', false)
+        ->assertSee('character/MTrial-Silvermoon', false)
+        ->assertDontSee('character/Heroic-Silvermoon', false);
 });
 
 it('action_queue filter shows recommend_promote/demote/kick members', function () {
@@ -115,10 +117,10 @@ it('action_queue filter shows recommend_promote/demote/kick members', function (
     rosterMember('Plain-Silvermoon');
 
     $resp = $this->actingAs(rosterOfficer())->get('/roster?filter=action_queue');
-    $resp->assertSee('Promote-Silvermoon')
-        ->assertSee('Demote-Silvermoon')
-        ->assertSee('Kick-Silvermoon')
-        ->assertDontSee('Plain-Silvermoon');
+    $resp->assertSee('character/Promote-Silvermoon', false)
+        ->assertSee('character/Demote-Silvermoon', false)
+        ->assertSee('character/Kick-Silvermoon', false)
+        ->assertDontSee('character/Plain-Silvermoon', false);
 });
 
 it('banned filter shows banned members and only banned members', function () {
@@ -126,8 +128,10 @@ it('banned filter shows banned members and only banned members', function () {
     rosterMember('Banned-Silvermoon', ['status' => Member::STATUS_BANNED]);
 
     $resp = $this->actingAs(rosterOfficer())->get('/roster?filter=banned');
-    $resp->assertSee('Banned-Silvermoon')
-        ->assertDontSee('Active-Silvermoon');
+    // Banned filter scopes to non-active, so Active-Silvermoon also
+    // shouldn't appear in the datalist (which is active-only).
+    $resp->assertSee('character/Banned-Silvermoon', false)
+        ->assertDontSee('character/Active-Silvermoon', false);
 });
 
 it('an unknown filter falls back to All', function () {
@@ -494,8 +498,8 @@ it('bis_issues filter shows only members with > 0 issues', function () {
     ]);
 
     $resp = $this->actingAs(rosterOfficer())->get('/roster?filter=bis_issues');
-    $resp->assertSee('Broken-Silvermoon')
-        ->assertDontSee('Clean-Silvermoon');
+    $resp->assertSee('character/Broken-Silvermoon', false)
+        ->assertDontSee('character/Clean-Silvermoon', false);
 });
 
 it('CSV export ignores the group= flag and stays flat', function () {
