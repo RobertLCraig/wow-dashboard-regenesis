@@ -40,7 +40,7 @@ class OfficerOnly
         }
 
         if ($tier === null) {
-            abort(403, 'You need an Officer, Big6, or GuildMaster role in the Regenesis Discord to access this dashboard.');
+            abort(403, 'You need a Raid Leader, Officer, Big6, or GuildMaster role in the Regenesis Discord to access this dashboard.');
         }
 
         return $next($request);
