@@ -272,12 +272,12 @@ it('main? flag does not fire when alts are within the 14-day grace window', func
         ->assertDontSee('designation in GRM may be stale', false);
 });
 
-it('renders the inline class display name and level on each row', function () {
+it('renders the row level inline and the raw class in the Class column', function () {
     rosterMember('Sheday-Silvermoon', ['class' => 'DEMONHUNTER', 'level' => 80]);
 
     $resp = $this->actingAs(rosterOfficer())->get('/roster');
     $resp->assertOk()
-        ->assertSee('Demon Hunter') // class_display accessor mapping
+        ->assertSee('DEMONHUNTER') // dedicated Class column shows the raw GRM token
         ->assertSee('L80');
 });
 

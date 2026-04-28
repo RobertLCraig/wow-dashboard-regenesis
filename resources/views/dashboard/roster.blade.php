@@ -88,6 +88,10 @@
                         Name <span class="text-muted" x-text="sortIcon('name')"></span>
                         <x-column-explainer-toggle col="name" />
                     </th>
+                    <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('class')">
+                        Class <span class="text-muted" x-text="sortIcon('class')"></span>
+                        <x-column-explainer-toggle col="class" />
+                    </th>
                     <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('rank')">
                         Rank <span class="text-muted" x-text="sortIcon('rank')"></span>
                         <x-column-explainer-toggle col="rank" />
@@ -137,18 +141,22 @@
                 </tr>
             </thead>
             <tbody>
-                @php $colspan = auth()->user()?->can('roster.kick') ? 12 : 11; @endphp
+                @php $colspan = auth()->user()?->can('roster.kick') ? 13 : 12; @endphp
                 <tr x-show="openCol !== null" x-cloak class="border-t border-line bg-bg/40">
                     <td colspan="{{ $colspan }}"
                         class="px-4 py-3 text-xs text-muted leading-relaxed normal-case tracking-normal font-normal">
                         <template x-if="openCol === 'name'">
                             <div>
                                 <span class="block text-ink font-semibold mb-1">Name</span>
-                                Character name, coloured by class, with display class + level inline so
-                                near-identical diacritic names (Ñýxx Shaman 90 vs Ñyxx Rogue 80) read
-                                clearly at a glance. Click the name to open the character page. In
-                                Group alts mode, mains with linked alts show an expand caret and a
-                                "+ N alts" marker; expanding lists each alt with its own last-seen.
+                                Character name, coloured by class. Click the name to open the character page.
+                                In Group alts mode, mains with linked alts show an expand caret and a "+ N alts"
+                                marker; expanding lists each alt with its own last-seen.
+                            </div>
+                        </template>
+                        <template x-if="openCol === 'class'">
+                            <div>
+                                <span class="block text-ink font-semibold mb-1">Class</span>
+                                WoW class as recorded by GRM. Click the header to sort alphabetically.
                             </div>
                         </template>
                         <template x-if="openCol === 'rank'">
@@ -275,9 +283,6 @@
                                     <span class="text-muted text-xs ml-1">+ {{ $row['alts']->count() }} {{ \Illuminate\Support\Str::plural('alt', $row['alts']->count()) }}</span>
                                 @endif
                             </span>
-                            @if ($m->class_display)
-                                <span class="{{ $cls }} text-xs ml-1 opacity-75">{{ $m->class_display }}</span>
-                            @endif
                             @if ($m->level)
                                 <span class="text-muted text-xs ml-1">L{{ $m->level }}</span>
                             @endif
@@ -307,6 +312,9 @@
                                     @endforeach
                                 </ul>
                             @endif
+                        </td>
+                        <td class="px-2 py-2 text-muted" data-label="Class" data-sort-key="class" data-sort-value="{{ strtolower($m->class ?? '') }}">
+                            {{ $m->class }}
                         </td>
                         <td class="px-2 py-2 text-muted" data-label="Rank" data-sort-key="rank" data-sort-value="{{ $m->rank_index ?? 99 }}">
                             {{ $m->rank_name }}
