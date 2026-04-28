@@ -47,6 +47,16 @@ return [
     'announcements_channel_id' => env('DISCORD_ANNOUNCEMENTS_CHANNEL_ID', ''),
 
     /*
+    | Recruits / introductions channel. Same bot token as the
+    | announcements feed, different channel: the parser scans messages
+    | here for known WoW character names and stores Discord-id ->
+    | member-name aliases so we can resolve raid-signup display names
+    | back to a real character. Empty disables the recruits pull
+    | cleanly.
+    */
+    'recruits_channel_id' => env('DISCORD_RECRUITS_CHANNEL_ID', ''),
+
+    /*
     | How many messages to fetch on each pull (Discord caps at 100/page).
     | Announcements are infrequent so 50 covers a few weeks comfortably.
     */
