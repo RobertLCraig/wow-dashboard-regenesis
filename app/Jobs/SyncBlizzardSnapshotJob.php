@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Services\Blizzard\BlizzardClient;
 use App\Services\Blizzard\BlizzardSnapshotImporter;
+use App\Services\Blizzard\EquipmentSnapshotImporter;
 use App\Services\Blizzard\GuildRosterImporter;
 use App\Services\Sync\SyncStatus;
 use Illuminate\Bus\Queueable;
@@ -72,6 +73,13 @@ class SyncBlizzardSnapshotJob implements ShouldQueue
                 concurrency: (int) config('blizzard.sync_concurrency', 10),
             ))->pull();
 
+            $equipmentResult = (new EquipmentSnapshotImporter(
+                client: $client,
+                guildKey: $this->guildKey,
+                requestDelayMs: (int) config('blizzard.request_delay_ms', 50),
+                concurrency: (int) config('blizzard.sync_concurrency', 10),
+            ))->pull();
+
             // Flat keys so the sync dashboard's generic key/value
             // renderer surfaces them. The view skips array values.
             $result = [
@@ -84,6 +92,10 @@ class SyncBlizzardSnapshotJob implements ShouldQueue
                 'profile_matched' => $profileResult['matched'] ?? null,
                 'profile_missing' => $profileResult['missing'] ?? null,
                 'profile_errored' => $profileResult['errored'] ?? null,
+                'equipment_snapshot_id' => $equipmentResult['snapshot_id'] ?? null,
+                'equipment_matched' => $equipmentResult['matched'] ?? null,
+                'equipment_missing' => $equipmentResult['missing'] ?? null,
+                'equipment_errored' => $equipmentResult['errored'] ?? null,
             ];
 
             SyncStatus::set(SyncStatus::SOURCE_BLIZZARD, [

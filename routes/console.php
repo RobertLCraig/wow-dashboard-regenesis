@@ -60,6 +60,19 @@ Schedule::command('blizzard:pull-roster')
     ->onOneServer()
     ->withoutOverlapping();
 
+// Twice-daily per-piece equipment pull. The /equipment endpoint
+// returns the full equipped_items array per character (item ids,
+// enchants, sockets, bonus list) - the data behind pre-raid readiness
+// checks. Same cadence as profile because both depend on logout, but
+// run on a separate schedule slot so a slow equipment fan-out can't
+// stall the lighter ilvl pull. Short-circuits cleanly when credentials
+// are unset.
+Schedule::command('blizzard:pull-equipment')
+    ->twiceDaily(7, 18)
+    ->timezone(config('raidhelper.timezone', 'Europe/London'))
+    ->onOneServer()
+    ->withoutOverlapping();
+
 // Daily pull of every Raid-Helper event into the local cache. Webhooks
 // keep us in sync in real-time; this is the safety net that catches any
 // missed deliveries and any events created before the webhook was wired.
