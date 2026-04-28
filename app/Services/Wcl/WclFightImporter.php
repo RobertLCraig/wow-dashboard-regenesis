@@ -12,39 +12,29 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Per-report deep import: pull the fight list + per-actor table for
- * every encounter in a WCL report and store it as wcl_fights +
- * wcl_actor_parses.
+ * Per-report deep import. Fetches the fight list for a report, then
+ * for every encounter pulls the DPS/healing tables + rankings scoped
+ * to that single fight ID and writes one wcl_actor_parses row per
+ * player per fight, role assigned from rankings (or table magnitude
+ * when the pull hasn't been ranked yet).
  *
- * One GraphQL query per report (uses an aliased query to fetch fights
- * + the DPS table + the HPS table in one round-trip). Reports that
- * have already been imported are skipped unless `force=true`.
+ * Why per-fight: WCL's table() returns total damage/healing across
+ * the requested time range, so a report-wide query can't tell you a
+ * player's per-fight numbers. Scoping by fightIDs gives accurate
+ * per-pull metrics, and the per-fight role bucket comes from
+ * rankings.roles (dps / healers / tanks) so we don't have to guess.
  *
- * Trash + non-encounter pulls (encounter_id=0) are filtered out at
- * import time so the wcl_fights table is exclusively boss attempts.
+ * Trash + non-encounter pulls (encounter_id = 0) are filtered out at
+ * import time so wcl_fights stays exclusively boss attempts.
  */
 class WclFightImporter
 {
     /**
-     * Combined query: report metadata + fights list + DPS/HPS tables +
-     * DPS/HPS rankings. Tables and rankings come back as JSON blobs;
-     * the importer walks them to build wcl_actor_parses rows and then
-     * fill parse_percentile + bracket_percentile from the rankings.
-     *
-     * Aliasing two `rankings(...)` calls into one query lets us pull
-     * everything in a single GraphQL round-trip per report.
+     * Phase 1: report metadata + fight list. No tables or rankings here -
+     * those need fight IDs we don't have until this resolves.
      */
-    /**
-     * Phase 1: fights + DPS/HPS tables. WCL requires table() to be scoped
-     * by fightIDs or a startTime/endTime range, so we pass 0..99999999999
-     * (≈ 3 years in ms relative to report start) to cover any raid log.
-     *
-     * Rankings cannot be fetched in this query: the rankings() field
-     * rejects startTime/endTime and only accepts fightIDs, which we don't
-     * know until the fights resolve. They come from PHASE_TWO_QUERY below.
-     */
-    private const REPORT_DEEP_QUERY = <<<'GQL'
-    query DeepReport($code: String!) {
+    private const FIGHT_LIST_QUERY = <<<'GQL'
+    query FightList($code: String!) {
         reportData {
             report(code: $code) {
                 code
@@ -60,24 +50,24 @@ class WclFightImporter
                     startTime
                     endTime
                 }
-                damage:  table(dataType: DamageDone, startTime: 0, endTime: 99999999999)
-                healing: table(dataType: Healing,    startTime: 0, endTime: 99999999999)
             }
         }
     }
     GQL;
 
     /**
-     * Phase 2: per-actor parse rankings, scoped by the fight IDs we
-     * resolved in phase 1. Best-effort: if this errors we still keep
-     * the fights + tables already written.
+     * Phase 2: per-fight damage + healing tables + DPS/HPS rankings,
+     * scoped to a single fight ID. Aliasing four resolvers in one
+     * GraphQL request keeps it to one round-trip per pull.
      */
-    private const RANKINGS_QUERY = <<<'GQL'
-    query DeepRankings($code: String!, $fightIDs: [Int]!) {
+    private const PER_FIGHT_QUERY = <<<'GQL'
+    query FightDeep($code: String!, $fightId: Int!) {
         reportData {
             report(code: $code) {
-                dpsRankings: rankings(playerMetric: dps, fightIDs: $fightIDs)
-                hpsRankings: rankings(playerMetric: hps, fightIDs: $fightIDs)
+                damage:      table(dataType: DamageDone, fightIDs: [$fightId])
+                healing:     table(dataType: Healing,    fightIDs: [$fightId])
+                dpsRankings: rankings(playerMetric: dps, fightIDs: [$fightId])
+                hpsRankings: rankings(playerMetric: hps, fightIDs: [$fightId])
             }
         }
     }
@@ -147,78 +137,46 @@ class WclFightImporter
     /**
      * Force-import one report, regardless of fights_imported_at.
      *
-     * @return array{fights_inserted:int, parses_inserted:int}
+     * @return array{fights_inserted:int, parses_inserted:int, parses_ranked:int}
      */
     public function importOne(WclReport $report): array
     {
-        $resp = $this->client->query(self::REPORT_DEEP_QUERY, ['code' => $report->code]);
-
-        if ($resp->status() === 401) {
-            $this->client->flushTokenCache();
-            $resp = $this->client->query(self::REPORT_DEEP_QUERY, ['code' => $report->code]);
-        }
-        if (! $resp->successful()) {
-            throw new \RuntimeException(sprintf(
-                'WCL report %s returned %d: %s',
-                $report->code, $resp->status(), mb_substr($resp->body(), 0, 200),
-            ));
-        }
-
-        $body = $resp->json();
-        if (isset($body['errors'])) {
-            $first = $body['errors'][0]['message'] ?? 'unknown GraphQL error';
-            throw new \RuntimeException("WCL report {$report->code}: {$first}");
-        }
-
-        $reportNode = $body['data']['reportData']['report'] ?? null;
-        if (! is_array($reportNode)) {
-            throw new \RuntimeException("WCL report {$report->code}: empty response");
-        }
-
+        $reportNode = $this->fetchFightList($report->code);
         $fights = is_array($reportNode['fights'] ?? null) ? $reportNode['fights'] : [];
-        $damageTable = $this->extractActors($reportNode['damage'] ?? null);
-        $healingTable = $this->extractActors($reportNode['healing'] ?? null);
-        // Rankings are indexed by (fight_id, role, character_name) so the
-        // post-write step can look up percentiles in O(1) per parse row.
-        // Phase 2 query: rankings need fightIDs we just resolved.
-        $rankingsByFight = $this->fetchRankings($report->code, $fights);
+
         $members = Member::query()->forGuild($this->guildKey)->get(['id', 'name']);
 
         $fightsInserted = 0;
         $parsesInserted = 0;
         $parsesRanked = 0;
 
-        DB::transaction(function () use ($report, $fights, $damageTable, $healingTable, $rankingsByFight, $members, &$fightsInserted, &$parsesInserted, &$parsesRanked) {
-            foreach ($fights as $f) {
-                if (! is_array($f) || empty($f['id']) || (int) ($f['encounterID'] ?? 0) === 0) {
-                    continue;
-                }
-                $fight = WclFight::query()->updateOrCreate(
-                    ['wcl_report_id' => $report->id, 'fight_id' => (int) $f['id']],
-                    [
-                        'encounter_id' => (int) ($f['encounterID'] ?? 0),
-                        'name' => (string) ($f['name'] ?? 'Unknown'),
-                        'difficulty' => isset($f['difficulty']) ? (int) $f['difficulty'] : null,
-                        'kill' => (bool) ($f['kill'] ?? false),
-                        'best_percentage' => $this->bestPercentage($f),
-                        'duration_ms' => isset($f['startTime'], $f['endTime']) ? max(0, (int) $f['endTime'] - (int) $f['startTime']) : null,
-                        'start_time' => isset($f['startTime']) && $report->start_time
-                            ? CarbonImmutable::createFromTimestampMs($report->start_time->timestamp * 1000 + (int) $f['startTime']) : null,
-                        'end_time' => isset($f['endTime']) && $report->start_time
-                            ? CarbonImmutable::createFromTimestampMs($report->start_time->timestamp * 1000 + (int) $f['endTime']) : null,
-                        'raw_json' => $f,
-                    ]
-                );
-                if ($fight->wasRecentlyCreated) $fightsInserted++;
-
-                $rankingsForFight = $rankingsByFight[(int) $f['id']] ?? [];
-                $parsesInserted += $this->writeParses($fight, $damageTable, WclActorParse::ROLE_DPS, $members, $rankingsForFight);
-                $parsesInserted += $this->writeParses($fight, $healingTable, WclActorParse::ROLE_HEALER, $members, $rankingsForFight);
-                $parsesRanked += $this->countRankedRows($rankingsForFight);
+        // Per-fight loop. Each iteration is one GraphQL request to WCL
+        // and one row-write transaction. We don't wrap the whole report
+        // in a single transaction so that a mid-import network blip
+        // doesn't roll back fights that already wrote successfully.
+        foreach ($fights as $f) {
+            if (! is_array($f) || empty($f['id']) || (int) ($f['encounterID'] ?? 0) === 0) {
+                continue;
             }
+            $fightRow = $this->upsertFight($report, $f);
+            if ($fightRow->wasRecentlyCreated) $fightsInserted++;
 
-            $report->forceFill(['fights_imported_at' => now()])->save();
-        });
+            $deep = $this->fetchPerFight($report->code, (int) $f['id']);
+            if ($deep === null) continue;
+
+            $damage = $this->extractActors($deep['damage'] ?? null);
+            $healing = $this->extractActors($deep['healing'] ?? null);
+            $rankings = $this->indexRankingsForOneFight(
+                $deep['dpsRankings'] ?? null,
+                $deep['hpsRankings'] ?? null,
+            );
+
+            $written = $this->writeParsesForFight($fightRow, $damage, $healing, $rankings, $members);
+            $parsesInserted += $written['inserted'];
+            $parsesRanked += $written['ranked'];
+        }
+
+        $report->forceFill(['fights_imported_at' => now()])->save();
 
         return [
             'fights_inserted' => $fightsInserted,
@@ -228,164 +186,316 @@ class WclFightImporter
     }
 
     /**
-     * @param  array<string,mixed>  $tableActors  Already extracted actor list.
-     * @param  EloquentCollection<int, Member>  $members
-     * @param  array<string,array<string,array{rank:?int,bracket:?int}>>  $rankingsForFight
-     *         Indexed by role -> lowercased actor name -> percentiles.
+     * @return array<string, mixed>
      */
-    private function writeParses(
-        WclFight $fight,
-        array $tableActors,
-        string $role,
-        EloquentCollection $members,
-        array $rankingsForFight = [],
-    ): int {
-        $inserted = 0;
-        // Index member ids by lowercased "name" prefix for matching.
-        $byName = $members->keyBy(fn ($m) => mb_strtolower(explode('-', $m->name, 2)[0]));
-        $rankingsForRole = $rankingsForFight[$role] ?? [];
-
-        foreach ($tableActors as $actor) {
-            if (! is_array($actor) || empty($actor['name'])) {
-                continue;
-            }
-            $name = (string) $actor['name'];
-            $memberId = $byName->get(mb_strtolower($name))?->id;
-            $ranking = $rankingsForRole[mb_strtolower($name)] ?? null;
-
-            $parse = WclActorParse::query()->updateOrCreate(
-                ['wcl_fight_id' => $fight->id, 'actor_name' => $name],
-                [
-                    'member_id' => $memberId,
-                    'actor_class' => is_string($actor['type'] ?? null) ? $actor['type'] : null,
-                    'actor_spec' => is_string($actor['icon'] ?? null) ? $actor['icon'] : null,
-                    'role' => $role,
-                    // WCL's table 'total' is the cumulative damage/healing.
-                    // Per-second derived from fight duration when available.
-                    'metric_per_second' => $this->perSecond($actor, $fight->duration_ms),
-                    'parse_percentile' => $ranking['rank'] ?? null,
-                    'bracket_percentile' => $ranking['bracket'] ?? null,
-                    'item_level' => isset($actor['itemLevel']) ? (int) $actor['itemLevel'] : null,
-                    'raw_json' => $actor,
-                ]
-            );
-            if ($parse->wasRecentlyCreated) $inserted++;
+    private function fetchFightList(string $code): array
+    {
+        $resp = $this->client->query(self::FIGHT_LIST_QUERY, ['code' => $code]);
+        if ($resp->status() === 401) {
+            $this->client->flushTokenCache();
+            $resp = $this->client->query(self::FIGHT_LIST_QUERY, ['code' => $code]);
         }
-
-        return $inserted;
+        if (! $resp->successful()) {
+            throw new \RuntimeException(sprintf(
+                'WCL report %s returned %d: %s',
+                $code, $resp->status(), mb_substr($resp->body(), 0, 200),
+            ));
+        }
+        $body = $resp->json();
+        if (isset($body['errors'])) {
+            throw new \RuntimeException(
+                "WCL report {$code}: " . ($body['errors'][0]['message'] ?? 'unknown GraphQL error')
+            );
+        }
+        $node = $body['data']['reportData']['report'] ?? null;
+        if (! is_array($node)) {
+            throw new \RuntimeException("WCL report {$code}: empty response");
+        }
+        return $node;
     }
 
     /**
-     * Walk the dpsRankings + hpsRankings JSON blobs and produce a lookup
-     * indexed by (fight_id) -> (role) -> (lowercased name) -> percentiles.
-     *
-     * The WCL rankings shape per playerMetric is:
-     *   { data: [
-     *       { fightID: int,
-     *         roles: {
-     *           dps:     { characters: [{name, rankPercent, bracketPercent, ...}, ...] },
-     *           healers: { characters: [...] },
-     *           tanks:   { characters: [...] }
-     *         }
-     *       }
-     *   ] }
-     *
-     * @return array<int, array<string, array<string, array{rank:?int,bracket:?int}>>>
+     * @return array<string, mixed>|null  null on error - caller skips this fight.
      */
-    /**
-     * Phase 2: query WCL for rankings scoped to the fight IDs resolved
-     * in phase 1. Best-effort - if this errors out we return [] so the
-     * fights + tables still get written, just without parse percentiles.
-     *
-     * @param  list<array<string,mixed>>  $fights  Phase-1 fight nodes.
-     * @return array<int, array<string, array<string, array{rank:?int,bracket:?int}>>>
-     */
-    private function fetchRankings(string $code, array $fights): array
+    private function fetchPerFight(string $code, int $fightId): ?array
     {
-        $fightIds = [];
-        foreach ($fights as $f) {
-            if (is_array($f) && ! empty($f['id']) && (int) ($f['encounterID'] ?? 0) !== 0) {
-                $fightIds[] = (int) $f['id'];
-            }
-        }
-        if ($fightIds === []) return [];
-
         try {
-            $resp = $this->client->query(self::RANKINGS_QUERY, [
-                'code' => $code, 'fightIDs' => $fightIds,
+            $resp = $this->client->query(self::PER_FIGHT_QUERY, [
+                'code' => $code, 'fightId' => $fightId,
             ]);
             if ($resp->status() === 401) {
                 $this->client->flushTokenCache();
-                $resp = $this->client->query(self::RANKINGS_QUERY, [
-                    'code' => $code, 'fightIDs' => $fightIds,
+                $resp = $this->client->query(self::PER_FIGHT_QUERY, [
+                    'code' => $code, 'fightId' => $fightId,
                 ]);
             }
             if (! $resp->successful()) {
-                Log::warning('WclFightImporter: rankings query failed', [
-                    'code' => $code, 'status' => $resp->status(),
+                Log::warning('WclFightImporter: per-fight query failed', [
+                    'code' => $code, 'fight_id' => $fightId, 'status' => $resp->status(),
                 ]);
-                return [];
+                return null;
             }
             $body = $resp->json();
             if (isset($body['errors'])) {
-                Log::warning('WclFightImporter: rankings GraphQL error', [
-                    'code' => $code, 'message' => $body['errors'][0]['message'] ?? 'unknown',
+                Log::warning('WclFightImporter: per-fight GraphQL error', [
+                    'code' => $code, 'fight_id' => $fightId,
+                    'message' => $body['errors'][0]['message'] ?? 'unknown',
                 ]);
-                return [];
+                return null;
             }
             $node = $body['data']['reportData']['report'] ?? null;
-            if (! is_array($node)) return [];
-
-            return $this->indexRankings($node['dpsRankings'] ?? null, $node['hpsRankings'] ?? null);
+            return is_array($node) ? $node : null;
         } catch (\Throwable $e) {
-            Log::warning('WclFightImporter: rankings fetch threw', [
-                'code' => $code, 'message' => $e->getMessage(),
+            Log::warning('WclFightImporter: per-fight fetch threw', [
+                'code' => $code, 'fight_id' => $fightId, 'message' => $e->getMessage(),
             ]);
-            return [];
+            return null;
         }
     }
 
-    private function indexRankings(mixed $dpsJson, mixed $hpsJson): array
+    /**
+     * @param  array<string,mixed>  $f  WCL fight node.
+     */
+    private function upsertFight(WclReport $report, array $f): WclFight
     {
-        $out = [];
-        foreach ([
+        return WclFight::query()->updateOrCreate(
+            ['wcl_report_id' => $report->id, 'fight_id' => (int) $f['id']],
+            [
+                'encounter_id' => (int) ($f['encounterID'] ?? 0),
+                'name' => (string) ($f['name'] ?? 'Unknown'),
+                'difficulty' => isset($f['difficulty']) ? (int) $f['difficulty'] : null,
+                'kill' => (bool) ($f['kill'] ?? false),
+                'best_percentage' => $this->bestPercentage($f),
+                'duration_ms' => isset($f['startTime'], $f['endTime'])
+                    ? max(0, (int) $f['endTime'] - (int) $f['startTime'])
+                    : null,
+                'start_time' => isset($f['startTime']) && $report->start_time
+                    ? CarbonImmutable::createFromTimestampMs($report->start_time->timestamp * 1000 + (int) $f['startTime'])
+                    : null,
+                'end_time' => isset($f['endTime']) && $report->start_time
+                    ? CarbonImmutable::createFromTimestampMs($report->start_time->timestamp * 1000 + (int) $f['endTime'])
+                    : null,
+                'raw_json' => $f,
+            ]
+        );
+    }
+
+    /**
+     * Write one wcl_actor_parses row per unique player in the fight,
+     * with the right role and metric. Players appear in both tables
+     * (e.g. healers do off-damage, DPS do self-healing) so we union
+     * the names, decide a role per player, and then read the matching
+     * table row to compute metric_per_second.
+     *
+     * Role priority:
+     *   1. WCL rankings - dps / healers / tanks bucket (authoritative).
+     *   2. Magnitude fallback - whichever table has the higher per-second
+     *      value wins. Used when rankings haven't been computed yet
+     *      (fresh logs / very short pulls).
+     *
+     * @param  list<array<string,mixed>>  $damage
+     * @param  list<array<string,mixed>>  $healing
+     * @param  array{
+     *     by_role: array<string, array<string, array{rank:?int,bracket:?int}>>,
+     *     role_for: array<string, string>,
+     *     ranked_count: int
+     *   }  $rankings
+     * @param  EloquentCollection<int, Member>  $members
+     * @return array{inserted:int, ranked:int}
+     */
+    private function writeParsesForFight(
+        WclFight $fight,
+        array $damage,
+        array $healing,
+        array $rankings,
+        EloquentCollection $members,
+    ): array {
+        $byNameMember = $members->keyBy(fn ($m) => mb_strtolower(explode('-', $m->name, 2)[0]));
+
+        $damageByName = [];
+        foreach ($damage as $a) {
+            if (is_array($a) && ! empty($a['name'])) {
+                $damageByName[mb_strtolower((string) $a['name'])] = $a;
+            }
+        }
+        $healingByName = [];
+        foreach ($healing as $a) {
+            if (is_array($a) && ! empty($a['name'])) {
+                $healingByName[mb_strtolower((string) $a['name'])] = $a;
+            }
+        }
+
+        $allNames = array_unique(array_merge(array_keys($damageByName), array_keys($healingByName)));
+        $inserted = 0;
+
+        DB::transaction(function () use (
+            $fight, $damageByName, $healingByName, $allNames,
+            $rankings, $byNameMember, &$inserted,
+        ) {
+            foreach ($allNames as $lowered) {
+                $damageActor = $damageByName[$lowered] ?? null;
+                $healingActor = $healingByName[$lowered] ?? null;
+                $name = (string) (($damageActor['name'] ?? null) ?? ($healingActor['name'] ?? ''));
+                if ($name === '') continue;
+
+                $role = $this->resolveRole(
+                    $lowered, $damageActor, $healingActor, $fight->duration_ms, $rankings['role_for'],
+                );
+
+                // Pick the table row that matches the resolved role; tanks
+                // use the damage table since we don't track healing-as-tank.
+                $primary = match ($role) {
+                    WclActorParse::ROLE_HEALER => $healingActor ?? $damageActor,
+                    default                     => $damageActor ?? $healingActor,
+                };
+                if (! is_array($primary)) continue;
+
+                $rankingRow = $rankings['by_role'][$role][$lowered] ?? null;
+
+                $parse = WclActorParse::query()->updateOrCreate(
+                    ['wcl_fight_id' => $fight->id, 'actor_name' => $name],
+                    [
+                        'member_id' => $byNameMember->get($lowered)?->id,
+                        'actor_class' => is_string($primary['type'] ?? null) ? $primary['type'] : null,
+                        'actor_spec' => is_string($primary['icon'] ?? null) ? $primary['icon'] : null,
+                        'role' => $role,
+                        'metric_per_second' => $this->perSecond($primary, $fight->duration_ms),
+                        'parse_percentile' => $rankingRow['rank'] ?? null,
+                        'bracket_percentile' => $rankingRow['bracket'] ?? null,
+                        'item_level' => isset($primary['itemLevel']) ? (int) $primary['itemLevel'] : null,
+                        'raw_json' => $primary,
+                    ]
+                );
+                if ($parse->wasRecentlyCreated) $inserted++;
+            }
+        });
+
+        return ['inserted' => $inserted, 'ranked' => $rankings['ranked_count']];
+    }
+
+    /**
+     * Roles each WoW class can actually fill. Used to constrain the
+     * magnitude-fallback role detection so a Mage with a strong
+     * absorb-shield pull doesn't get mis-tagged as a healer just
+     * because their hps line was higher than their dps line.
+     *
+     * Pure DPS classes are dps-only; hybrid healers and tanks list
+     * the extra roles they can fill. Anything not in this map (NPCs,
+     * pets, bosses) is treated as unconstrained.
+     *
+     * @var array<string, list<string>>
+     */
+    private const CLASS_ROLES = [
+        'Druid'       => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER, WclActorParse::ROLE_TANK],
+        'Paladin'     => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER, WclActorParse::ROLE_TANK],
+        'Monk'        => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER, WclActorParse::ROLE_TANK],
+        'Priest'      => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER],
+        'Shaman'      => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER],
+        'Evoker'      => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER],
+        'DeathKnight' => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_TANK],
+        'Warrior'     => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_TANK],
+        'DemonHunter' => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_TANK],
+        'Mage'        => [WclActorParse::ROLE_DPS],
+        'Warlock'     => [WclActorParse::ROLE_DPS],
+        'Rogue'       => [WclActorParse::ROLE_DPS],
+        'Hunter'      => [WclActorParse::ROLE_DPS],
+    ];
+
+    /**
+     * Pick the role for one actor. Rankings are authoritative when the
+     * player appears in them; otherwise compare per-second magnitudes
+     * across the damage/healing tables, but constrained by what the
+     * player's class is actually capable of (a Mage cannot be a healer
+     * no matter what their HPS line says on a short pull).
+     *
+     * @param  array<string,mixed>|null  $damageActor
+     * @param  array<string,mixed>|null  $healingActor
+     * @param  array<string, string>     $rankingRoleFor  lower-name => role
+     */
+    private function resolveRole(
+        string $loweredName,
+        ?array $damageActor,
+        ?array $healingActor,
+        ?int $durationMs,
+        array $rankingRoleFor,
+    ): string {
+        if (isset($rankingRoleFor[$loweredName])) {
+            return $rankingRoleFor[$loweredName];
+        }
+
+        $class = (string) (($damageActor['type'] ?? null) ?? ($healingActor['type'] ?? ''));
+        $allowed = self::CLASS_ROLES[$class] ?? null;
+
+        $dps = $damageActor ? ($this->perSecond($damageActor, $durationMs) ?? 0) : 0;
+        $hps = $healingActor ? ($this->perSecond($healingActor, $durationMs) ?? 0) : 0;
+        $magnitudeRole = $hps > $dps && $hps > 0
+            ? WclActorParse::ROLE_HEALER
+            : WclActorParse::ROLE_DPS;
+
+        if ($allowed === null) {
+            return $magnitudeRole;
+        }
+        if (in_array($magnitudeRole, $allowed, true)) {
+            return $magnitudeRole;
+        }
+        // Magnitude said a role the class can't fill - fall back to the
+        // first role the class CAN fill, which is always dps in the map.
+        return $allowed[0];
+    }
+
+    /**
+     * Walk a single fight's dpsRankings + hpsRankings JSON blobs and
+     * produce a lookup keyed first by role -> lowercased name -> percentiles,
+     * plus a flat name -> role index for fast role resolution.
+     *
+     * Tank rankings come from the dpsRankings query (their bucket lives
+     * under roles.tanks alongside dps).
+     *
+     * @return array{
+     *   by_role: array<string, array<string, array{rank:?int,bracket:?int}>>,
+     *   role_for: array<string, string>,
+     *   ranked_count: int
+     * }
+     */
+    private function indexRankingsForOneFight(mixed $dpsJson, mixed $hpsJson): array
+    {
+        $byRole = [
+            WclActorParse::ROLE_DPS => [],
+            WclActorParse::ROLE_HEALER => [],
+            WclActorParse::ROLE_TANK => [],
+        ];
+        $roleFor = [];
+        $ranked = 0;
+
+        // dpsRankings.roles contains BOTH the dps bucket and the tanks bucket.
+        // hpsRankings.roles contains the healers bucket.
+        $sources = [
             ['blob' => $dpsJson, 'role' => WclActorParse::ROLE_DPS,    'pickRole' => 'dps'],
+            ['blob' => $dpsJson, 'role' => WclActorParse::ROLE_TANK,   'pickRole' => 'tanks'],
             ['blob' => $hpsJson, 'role' => WclActorParse::ROLE_HEALER, 'pickRole' => 'healers'],
-        ] as $source) {
+        ];
+
+        foreach ($sources as $source) {
             $decoded = $this->decodeMaybeJson($source['blob']);
-            $entries = $decoded['data'] ?? [];
-            if (! is_array($entries)) continue;
+            $entries = is_array($decoded['data'] ?? null) ? $decoded['data'] : [];
 
             foreach ($entries as $entry) {
-                if (! is_array($entry) || ! isset($entry['fightID'])) continue;
-                $fightId = (int) $entry['fightID'];
+                if (! is_array($entry)) continue;
                 $roleNode = $entry['roles'][$source['pickRole']] ?? null;
                 $characters = is_array($roleNode['characters'] ?? null) ? $roleNode['characters'] : [];
                 foreach ($characters as $c) {
                     if (! is_array($c) || empty($c['name'])) continue;
                     $key = mb_strtolower((string) $c['name']);
-                    $out[$fightId][$source['role']][$key] = [
-                        'rank' => isset($c['rankPercent']) ? (int) round((float) $c['rankPercent']) : null,
-                        'bracket' => isset($c['bracketPercent']) ? (int) round((float) $c['bracketPercent']) : null,
-                    ];
+                    $rank = isset($c['rankPercent']) ? (int) round((float) $c['rankPercent']) : null;
+                    $bracket = isset($c['bracketPercent']) ? (int) round((float) $c['bracketPercent']) : null;
+                    $byRole[$source['role']][$key] = ['rank' => $rank, 'bracket' => $bracket];
+                    $roleFor[$key] = $source['role'];
+                    if ($rank !== null) $ranked++;
                 }
             }
         }
-        return $out;
-    }
 
-    /**
-     * @param  array<string,array<string,array{rank:?int,bracket:?int}>>  $rankingsForFight
-     */
-    private function countRankedRows(array $rankingsForFight): int
-    {
-        $n = 0;
-        foreach ($rankingsForFight as $byName) {
-            foreach ($byName as $row) {
-                if (($row['rank'] ?? null) !== null) $n++;
-            }
-        }
-        return $n;
+        return ['by_role' => $byRole, 'role_for' => $roleFor, 'ranked_count' => $ranked];
     }
 
     private function decodeMaybeJson(mixed $blob): array
@@ -409,7 +519,6 @@ class WclFightImporter
     private function extractActors(mixed $tableJson): array
     {
         if (! is_string($tableJson)) {
-            // Some clients return an already-decoded array.
             $decoded = is_array($tableJson) ? $tableJson : null;
         } else {
             try {
@@ -428,11 +537,11 @@ class WclFightImporter
     private function bestPercentage(array $f): ?float
     {
         // Prefer fightPercentage (boss HP %), fall back to bossPercentage
-        // for older WCL responses.
+        // for older WCL responses. WCL stores percentages as ints scaled
+        // by 100 (e.g. 3025 = 30.25%).
         foreach (['fightPercentage', 'bossPercentage'] as $k) {
             $v = $f[$k] ?? null;
             if (is_numeric($v)) {
-                // WCL stores percentages as ints scaled by 100 (e.g. 3025 = 30.25%).
                 return round(((float) $v) / 100, 2);
             }
         }

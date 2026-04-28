@@ -1,10 +1,10 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Reports')
+@section('title', 'Logs')
 
 @section('content')
     <div class="flex items-center justify-between mb-4">
-        <h1 class="text-xl font-semibold">Warcraft Logs reports</h1>
+        <h1 class="text-xl font-semibold">Warcraft Logs</h1>
         <a href="{{ route('admin.sync.index') }}" class="text-sm text-accent hover:underline">Sync now</a>
     </div>
 
