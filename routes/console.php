@@ -73,6 +73,17 @@ Schedule::command('blizzard:pull-equipment')
     ->onOneServer()
     ->withoutOverlapping();
 
+// Daily Blizzard mythic-keystone-profile pull. Stored alongside RIO
+// for cross-validation and outage fallback; RIO stays the day-to-day
+// display source. Daily is plenty - M+ rating settles per weekly
+// reset and a single daily pull captures most movement. Short-circuits
+// cleanly when credentials are unset.
+Schedule::command('blizzard:pull-mplus')
+    ->dailyAt('08:00')
+    ->timezone(config('raidhelper.timezone', 'Europe/London'))
+    ->onOneServer()
+    ->withoutOverlapping();
+
 // Daily pull of every Raid-Helper event into the local cache. Webhooks
 // keep us in sync in real-time; this is the safety net that catches any
 // missed deliveries and any events created before the webhook was wired.

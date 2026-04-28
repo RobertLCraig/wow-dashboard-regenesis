@@ -157,6 +157,33 @@ class BlizzardClient
     }
 
     /**
+     * Mythic keystone profile. Returns current_period (best_runs +
+     * mythic_rating), seasons (per-season summary), and the rolled-up
+     * current_mythic_rating. Stored alongside RIO's data so we have
+     * Blizzard's authoritative numbers without dropping RIO.
+     */
+    public function mythicKeystoneProfile(string $realmSlug, string $name): Response
+    {
+        ['url' => $url, 'headers' => $headers, 'query' => $query] = $this->mythicKeystoneProfileEndpoint($realmSlug, $name);
+        return Http::acceptJson()
+            ->timeout($this->timeoutSeconds)
+            ->withHeaders($headers)
+            ->get($url, $query);
+    }
+
+    /**
+     * @return array{url: string, headers: array<string, string>, query: array<string, string>}
+     */
+    public function mythicKeystoneProfileEndpoint(string $realmSlug, string $name): array
+    {
+        return [
+            'url' => $this->characterUrl($realmSlug, $name) . '/mythic-keystone-profile',
+            'headers' => $this->profileHeaders(),
+            'query' => ['locale' => $this->locale],
+        ];
+    }
+
+    /**
      * Guild roster. Uses dynamic-{region} (not profile-{region}). The
      * payload is { guild: {...}, members: [{ character: { name, id,
      * realm: { slug, name } }, rank: int }, ...] }. One call covers
