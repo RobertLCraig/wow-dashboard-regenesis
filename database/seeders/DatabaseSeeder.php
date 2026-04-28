@@ -23,5 +23,6 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call(TeamMappingSeeder::class);
+        $this->call(DiscordRoleMentionSeeder::class);
     }
 }

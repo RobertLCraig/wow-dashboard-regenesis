@@ -114,6 +114,13 @@ return [
     ],
 
     /*
+    | Per-team role mentions used to live alongside the team entries
+    | here, but moved to the database (table: discord_roles +
+    | team_role_mentions) so officers can edit them via /admin/discord-roles
+    | without a redeploy. EventController reads via DiscordRoleMentionResolver.
+    */
+
+    /*
     |--------------------------------------------------------------------------
     | Default reminder offsets
     |--------------------------------------------------------------------------

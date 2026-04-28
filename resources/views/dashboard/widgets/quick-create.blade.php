@@ -61,6 +61,13 @@
         ->values()
         ->all();
     $showTemplatePicker = count($templateOptions) > 1;
+
+    // Roles auto-pinged when this team's events post. Display only -
+    // the EventController re-resolves to role IDs for the actual API
+    // payload. Allocations are managed via /admin/discord-roles.
+    $mentionNames = isset($teamSlug)
+        ? \App\Services\Discord\DiscordRoleMentionResolver::namesForTeam($teamSlug)
+        : [];
 @endphp
 
 <section class="bg-panel border border-line rounded-lg overflow-hidden" x-data="{ explain: false }">
@@ -177,6 +184,11 @@
                 using template <code class="text-ink">{{ $defaultTemplateId }}</code>
             @endif
             with the standard reminder pings.
+            @if (! empty($mentionNames))
+                Pings
+                @foreach ($mentionNames as $i => $name)<span class="text-accent">{{ '@' . $name }}</span>@if ($i < count($mentionNames) - 1), @endif @endforeach
+                on post.
+            @endif
         </p>
     </form>
 </section>

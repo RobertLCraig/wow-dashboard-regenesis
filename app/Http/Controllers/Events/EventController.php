@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Events;
 
 use App\Http\Controllers\Controller;
 use App\Models\RaidEvent;
+use App\Services\Discord\DiscordRoleMentionResolver;
 use App\Services\RaidHelper\EventUpserter;
 use App\Services\RaidHelper\RaidHelperClient;
 use Carbon\CarbonImmutable;
@@ -39,6 +40,10 @@ class EventController extends Controller
             'defaultChannel' => config('raidhelper.default_channel_id'),
             'leaderId' => auth()->user()?->discord_id,
             'defaultAnnouncements' => config('raidhelper.default_announcements', []),
+            // {channel_id: [role names]} so the live "Will ping" hint
+            // and the /quickcreate paste preview update without a
+            // server round-trip when the officer changes channel.
+            'mentionsByChannel' => DiscordRoleMentionResolver::namesByChannelId(),
         ]);
     }
 
@@ -107,6 +112,26 @@ class EventController extends Controller
         $advancedSettings = [];
         if ($durationMinutes !== null) {
             $advancedSettings['duration'] = (string) $durationMinutes;
+        }
+
+        // Auto-mention the team's pingable roles. Team is identified by
+        // destination channel: posting to heroic-raid-signup pings
+        // @Social Raider + @Heroic Raider, etc. Allocations are edited
+        // via /admin/discord-roles. Channels not in any team preset
+        // (e.g. dj-stuff testing) ping nobody, which is intentional.
+        //
+        // Format: comma-separated role *names* (NOT snowflakes), and
+        // the field lives inside `advancedSettings`, not at the top
+        // level. Verified by GETting an existing slash-command-created
+        // event from the API: it returns `advancedSettings.mentions: 'M+'`
+        // for the keynight team. Sending the field at the top level or
+        // sending IDs is silently ignored - the event posts but no ping.
+        $teamSlug = $this->teamSlugForChannel($validated['channel_id']);
+        if ($teamSlug !== null) {
+            $names = DiscordRoleMentionResolver::namesForTeam($teamSlug);
+            if (! empty($names)) {
+                $advancedSettings['mentions'] = implode(', ', $names);
+            }
         }
 
         $payload = [
@@ -271,6 +296,23 @@ class EventController extends Controller
     private function signedIcsToken(RaidEvent $event): string
     {
         return hash_hmac('sha256', $event->ics_uid . '|' . $event->ics_sequence, config('app.key'));
+    }
+
+    /**
+     * Reverse-lookup: which team config (heroic / mythic / keynight /
+     * social) owns the given Discord channel id, if any. Returns null
+     * for channels that aren't a team's signup channel (e.g. dj-stuff,
+     * arbitrary IDs pasted via "Other...") so callers can skip mention
+     * resolution cleanly.
+     */
+    private function teamSlugForChannel(string $channelId): ?string
+    {
+        foreach ((array) config('raidhelper.teams', []) as $slug => $team) {
+            if (($team['channel_id'] ?? null) === $channelId) {
+                return $slug;
+            }
+        }
+        return null;
     }
 
     /**

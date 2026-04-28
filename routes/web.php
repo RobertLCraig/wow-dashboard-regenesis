@@ -93,6 +93,14 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::post('/admin/teams/schedule/{slug}/reset', [\App\Http\Controllers\Admin\TeamScheduleController::class, 'reset'])
         ->where('slug', '[a-z_]+')->name('admin.teams.schedule.reset');
 
+    // Discord role mentions: which @roles get pinged on each team's
+    // Raid-Helper events. DB-backed so officers can rotate roles
+    // without a redeploy. EventController reads via
+    // DiscordRoleMentionResolver, so changes take effect on the next
+    // event creation.
+    Route::get('/admin/discord-roles', [\App\Http\Controllers\Admin\DiscordRoleConfigController::class, 'index'])->name('admin.discord-roles.index');
+    Route::post('/admin/discord-roles', [\App\Http\Controllers\Admin\DiscordRoleConfigController::class, 'update'])->name('admin.discord-roles.update');
+
     // On-demand Raider.IO refresh. Same logic as the scheduled
     // raiderio:pull command; rate-limited per officer.
     Route::post('/admin/raiderio/sync', [\App\Http\Controllers\Admin\RaiderioSyncController::class, 'store'])->name('admin.raiderio.sync');

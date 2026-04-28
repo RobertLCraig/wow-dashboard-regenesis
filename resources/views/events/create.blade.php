@@ -44,6 +44,12 @@
             'message' => $a['message'],
             'channel' => $defaultAnnouncementChannelName,
         ], $defaultAnnouncements);
+
+    // {channel_id: [role names]}, supplied by the controller from
+    // DiscordRoleMentionResolver. Drives the live "Will ping" hint and
+    // the /quickcreate paste-fallback preview. Channels not in the map
+    // (other-... custom IDs, dj-stuff) ping nobody.
+    $mentionsByChannel = $mentionsByChannel ?? [];
 @endphp
 <div class="max-w-2xl mx-auto">
     <h1 class="text-xl font-semibold mb-6">New event</h1>
@@ -61,6 +67,7 @@
     <form method="POST" action="{{ route('events.store') }}"
           x-data='{
               channels: @json($channels),
+              mentionsByChannel: @json((object) $mentionsByChannel),
               channelMode: @json($channelMode),
               channelPreset: @json($channelMode === "preset" ? $oldChannelId : $presetFallback),
               channelOther: @json($channelMode === "other" ? $oldChannelId : ""),
@@ -90,6 +97,9 @@
                   const found = this.channels.find(c => c.id === this.effectiveChannelId);
                   return found ? found.name : null;
               },
+              get effectiveMentionNames() {
+                  return this.mentionsByChannel[this.effectiveChannelId] || [];
+              },
               get formattedStartsAt() {
                   // datetime-local "YYYY-MM-DDTHH:MM" -> Raid-Helper "DD-MM-YYYY HH:MM"
                   if (!this.startsAt || !this.startsAt.includes("T")) return "";
@@ -110,6 +120,10 @@
                   if (chName) parts.push(`[channel: #${chName}]`);
                   if (this.durationMode === "duration" && this.durationMinutes) {
                       parts.push(`[advanced: <duration: ${this.durationMinutes}>]`);
+                  }
+                  const mentions = this.effectiveMentionNames;
+                  if (mentions.length) {
+                      parts.push(`[mentions: ${mentions.join(", ")}]`);
                   }
                   for (const a of this.announcements) {
                       if (a && a.message && a.minutes && a.channel) {
@@ -251,6 +265,14 @@
 
             <p class="text-xs text-muted mt-1">
                 Right-click a channel in Discord with Developer Mode on to copy its ID.
+            </p>
+            <p class="text-xs text-muted mt-1" x-show="effectiveMentionNames.length" x-cloak>
+                Will ping:
+                <template x-for="(name, i) in effectiveMentionNames" :key="i">
+                    <span>
+                        <span class="text-accent" x-text="`@${name}`"></span><span x-show="i < effectiveMentionNames.length - 1">, </span>
+                    </span>
+                </template>
             </p>
         </div>
 
