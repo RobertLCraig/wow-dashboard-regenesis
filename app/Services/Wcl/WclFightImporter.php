@@ -34,6 +34,15 @@ class WclFightImporter
      * Aliasing two `rankings(...)` calls into one query lets us pull
      * everything in a single GraphQL round-trip per report.
      */
+    /**
+     * Phase 1: fights + DPS/HPS tables. WCL requires table() to be scoped
+     * by fightIDs or a startTime/endTime range, so we pass 0..99999999999
+     * (≈ 3 years in ms relative to report start) to cover any raid log.
+     *
+     * Rankings cannot be fetched in this query: the rankings() field
+     * rejects startTime/endTime and only accepts fightIDs, which we don't
+     * know until the fights resolve. They come from PHASE_TWO_QUERY below.
+     */
     private const REPORT_DEEP_QUERY = <<<'GQL'
     query DeepReport($code: String!) {
         reportData {
@@ -51,10 +60,24 @@ class WclFightImporter
                     startTime
                     endTime
                 }
-                damage: table(dataType: DamageDone)
-                healing: table(dataType: Healing)
-                dpsRankings: rankings(playerMetric: dps)
-                hpsRankings: rankings(playerMetric: hps)
+                damage:  table(dataType: DamageDone, startTime: 0, endTime: 99999999999)
+                healing: table(dataType: Healing,    startTime: 0, endTime: 99999999999)
+            }
+        }
+    }
+    GQL;
+
+    /**
+     * Phase 2: per-actor parse rankings, scoped by the fight IDs we
+     * resolved in phase 1. Best-effort: if this errors we still keep
+     * the fights + tables already written.
+     */
+    private const RANKINGS_QUERY = <<<'GQL'
+    query DeepRankings($code: String!, $fightIDs: [Int]!) {
+        reportData {
+            report(code: $code) {
+                dpsRankings: rankings(playerMetric: dps, fightIDs: $fightIDs)
+                hpsRankings: rankings(playerMetric: hps, fightIDs: $fightIDs)
             }
         }
     }
@@ -157,10 +180,8 @@ class WclFightImporter
         $healingTable = $this->extractActors($reportNode['healing'] ?? null);
         // Rankings are indexed by (fight_id, role, character_name) so the
         // post-write step can look up percentiles in O(1) per parse row.
-        $rankingsByFight = $this->indexRankings(
-            $reportNode['dpsRankings'] ?? null,
-            $reportNode['hpsRankings'] ?? null,
-        );
+        // Phase 2 query: rankings need fightIDs we just resolved.
+        $rankingsByFight = $this->fetchRankings($report->code, $fights);
         $members = Member::query()->forGuild($this->guildKey)->get(['id', 'name']);
 
         $fightsInserted = 0;
@@ -271,6 +292,59 @@ class WclFightImporter
      *
      * @return array<int, array<string, array<string, array{rank:?int,bracket:?int}>>>
      */
+    /**
+     * Phase 2: query WCL for rankings scoped to the fight IDs resolved
+     * in phase 1. Best-effort - if this errors out we return [] so the
+     * fights + tables still get written, just without parse percentiles.
+     *
+     * @param  list<array<string,mixed>>  $fights  Phase-1 fight nodes.
+     * @return array<int, array<string, array<string, array{rank:?int,bracket:?int}>>>
+     */
+    private function fetchRankings(string $code, array $fights): array
+    {
+        $fightIds = [];
+        foreach ($fights as $f) {
+            if (is_array($f) && ! empty($f['id']) && (int) ($f['encounterID'] ?? 0) !== 0) {
+                $fightIds[] = (int) $f['id'];
+            }
+        }
+        if ($fightIds === []) return [];
+
+        try {
+            $resp = $this->client->query(self::RANKINGS_QUERY, [
+                'code' => $code, 'fightIDs' => $fightIds,
+            ]);
+            if ($resp->status() === 401) {
+                $this->client->flushTokenCache();
+                $resp = $this->client->query(self::RANKINGS_QUERY, [
+                    'code' => $code, 'fightIDs' => $fightIds,
+                ]);
+            }
+            if (! $resp->successful()) {
+                Log::warning('WclFightImporter: rankings query failed', [
+                    'code' => $code, 'status' => $resp->status(),
+                ]);
+                return [];
+            }
+            $body = $resp->json();
+            if (isset($body['errors'])) {
+                Log::warning('WclFightImporter: rankings GraphQL error', [
+                    'code' => $code, 'message' => $body['errors'][0]['message'] ?? 'unknown',
+                ]);
+                return [];
+            }
+            $node = $body['data']['reportData']['report'] ?? null;
+            if (! is_array($node)) return [];
+
+            return $this->indexRankings($node['dpsRankings'] ?? null, $node['hpsRankings'] ?? null);
+        } catch (\Throwable $e) {
+            Log::warning('WclFightImporter: rankings fetch threw', [
+                'code' => $code, 'message' => $e->getMessage(),
+            ]);
+            return [];
+        }
+    }
+
     private function indexRankings(mixed $dpsJson, mixed $hpsJson): array
     {
         $out = [];
