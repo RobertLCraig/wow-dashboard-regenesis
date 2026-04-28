@@ -450,14 +450,20 @@
                                         Demote
                                     </button>
                                 @endif
-                                {{-- Set Main only makes sense for characters that are in an
-                                     alt group. Hide elsewhere to keep the actions cell clean. --}}
+                                {{-- Set Main and Unlink only make sense for characters that
+                                     are in an alt group. Hidden elsewhere to keep the cell tidy. --}}
                                 @if ($m->alt_group_id !== null)
                                     <button type="button"
                                             @click="$dispatch('open-set-main', { ids: [{{ $m->id }}] })"
                                             class="text-[10px] uppercase tracking-wider px-2 py-0.5 mr-1 rounded border border-amber-700/50 text-amber-300 hover:bg-amber-950/30"
                                             title="Generate /run GRM.SetMain macro for {{ $m->name }}">
                                         Main
+                                    </button>
+                                    <button type="button"
+                                            @click="$dispatch('open-unlink-alt', { ids: [{{ $m->id }}] })"
+                                            class="text-[10px] uppercase tracking-wider px-2 py-0.5 mr-1 rounded border border-violet-700/50 text-violet-300 hover:bg-violet-950/30"
+                                            title="Generate /run GRM.RemovePlayerFromAltGroup macro for {{ $m->name }}">
+                                        Unlink
                                     </button>
                                 @endif
                                 <button type="button"
@@ -482,5 +488,6 @@
         <x-set-main-macro-modal />
         <x-rank-macro-modal />
         <x-custom-note-macro-modal />
+        <x-unlink-alt-macro-modal />
     @endcan
 @endsection

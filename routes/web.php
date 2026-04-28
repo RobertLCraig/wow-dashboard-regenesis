@@ -73,6 +73,12 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::post('/roster/custom-note', [\App\Http\Controllers\Dashboard\RosterCustomNoteMacroController::class, 'preview'])->name('roster.custom-note.preview');
     Route::post('/roster/custom-note/confirm', [\App\Http\Controllers\Dashboard\RosterCustomNoteMacroController::class, 'confirm'])->name('roster.custom-note.confirm');
 
+    // /run GRM.RemovePlayerFromAltGroup(...) macro generator. Used to
+    // break a wrong alt link, e.g. if GRM has linked someone to the
+    // wrong group. Adding new alt links is still done in-game.
+    Route::post('/roster/unlink-alt', [\App\Http\Controllers\Dashboard\RosterUnlinkAltMacroController::class, 'preview'])->name('roster.unlink-alt.preview');
+    Route::post('/roster/unlink-alt/confirm', [\App\Http\Controllers\Dashboard\RosterUnlinkAltMacroController::class, 'confirm'])->name('roster.unlink-alt.confirm');
+
     // Warcraft Logs reports browser. /reports lists the recent reports;
     // /reports/{code} expands one report into fights + per-actor parses.
     Route::get('/reports', [\App\Http\Controllers\Dashboard\ReportsController::class, 'index'])->name('reports.index');

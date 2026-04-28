@@ -28,6 +28,9 @@ class MemberAction extends Model
     // macro. Targets GRM's own custom-note slot, never the Blizzard
     // Public/Officer notes.
     public const TYPE_CUSTOM_NOTE_MACRO = 'custom_note_macro';
+    // Audit-only: officer generated a /run GRM.RemovePlayerFromAltGroup
+    // macro to unlink a character from its alt group.
+    public const TYPE_UNLINK_ALT_MACRO = 'unlink_alt_macro';
 
     public const DECISION_ACCEPTED = 'accepted';
     public const DECISION_DISMISSED = 'dismissed';
