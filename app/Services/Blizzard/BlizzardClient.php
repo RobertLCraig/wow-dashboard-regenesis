@@ -157,6 +157,33 @@ class BlizzardClient
     }
 
     /**
+     * Encounters > raids. Returns expansions[] -> instances[] ->
+     * modes[] (per difficulty) -> progress with per-encounter
+     * completed_count + last_kill_timestamp. No opt-in needed (unlike
+     * wowaudit's progression view); covers any guild member.
+     */
+    public function raidEncounters(string $realmSlug, string $name): Response
+    {
+        ['url' => $url, 'headers' => $headers, 'query' => $query] = $this->raidEncountersEndpoint($realmSlug, $name);
+        return Http::acceptJson()
+            ->timeout($this->timeoutSeconds)
+            ->withHeaders($headers)
+            ->get($url, $query);
+    }
+
+    /**
+     * @return array{url: string, headers: array<string, string>, query: array<string, string>}
+     */
+    public function raidEncountersEndpoint(string $realmSlug, string $name): array
+    {
+        return [
+            'url' => $this->characterUrl($realmSlug, $name) . '/encounters/raids',
+            'headers' => $this->profileHeaders(),
+            'query' => ['locale' => $this->locale],
+        ];
+    }
+
+    /**
      * Mythic keystone profile. Returns current_period (best_runs +
      * mythic_rating), seasons (per-season summary), and the rolled-up
      * current_mythic_rating. Stored alongside RIO's data so we have

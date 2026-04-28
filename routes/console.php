@@ -84,6 +84,17 @@ Schedule::command('blizzard:pull-mplus')
     ->onOneServer()
     ->withoutOverlapping();
 
+// Daily Blizzard raid-encounters pull. Powers AOTC/CE detection and
+// "did this trial actually clear Heroic X" checks without needing
+// wowaudit opt-in coverage. Daily is more than enough - kills don't
+// happen often enough to need finer granularity. Short-circuits
+// cleanly when credentials are unset.
+Schedule::command('blizzard:pull-raids')
+    ->dailyAt('08:15')
+    ->timezone(config('raidhelper.timezone', 'Europe/London'))
+    ->onOneServer()
+    ->withoutOverlapping();
+
 // Daily pull of every Raid-Helper event into the local cache. Webhooks
 // keep us in sync in real-time; this is the safety net that catches any
 // missed deliveries and any events created before the webhook was wired.

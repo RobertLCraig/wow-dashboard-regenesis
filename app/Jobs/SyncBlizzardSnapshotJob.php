@@ -7,6 +7,7 @@ use App\Services\Blizzard\BlizzardSnapshotImporter;
 use App\Services\Blizzard\EquipmentSnapshotImporter;
 use App\Services\Blizzard\GuildRosterImporter;
 use App\Services\Blizzard\MplusSnapshotImporter;
+use App\Services\Blizzard\RaidEncountersSnapshotImporter;
 use App\Services\Sync\SyncStatus;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -88,6 +89,13 @@ class SyncBlizzardSnapshotJob implements ShouldQueue
                 concurrency: (int) config('blizzard.sync_concurrency', 10),
             ))->pull();
 
+            $raidsResult = (new RaidEncountersSnapshotImporter(
+                client: $client,
+                guildKey: $this->guildKey,
+                requestDelayMs: (int) config('blizzard.request_delay_ms', 50),
+                concurrency: (int) config('blizzard.sync_concurrency', 10),
+            ))->pull();
+
             // Flat keys so the sync dashboard's generic key/value
             // renderer surfaces them. The view skips array values.
             $result = [
@@ -108,6 +116,10 @@ class SyncBlizzardSnapshotJob implements ShouldQueue
                 'mplus_matched' => $mplusResult['matched'] ?? null,
                 'mplus_missing' => $mplusResult['missing'] ?? null,
                 'mplus_errored' => $mplusResult['errored'] ?? null,
+                'raids_snapshot_id' => $raidsResult['snapshot_id'] ?? null,
+                'raids_matched' => $raidsResult['matched'] ?? null,
+                'raids_missing' => $raidsResult['missing'] ?? null,
+                'raids_errored' => $raidsResult['errored'] ?? null,
             ];
 
             SyncStatus::set(SyncStatus::SOURCE_BLIZZARD, [
