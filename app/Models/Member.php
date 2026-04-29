@@ -18,6 +18,10 @@ class Member extends Model
     public const STATUS_LEFT = 'left';
     public const STATUS_BANNED = 'banned';
 
+    public const DISCORD_LINK_MANUAL = 'manual';
+    public const DISCORD_LINK_RECRUIT_FORM = 'recruit_form';
+    public const DISCORD_LINK_SELF_CLAIM = 'self_claim';
+
     protected $guarded = ['id'];
 
     protected function casts(): array
@@ -30,6 +34,7 @@ class Member extends Model
             'first_seen_at' => 'datetime',
             'last_seen_at' => 'datetime',
             'last_blizzard_seen_at' => 'datetime',
+            'discord_linked_at' => 'datetime',
             'is_online' => 'boolean',
             'is_mobile' => 'boolean',
             'join_date_unknown' => 'boolean',

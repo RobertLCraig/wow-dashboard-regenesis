@@ -120,12 +120,16 @@
                         Last seen <span class="text-muted" x-text="sortIcon('lastseen')"></span>
                         <x-column-explainer-toggle col="lastseen" />
                     </th>
-                    <th class="px-2 py-2 font-medium">
-                        Alt of
+                    <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('discord')">
+                        Discord <span class="text-muted" x-text="sortIcon('discord')"></span>
+                        <x-column-explainer-toggle col="discord" />
+                    </th>
+                    <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('altof')">
+                        Alt of <span class="text-muted" x-text="sortIcon('altof')"></span>
                         <x-column-explainer-toggle col="altof" />
                     </th>
-                    <th class="px-2 py-2 font-medium">
-                        Flags
+                    <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('flags')">
+                        Flags <span class="text-muted" x-text="sortIcon('flags')"></span>
                         <x-column-explainer-toggle col="flags" />
                     </th>
                     <th class="px-2 py-2 font-medium text-right">
@@ -141,7 +145,7 @@
                 </tr>
             </thead>
             <tbody>
-                @php $colspan = auth()->user()?->can('roster.kick') ? 13 : 12; @endphp
+                @php $colspan = auth()->user()?->can('roster.kick') ? 14 : 13; @endphp
                 <tr x-show="openCol !== null" x-cloak class="border-t border-line bg-bg/40">
                     <td colspan="{{ $colspan }}"
                         class="px-4 py-3 text-xs text-muted leading-relaxed normal-case tracking-normal font-normal">
@@ -217,6 +221,16 @@
                                 Last in-game login from GRM's per-character timestamp. Anything past
                                 90 days is highlighted in red and lines up with the inactive_90d chip.
                                 "never" means GRM has the character but no login on record yet.
+                            </div>
+                        </template>
+                        <template x-if="openCol === 'discord'">
+                            <div>
+                                <span class="block text-ink font-semibold mb-1">Discord</span>
+                                Discord username this character is linked to. One Discord user owns
+                                a main + all their alts, so the same name can appear on many rows.
+                                Click the cell (or the dash, if empty) to set or clear the link.
+                                Searchable, so typing a Discord name in the box above filters the
+                                table to that player's whole roster.
                             </div>
                         </template>
                         <template x-if="openCol === 'altof'">
@@ -387,12 +401,54 @@
                             data-sort-value="{{ $m->last_online_at?->timestamp ?? 0 }}">
                             {{ $m->last_online_at?->diffForHumans() ?? 'never' }}
                         </td>
-                        <td class="px-2 py-2 text-muted text-xs" data-label="Alt of">
+                        @php
+                            $discordLinked = $m->discord_user_id !== null || $m->discord_username !== null;
+                            $discordLabel = $m->discord_username ?: $m->discord_user_id;
+                            // Sort key: lower-cased username so unlinked rows
+                            // sort to the bottom (sortableTable's coerce()
+                            // pushes empty strings after non-empty ones).
+                            $discordSortValue = strtolower((string) ($m->discord_username ?? ''));
+                            $discordTitle = $discordLinked
+                                ? 'Edit Discord link for ' . $m->name . ' (currently: ' . $discordLabel . ')'
+                                : 'Add Discord link for ' . $m->name;
+                        @endphp
+                        <td class="px-2 py-2 text-xs whitespace-nowrap"
+                            data-label="Discord"
+                            data-sort-key="discord"
+                            data-sort-value="{{ $discordSortValue }}">
+                            @can('roster.kick')
+                                <button type="button"
+                                        @click="$dispatch('open-discord-link', {
+                                            id: {{ $m->id }},
+                                            name: @js($m->name),
+                                            class: @js($m->class ?? ''),
+                                            discord_user_id: @js($m->discord_user_id),
+                                            discord_username: @js($m->discord_username),
+                                            discord_link_source: @js($m->discord_link_source),
+                                            discord_linked_at: @js($m->discord_linked_at?->toIso8601String()),
+                                        })"
+                                        class="font-mono {{ $discordLinked ? 'text-indigo-300 hover:text-indigo-200 hover:underline' : 'text-muted hover:text-ink' }}"
+                                        title="{{ $discordTitle }}">
+                                    {{ $discordLabel ?? '-' }}
+                                </button>
+                            @else
+                                <span class="font-mono {{ $discordLinked ? 'text-indigo-300' : 'text-muted' }}">
+                                    {{ $discordLabel ?? '-' }}
+                                </span>
+                            @endcan
+                        </td>
+                        <td class="px-2 py-2 text-muted text-xs"
+                            data-label="Alt of"
+                            data-sort-key="altof"
+                            data-sort-value="{{ strtolower((string) ($row['main']?->name ?? '')) }}">
                             @if ($row['main'])
                                 {{ $row['main']->name }}
                             @endif
                         </td>
-                        <td class="px-2 py-2" data-label="Flags">
+                        <td class="px-2 py-2"
+                            data-label="Flags"
+                            data-sort-key="flags"
+                            data-sort-value="{{ count($row['flags']) }}">
                             @foreach ($row['flags'] as $flag)
                                 @php
                                     $tone = match ($flag) {
@@ -504,5 +560,6 @@
         <x-custom-note-macro-modal />
         <x-unlink-alt-macro-modal />
         <x-add-alt-macro-modal />
+        <x-member-discord-link-modal />
     @endcan
 @endsection

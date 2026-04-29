@@ -79,6 +79,15 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::post('/roster/unlink-alt', [\App\Http\Controllers\Dashboard\RosterUnlinkAltMacroController::class, 'preview'])->name('roster.unlink-alt.preview');
     Route::post('/roster/unlink-alt/confirm', [\App\Http\Controllers\Dashboard\RosterUnlinkAltMacroController::class, 'confirm'])->name('roster.unlink-alt.confirm');
 
+    // Discord linkage on a member row. Pure dashboard state (no GRM
+    // round-trip), so this writes the columns directly. PUT updates,
+    // DELETE clears. Officers fill these in by hand for now; a future
+    // resolver will translate username-only entries into snowflakes.
+    Route::put('/roster/{member}/discord-link', [\App\Http\Controllers\Dashboard\MemberDiscordLinkController::class, 'update'])
+        ->whereNumber('member')->name('roster.discord-link.update');
+    Route::delete('/roster/{member}/discord-link', [\App\Http\Controllers\Dashboard\MemberDiscordLinkController::class, 'destroy'])
+        ->whereNumber('member')->name('roster.discord-link.destroy');
+
     // /run GRM.AddAlt(...) macro generator. Officer picks a target
     // member (datalist autocomplete on the page) and the macro links
     // the source row + target as alts of each other. GRM handles the

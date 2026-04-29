@@ -86,7 +86,7 @@ class RosterController extends Controller
                 'keys_30d', 'keys_30d_highest', 'keys_30d_last_completed',
                 'bis_issues_total', 'bis_missing_enchants', 'bis_missing_gems',
                 'gear_health_total', 'gear_missing_enchants', 'gear_empty_sockets',
-                'last_online_at', 'main', 'flags',
+                'last_online_at', 'discord_user_id', 'discord_username', 'main', 'flags',
             ]);
             foreach ($rows as $row) {
                 $m = $row['member'];
@@ -115,6 +115,8 @@ class RosterController extends Controller
                     $gh ? count($gh['missing_enchants']) : null,
                     $gh ? count($gh['empty_sockets']) : null,
                     $m->last_online_at?->toIso8601String(),
+                    $m->discord_user_id,
+                    $m->discord_username,
                     $row['main']?->name,
                     implode('|', $row['flags']),
                 ]);
