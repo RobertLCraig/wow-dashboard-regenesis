@@ -7,11 +7,13 @@ use App\Models\LogEvent;
 use App\Models\Member;
 use App\Models\MemberAction;
 use App\Models\MemberEvent;
+use App\Models\MemberRaidSnapshot;
 use App\Models\MemberSnapshot;
 use App\Models\RaidEvent;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
 use App\Services\Attendance\AttendanceReconciler;
+use App\Services\Blizzard\RaidProgressionAnalyzer;
 use App\Services\Dashboard\WidgetOrderResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -45,6 +47,7 @@ class DashboardController extends Controller
             'upcomingEvents' => $this->upcomingEvents(),
             'teamProgression' => $this->teamProgression($guildKey),
             'raidAttendance' => (new AttendanceReconciler)->recent($guildKey),
+            'aotcGap' => $this->aotcGap($guildKey),
         ];
 
         $widgets = WidgetOrderResolver::resolve(
@@ -362,5 +365,91 @@ class DashboardController extends Controller
         }
 
         return ['labels' => $labels, 'joiners' => $joiners, 'leavers' => $leavers];
+    }
+
+    /**
+     * AOTC / CE gap analysis for the latest tier. Pulls every active
+     * member's most recent Blizzard raid snapshot, asks the analyzer
+     * which tier is "current", then partitions the roster into has-AOTC
+     * vs missing-AOTC. Officers use the missing-list to plan one-off
+     * social runs to backfill AOTC for the social side of the guild.
+     *
+     * Returns null when there's no equipment data yet at all (fresh
+     * deploy, importer never ran), so the widget can render an empty
+     * state instead of an error.
+     *
+     * @return ?array{
+     *   tier: array{expansion_id:int, expansion_name:string, instance_id:int, instance_name:string},
+     *   active_count: int,
+     *   has_aotc: list<array{name:string, class:?string}>,
+     *   missing_aotc: list<array{name:string, class:?string}>,
+     *   has_ce: list<array{name:string, class:?string}>,
+     *   captured_at: ?\Carbon\CarbonInterface,
+     * }
+     */
+    private function aotcGap(string $guildKey): ?array
+    {
+        $latest = Snapshot::query()
+            ->where('guild_key', $guildKey)
+            ->where('source', Snapshot::SOURCE_BLIZZARD_RAIDS)
+            ->latest('captured_at')
+            ->first();
+        if (! $latest) {
+            return null;
+        }
+
+        $members = Member::query()
+            ->forGuild($guildKey)
+            ->active()
+            ->orderBy('name')
+            ->get(['id', 'name', 'class']);
+        if ($members->isEmpty()) {
+            return null;
+        }
+
+        $rows = MemberRaidSnapshot::query()
+            ->where('snapshot_id', $latest->id)
+            ->whereIn('member_id', $members->pluck('id')->all())
+            ->get();
+        if ($rows->isEmpty()) {
+            return null;
+        }
+
+        $analyzer = new RaidProgressionAnalyzer();
+        $tier = $analyzer->currentTier($rows);
+        if ($tier === null) {
+            return null;
+        }
+
+        $byMember = $rows->keyBy('member_id');
+        $hasAotc = [];
+        $missingAotc = [];
+        $hasCe = [];
+
+        foreach ($members as $m) {
+            $snap = $byMember->get($m->id);
+            $entry = ['name' => $m->name, 'class' => $m->class];
+            if ($snap === null) {
+                $missingAotc[] = $entry;
+                continue;
+            }
+            if ($analyzer->hasAotcOn($snap, $tier['instance_id'])) {
+                $hasAotc[] = $entry;
+                if ($analyzer->hasCeOn($snap, $tier['instance_id'])) {
+                    $hasCe[] = $entry;
+                }
+            } else {
+                $missingAotc[] = $entry;
+            }
+        }
+
+        return [
+            'tier' => $tier,
+            'active_count' => $members->count(),
+            'has_aotc' => $hasAotc,
+            'missing_aotc' => $missingAotc,
+            'has_ce' => $hasCe,
+            'captured_at' => $latest->captured_at,
+        ];
     }
 }

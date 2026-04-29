@@ -95,6 +95,13 @@ return [
             'data_key' => 'churn',
             'col_span' => 'col-span-full xl:col-span-2',
         ],
+        [
+            'key'      => 'aotc-gap',
+            'title'    => 'AOTC gap',
+            'partial'  => 'dashboard.widgets.aotc-gap',
+            'data_key' => 'aotcGap',
+            'col_span' => 'col-span-full md:col-span-2 xl:col-span-2',
+        ],
     ],
 
 ];
