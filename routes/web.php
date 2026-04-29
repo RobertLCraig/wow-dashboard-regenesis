@@ -47,6 +47,11 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::get('/roster', [\App\Http\Controllers\Dashboard\RosterController::class, 'index'])->name('roster.index');
     Route::get('/roster.csv', [\App\Http\Controllers\Dashboard\RosterController::class, 'csv'])->name('roster.csv');
 
+    // Farm-event planner. Pick a mount/pet/toy by Blizzard id and see
+    // who already has it. Reads the latest member_social_snapshots
+    // (refreshed weekly by blizzard:pull-social).
+    Route::get('/farm-planner', [\App\Http\Controllers\Dashboard\FarmPlannerController::class, 'index'])->name('farm-planner.index');
+
     // Kick + alts macro generator. preview() returns the JSON the modal
     // renders; confirm() logs MemberAction rows for the audit trail
     // after the officer says they ran the macro in-game.
