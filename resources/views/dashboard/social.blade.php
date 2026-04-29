@@ -23,6 +23,11 @@
                title="World events only (Darkmoon Faire, holidays, Trading Post). Public feed - share with anyone, no auth.">
                 World events feed &rarr;
             </a>
+            <a href="{{ route('farm-planner.index') }}"
+               class="text-xs px-3 py-1 rounded border border-line bg-bg hover:bg-panel"
+               title="Pick a mount/pet/toy by Blizzard ID and see who in the guild already has it - decide whether a farm event is worth running.">
+                Farm planner &rarr;
+            </a>
             <span class="text-xs text-muted">
                 Channel: <code class="text-ink">#{{ $channelName }}</code>
                 <span class="text-line">|</span>
