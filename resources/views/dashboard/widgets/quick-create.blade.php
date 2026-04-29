@@ -55,7 +55,7 @@
     // pick (e.g. socials toggle between accept/maybe/decline and
     // role+spec). Otherwise the panel stays simple and pins to the
     // single configured template_id via a hidden input.
-    $defaultTemplateId = (string) ($preset['template_id'] ?? '9');
+    $defaultTemplateId = (string) ($preset['template_id'] ?? '6');
     $templateOptions = collect(config('raidhelper.templates', []))
         ->whereIn('id', $preset['template_choices'] ?? [])
         ->values()

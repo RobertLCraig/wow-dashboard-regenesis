@@ -85,19 +85,19 @@ return [
             'label' => 'Heroic Raid',
             'channel_id' => '1247281653777301714', // heroic-raid-signup
             'raid_days' => [2, 4],                 // Tue, Thu
-            'template_id' => '9',                  // role + spec
+            'template_id' => '6',                  // role picker
         ],
         'mythic' => [
             'label' => 'Mythic Raid',
             'channel_id' => '1423413329954603039', // mythic-raid-signup
             'raid_days' => [3, 7],                 // Wed, Sun
-            'template_id' => '9',
+            'template_id' => '6',
         ],
         'keynight' => [
             'label' => 'Keynight (M+)',
             'channel_id' => '1341149654045429962', // keynight-signup
             'raid_days' => [1],                    // Mon
-            'template_id' => '9',
+            'template_id' => '6',
         ],
         'social' => [
             'label' => 'Social Event',
@@ -105,11 +105,11 @@ return [
             'raid_days' => [],                     // ad-hoc, no fixed cadence
             'template_id' => '1',                  // accept / maybe / decline (default)
             // Socials cover both casual (template 1) and drunken/transmog
-            // raid nights that need a role + spec picker (template 9). The
+            // raid nights that need a role picker (template 6). The
             // quick-create widget renders a dropdown when this list is set
             // and has more than one entry; other teams omit it and stay
             // pinned to template_id above.
-            'template_choices' => ['1', '9'],
+            'template_choices' => ['1', '6'],
         ],
     ],
 
@@ -157,15 +157,16 @@ return [
     |--------------------------------------------------------------------------
     |
     | Raid-Helper templates control how members sign up (not event size).
-    | We surface the two we actually use: 9 for raids (role + spec
-    | picker) and 1 for social events (accept / maybe / decline). Other
-    | templates exist (2-5: class picker; 6: role picker; 7: role +
-    | support; 8: yes-only) - add them here if you ever need them. The
-    | order here is the order in the form dropdown; first entry is the
-    | one new officers see selected by default.
+    | We surface the two we actually use: 6 for raids (role picker, lets
+    | members sign up by role) and 1 for social events (accept / maybe /
+    | decline). Other templates exist (2-5: class picker; 7: role +
+    | support; 8: yes-only; 9: bench / late / tentative / absence only,
+    | no role or class picker) - add them here if you ever need them.
+    | The order here is the order in the form dropdown; first entry is
+    | the one new officers see selected by default.
     */
     'templates' => [
-        ['id' => '9', 'label' => 'Raid event (role + spec)'],
+        ['id' => '6', 'label' => 'Raid event (role)'],
         ['id' => '1', 'label' => 'Social event (accept / maybe / decline)'],
     ],
 

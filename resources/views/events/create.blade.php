@@ -78,7 +78,7 @@
               startsAt: @json(old("starts_at", $startsAtDefault->format("Y-m-d\TH:i"))),
               durationMinutes: @json(old("duration_minutes", 180)),
               endsAt: @json(old("ends_at", "")),
-              templateId: @json(old("template_id", "9")),
+              templateId: @json(old("template_id", "6")),
               leaderId: @json(old("leader_id", $leaderId)),
               announcements: @json($initialAnnouncements),
               init() {
@@ -222,10 +222,10 @@
                 <ul class="mt-2 space-y-1 list-disc list-inside">
                     <li><strong>1</strong>: Accept / Maybe / Decline. We use this for socials.</li>
                     <li><strong>2-5</strong>: Class picker + bench / late / tentative / absence (game-specific variants we haven't confirmed).</li>
-                    <li><strong>6</strong>: Role picker (tank / melee / ranged / healer) + the usual bench / late / tentative / absence.</li>
+                    <li><strong>6</strong>: Role picker (tank / melee / ranged / healer) + the usual bench / late / tentative / absence. We use this for raids.</li>
                     <li><strong>7</strong>: Same as 6 plus a Support role.</li>
                     <li><strong>8</strong>: Yes-only + bench / late / tentative / absence.</li>
-                    <li><strong>9</strong>: Role + spec + bench / late / tentative / absence. We use this for raids.</li>
+                    <li><strong>9</strong>: Bench / late / tentative / absence only (no role or class picker).</li>
                 </ul>
                 <p class="mt-2">
                     To expose another template, add it to <code class="text-[11px]">config/raidhelper.php</code> under <code class="text-[11px]">templates</code>. Test it on a throwaway event in a private channel first.

@@ -38,7 +38,7 @@ class TeamScheduleResolver
         return [
             'label' => $config['label'] ?? null,
             'channel_id' => $config['channel_id'] ?? null,
-            'template_id' => $config['template_id'] ?? '9',
+            'template_id' => $config['template_id'] ?? '6',
             // Optional whitelist for the quick-create template picker
             // (rendered only when 2+ entries exist). Empty by default,
             // which pins the panel to template_id above.
