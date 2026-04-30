@@ -170,7 +170,7 @@ return [
         'KhazModan'           => 'khaz-modan',
         'KhazGoroth'          => 'khaz-goroth',
         'MoonGlade'           => 'moon-glade',
-        'PozzodellEternita'   => 'pozzo-delleternita',
+        'PozzodellEternita'   => 'pozzo-dell-eternità',
         'ScarshieldLegion'    => 'scarshield-legion',
         'SilverHand'          => 'silver-hand',
         'SteamwheedleCartel'  => 'steamwheedle-cartel',
@@ -185,9 +185,11 @@ return [
         // in production logs as repeated 400s from RIO. The collapsed
         // form on the left is what shows up in members.name after the
         // dash; the slug on the right is the form RIO actually accepts.
+        // Note RIO PRESERVES UNICODE in slugs (verified: "aggra-portugues"
+        // 400s, "aggra-português" 200s) - do not transliterate.
         'Blade\'sEdge'        => 'blades-edge',
         'Drek\'Thar'          => 'drekthar',
-        'Aggra(Português)'    => 'aggra-portugues',
-        'Pozzodell\'Eternità' => 'pozzo-delleternita',
+        'Aggra(Português)'    => 'aggra-português',
+        'Pozzodell\'Eternità' => 'pozzo-dell-eternità',
     ],
 ];

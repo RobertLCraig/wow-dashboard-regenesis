@@ -382,38 +382,43 @@ it('prefers members.realm over the slug map when calling RIO', function () {
         requestDelayMs: 0,
     ))->pull();
 
-    Http::assertSent(fn ($req) => str_contains($req->url(), 'realm=pozzo-delleternita')
+    Http::assertSent(fn ($req) => str_contains($req->url(), 'realm=pozzo-dell-eternita')
         && str_contains($req->url(), 'name=Argus'));
 });
 
-it('slugifyCanonical handles spaces, apostrophes, accents-friendly inputs', function () {
+it('slugifyCanonical replaces apostrophes + spaces with hyphens', function () {
     expect(RealmSlug::slugifyCanonical('Stormrage'))->toBe('stormrage');
     expect(RealmSlug::slugifyCanonical('Twisting Nether'))->toBe('twisting-nether');
-    expect(RealmSlug::slugifyCanonical("Pozzo dell'Eternita"))->toBe('pozzo-delleternita');
-    expect(RealmSlug::slugifyCanonical("The Sha'tar"))->toBe('the-shatar');
+    // Apostrophe becomes a hyphen so the canonical RIO slug for
+    // "Pozzo dell'Eternità" is "pozzo-dell-eternità", verified against
+    // RIO directly. RIO is forgiving on the alternative ("pozzo-dell-eternita"
+    // - no accent - also returns 200), but apos-as-hyphen is the canonical
+    // shape we're matching.
+    expect(RealmSlug::slugifyCanonical("Pozzo dell'Eternita"))->toBe('pozzo-dell-eternita');
+    expect(RealmSlug::slugifyCanonical("The Sha'tar"))->toBe('the-sha-tar');
     expect(RealmSlug::slugifyCanonical(null))->toBeNull();
     expect(RealmSlug::slugifyCanonical(''))->toBeNull();
 });
 
-it('slugifyCanonical transliterates accented characters before slugifying', function () {
-    // Without iconv these would emit "portugu-s" / "eternit-" because the
-    // [a-z0-9] regex sees the accents as non-alphanumeric and replaces
-    // them with hyphens. Production was sending the un-slugged form to
-    // RIO and getting blanket 400s for these realms.
-    expect(RealmSlug::slugifyCanonical('Aggra (Português)'))->toBe('aggra-portugues');
-    expect(RealmSlug::slugifyCanonical("Pozzo dell'Eternità"))->toBe('pozzo-delleternita');
+it('slugifyCanonical preserves unicode characters in the slug', function () {
+    // Verified against RIO directly: "aggra-portugues" 400s,
+    // "aggra-português" (with the actual ê) 200s. Don't transliterate
+    // accented chars to ASCII - RIO doesn't.
+    expect(RealmSlug::slugifyCanonical('Aggra (Português)'))->toBe('aggra-português');
+    expect(RealmSlug::slugifyCanonical("Pozzo dell'Eternità"))->toBe('pozzo-dell-eternità');
 });
 
-it('slugify strips apostrophes and accents in the collapsed-form fallback', function () {
-    // GRM occasionally lets apostrophes / parens through. Without
-    // sanitisation the fallback emits "blade'sedge" or
-    // "aggra(portugu\xc3\xaas)" which RIO 400s on. The map covers the
-    // multi-word cases (which need explicit hyphenation); this is the
-    // single-word fallback after the map miss.
+it('slugify replaces apostrophes + parens with hyphens in the fallback', function () {
+    // GRM occasionally lets apostrophes / parens through. The map covers
+    // realms whose canonical slug needs word-boundary hyphens GRM has
+    // collapsed away (e.g. "Blade'sEdge" -> "blades-edge", which the
+    // fallback can't recover since "sE" was once a word boundary).
+    // Unicode is preserved (RIO accepts "aggra-português" but rejects
+    // "aggra-portugues").
     config(['raiderio.realm_slugs' => []]);
-    expect(RealmSlug::slugify("Drek'Thar"))->toBe('drekthar');
-    expect(RealmSlug::slugify("Blade'sEdge"))->toBe('bladesedge');
-    expect(RealmSlug::slugify('Aggra(Português)'))->toBe('aggraportugues');
+    expect(RealmSlug::slugify("Drek'Thar"))->toBe('drek-thar');
+    expect(RealmSlug::slugify("Blade'sEdge"))->toBe('blade-sedge');
+    expect(RealmSlug::slugify('Aggra(Português)'))->toBe('aggra-português');
 });
 
 it('upserts individual runs from each RIO field, dedupes by completed_at', function () {

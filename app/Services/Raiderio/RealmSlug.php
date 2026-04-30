@@ -6,10 +6,19 @@ namespace App\Services\Raiderio;
  * Translate the realm portion of a GRM-style "Char-Realm" key into the
  * URL slug Raider.IO expects.
  *
- * GRM stores realm names with all spaces and apostrophes stripped (e.g.
- * "TwistingNether"). Raider.IO uses the slug form ("twisting-nether").
- * For single-word realms a simple lowercase works, but multi-word and
- * apostrophe-bearing realms need an explicit map (see config/raiderio.php).
+ * GRM stores the realm portion of a member name with spaces stripped
+ * (e.g. "TwistingNether") but apostrophes / parens / accents are
+ * sometimes preserved verbatim, so the input here can be in any of
+ * several shapes. Raider.IO's slug form is documented as ASCII-with-
+ * hyphens (e.g. "twisting-nether") but in practice RIO PRESERVES
+ * unicode characters in slugs - the slug for Aggra (Português) is
+ * "aggra-português" (with the actual ê), not "aggra-portugues".
+ * Transliterating accented chars to ASCII before slugifying produced
+ * 400s in production and was reverted.
+ *
+ * Multi-word realms whose original spaces have been collapsed away by
+ * GRM ("TwistingNether") cannot be recovered from the collapsed form -
+ * use the explicit map in config/raiderio.php for those.
  */
 class RealmSlug
 {
@@ -34,13 +43,13 @@ class RealmSlug
      *
      * Resolution order:
      *   1. Exact match in config('raiderio.realm_slugs')
-     *   2. Strip apostrophes + transliterate accents + lowercase
+     *   2. Lowercase + apostrophe/paren cleanup, unicode preserved
      *
      * The collapsed form has lost its word boundaries, so the fallback
-     * cannot recover hyphens; use the map for any multi-word realm. The
-     * fallback only handles the easy single-word cases plus the
-     * apostrophe / accent survivors GRM occasionally lets through
-     * ("Drek'Thar" -> "drekthar", "Aggra(Português)" -> "aggraportugues").
+     * cannot recover hyphens between words. Use the map for any
+     * multi-word realm. The fallback handles single-word realms and
+     * the apostrophe / paren survivors GRM occasionally lets through
+     * (e.g. "Drek'Thar" -> "drekthar", "Aggra(Português)" -> "aggra-português").
      */
     public static function slugify(?string $collapsedRealm, ?string $default = null): string
     {
@@ -51,62 +60,37 @@ class RealmSlug
         if (isset($map[$collapsedRealm])) {
             return (string) $map[$collapsedRealm];
         }
-        $ascii = self::transliterate($collapsedRealm);
-        $stripped = str_replace(["'", "\u{2019}", '`', '(', ')'], '', $ascii);
-        return strtolower($stripped);
+        // Apostrophes + parens become hyphens. RIO's canonical slug for
+        // "Pozzo dell'Eternità" is "pozzo-dell-eternità" (apos becomes
+        // hyphen between dell + eternità). RIO is forgiving on the
+        // collapsed alternatives ("drekthar" and "drek-thar" both 200),
+        // so apos-as-hyphen is the consistent rule.
+        $lowered = mb_strtolower($collapsedRealm);
+        $hyphenated = preg_replace("/[' \u{2019}` ()]+/u", '-', $lowered) ?? $lowered;
+        $collapsed = preg_replace('/-+/', '-', $hyphenated) ?? $hyphenated;
+        return trim($collapsed, '-');
     }
 
     /**
      * Slugify a canonical realm name with spaces and apostrophes
      * preserved (e.g. "Twisting Nether" -> "twisting-nether",
-     * "Pozzo dell'Eternita" -> "pozzo-delleternita"). Used when we have
+     * "Pozzo dell'Eternità" -> "pozzo-dell-eternità"). Used when we have
      * the realm via members.realm (backfilled from a previous RIO call)
      * and don't need to fall through the collapsed-name map.
+     *
+     * Unicode is preserved: RIO accepts "aggra-português" but rejects
+     * "aggra-portugues" with a 400. Don't transliterate.
      */
     public static function slugifyCanonical(?string $canonicalRealm): ?string
     {
         if ($canonicalRealm === null || $canonicalRealm === '') {
             return null;
         }
-        // Transliterate first so accented characters (português, eternità)
-        // become plain ASCII before the [a-z0-9] regex sees them and
-        // turns them into stray hyphens. Without this, "Português"
-        // becomes "portugu-s" instead of "portugues".
-        $s = strtolower(self::transliterate($canonicalRealm));
-        // Drop apostrophes outright (RIO does), then convert any
-        // non-alphanumeric run (spaces, punctuation, etc.) to a single
-        // hyphen, and trim hyphens at the edges.
-        $s = str_replace(["'", "\u{2019}", '`'], '', $s);
-        $s = preg_replace('/[^a-z0-9]+/', '-', $s) ?? '';
+        $s = mb_strtolower($canonicalRealm);
+        // Replace apostrophes + whitespace + parens with hyphens. Use
+        // \p{L} / \p{N} to keep accented letters intact - RIO preserves
+        // them in slugs ("aggra-português", not "aggra-portugues").
+        $s = preg_replace('/[^\p{L}\p{N}]+/u', '-', $s) ?? '';
         return trim($s, '-');
-    }
-
-    /**
-     * Best-effort UTF-8 to ASCII transliteration. Prefers PHP's Intl
-     * Transliterator (ICU-backed, identical output on Windows + Linux);
-     * falls back to iconv for hosts without the intl extension. Both
-     * convert: ê -> e, à -> a, ñ -> n, ç -> c, etc.
-     *
-     * iconv was tried first but Windows libiconv emits "^e" for "ê"
-     * (the caret as a separator) while glibc on Hostinger emits "e";
-     * the divergence broke the test suite cross-platform. ICU does the
-     * sensible thing on both.
-     */
-    private static function transliterate(string $s): string
-    {
-        if (class_exists(\Transliterator::class)) {
-            static $tr = null;
-            if ($tr === null) {
-                $tr = \Transliterator::create('Any-Latin; Latin-ASCII');
-            }
-            if ($tr instanceof \Transliterator) {
-                $converted = $tr->transliterate($s);
-                if (is_string($converted) && $converted !== '') {
-                    return $converted;
-                }
-            }
-        }
-        $converted = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
-        return is_string($converted) && $converted !== '' ? $converted : $s;
     }
 }
