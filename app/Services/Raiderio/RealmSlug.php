@@ -34,7 +34,13 @@ class RealmSlug
      *
      * Resolution order:
      *   1. Exact match in config('raiderio.realm_slugs')
-     *   2. Lowercase fallback (correct for single-word realms)
+     *   2. Strip apostrophes + transliterate accents + lowercase
+     *
+     * The collapsed form has lost its word boundaries, so the fallback
+     * cannot recover hyphens; use the map for any multi-word realm. The
+     * fallback only handles the easy single-word cases plus the
+     * apostrophe / accent survivors GRM occasionally lets through
+     * ("Drek'Thar" -> "drekthar", "Aggra(Português)" -> "aggraportugues").
      */
     public static function slugify(?string $collapsedRealm, ?string $default = null): string
     {
@@ -45,7 +51,9 @@ class RealmSlug
         if (isset($map[$collapsedRealm])) {
             return (string) $map[$collapsedRealm];
         }
-        return strtolower($collapsedRealm);
+        $ascii = self::transliterate($collapsedRealm);
+        $stripped = str_replace(["'", "\u{2019}", '`', '(', ')'], '', $ascii);
+        return strtolower($stripped);
     }
 
     /**
@@ -60,12 +68,45 @@ class RealmSlug
         if ($canonicalRealm === null || $canonicalRealm === '') {
             return null;
         }
-        $s = mb_strtolower($canonicalRealm);
+        // Transliterate first so accented characters (português, eternità)
+        // become plain ASCII before the [a-z0-9] regex sees them and
+        // turns them into stray hyphens. Without this, "Português"
+        // becomes "portugu-s" instead of "portugues".
+        $s = strtolower(self::transliterate($canonicalRealm));
         // Drop apostrophes outright (RIO does), then convert any
         // non-alphanumeric run (spaces, punctuation, etc.) to a single
         // hyphen, and trim hyphens at the edges.
-        $s = str_replace(["'", '’'], '', $s);
-        $s = preg_replace('/[^a-z0-9]+/u', '-', $s) ?? '';
+        $s = str_replace(["'", "\u{2019}", '`'], '', $s);
+        $s = preg_replace('/[^a-z0-9]+/', '-', $s) ?? '';
         return trim($s, '-');
+    }
+
+    /**
+     * Best-effort UTF-8 to ASCII transliteration. Prefers PHP's Intl
+     * Transliterator (ICU-backed, identical output on Windows + Linux);
+     * falls back to iconv for hosts without the intl extension. Both
+     * convert: ê -> e, à -> a, ñ -> n, ç -> c, etc.
+     *
+     * iconv was tried first but Windows libiconv emits "^e" for "ê"
+     * (the caret as a separator) while glibc on Hostinger emits "e";
+     * the divergence broke the test suite cross-platform. ICU does the
+     * sensible thing on both.
+     */
+    private static function transliterate(string $s): string
+    {
+        if (class_exists(\Transliterator::class)) {
+            static $tr = null;
+            if ($tr === null) {
+                $tr = \Transliterator::create('Any-Latin; Latin-ASCII');
+            }
+            if ($tr instanceof \Transliterator) {
+                $converted = $tr->transliterate($s);
+                if (is_string($converted) && $converted !== '') {
+                    return $converted;
+                }
+            }
+        }
+        $converted = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
+        return is_string($converted) && $converted !== '' ? $converted : $s;
     }
 }

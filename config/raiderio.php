@@ -180,5 +180,14 @@ return [
         'TheSha\'tar'         => 'the-shatar',
         'TheSchatar'          => 'the-shatar',
         'YsondreFR'           => 'ysondre',
+
+        // Realms where GRM didn't strip the apostrophe / parens, observed
+        // in production logs as repeated 400s from RIO. The collapsed
+        // form on the left is what shows up in members.name after the
+        // dash; the slug on the right is the form RIO actually accepts.
+        'Blade\'sEdge'        => 'blades-edge',
+        'Drek\'Thar'          => 'drekthar',
+        'Aggra(Português)'    => 'aggra-portugues',
+        'Pozzodell\'Eternità' => 'pozzo-delleternita',
     ],
 ];

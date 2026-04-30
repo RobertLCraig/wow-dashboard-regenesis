@@ -395,6 +395,27 @@ it('slugifyCanonical handles spaces, apostrophes, accents-friendly inputs', func
     expect(RealmSlug::slugifyCanonical(''))->toBeNull();
 });
 
+it('slugifyCanonical transliterates accented characters before slugifying', function () {
+    // Without iconv these would emit "portugu-s" / "eternit-" because the
+    // [a-z0-9] regex sees the accents as non-alphanumeric and replaces
+    // them with hyphens. Production was sending the un-slugged form to
+    // RIO and getting blanket 400s for these realms.
+    expect(RealmSlug::slugifyCanonical('Aggra (Português)'))->toBe('aggra-portugues');
+    expect(RealmSlug::slugifyCanonical("Pozzo dell'Eternità"))->toBe('pozzo-delleternita');
+});
+
+it('slugify strips apostrophes and accents in the collapsed-form fallback', function () {
+    // GRM occasionally lets apostrophes / parens through. Without
+    // sanitisation the fallback emits "blade'sedge" or
+    // "aggra(portugu\xc3\xaas)" which RIO 400s on. The map covers the
+    // multi-word cases (which need explicit hyphenation); this is the
+    // single-word fallback after the map miss.
+    config(['raiderio.realm_slugs' => []]);
+    expect(RealmSlug::slugify("Drek'Thar"))->toBe('drekthar');
+    expect(RealmSlug::slugify("Blade'sEdge"))->toBe('bladesedge');
+    expect(RealmSlug::slugify('Aggra(Português)'))->toBe('aggraportugues');
+});
+
 it('upserts individual runs from each RIO field, dedupes by completed_at', function () {
     config([
         'raiderio.profile_fields' => [

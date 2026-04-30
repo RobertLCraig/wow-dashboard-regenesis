@@ -18,19 +18,36 @@ use Illuminate\Support\Facades\Log;
  * toys, transmogs).
  *
  * Six endpoints per character means the fan-out is six times as wide
- * as the other importers. We dispatch one Http::pool batch per
- * endpoint type sequentially: each batch is bounded to `concurrency`
- * parallel requests (matching the other importers), and a missing
- * resource on one endpoint type doesn't poison the others (e.g.
- * /collections/transmogs 404 still records achievements).
+ * as the other importers. To stay inside Hostinger shared hosting's
+ * memory budget on a 700-member roster (a single character's transmogs
+ * payload alone can hit several hundred KB), we iterate members in
+ * chunks of CHUNK_SIZE: fetch all six endpoints for each chunk, persist
+ * incrementally, then discard the chunk's payloads from memory before
+ * moving on. Peak memory stays bounded at ~chunk_size * payload_size
+ * instead of growing linearly with the roster.
  *
- * Snapshot dedupe via payload_hash means an unchanged collection set
- * (the common case - mount drops are infrequent) reuses one row
- * across pulls instead of bloating the table.
+ * Within each chunk we still dispatch one Http::pool batch per endpoint
+ * type, so a missing resource on one endpoint (e.g. /collections/toys
+ * 404) doesn't poison the others.
+ *
+ * Snapshot dedupe was dropped when we moved to incremental persistence:
+ * the payload hash now reflects the rolling fingerprint of every blob
+ * we wrote, but we no longer fold identical pulls into one snapshot
+ * row. At weekly cadence the extra row volume is trivial (~52/year)
+ * and the bookkeeping needed to atomically reattach incrementally-
+ * persisted member rows to a pre-existing snapshot was not worth it.
  */
 class SocialSnapshotImporter
 {
     private const COLLECTION_TYPES = ['mounts', 'pets', 'toys', 'transmogs'];
+
+    /**
+     * Members per chunk. Each chunk does six Http::pool fetches and one
+     * DB::transaction. 25 keeps peak memory well under 64MB on a typical
+     * roster while keeping the per-chunk overhead small (28 chunks for a
+     * 700-member roster).
+     */
+    private const CHUNK_SIZE = 25;
 
     public function __construct(
         private readonly BlizzardClient $client,
@@ -66,11 +83,18 @@ class SocialSnapshotImporter
             ->get();
 
         $now = CarbonImmutable::now();
-        $perMember = [];   // [memberId => ['character_media' => [...], 'achievements' => [...], ...]]
-        $matched = 0;
-        $missing = 0;
-        $errored = 0;
-        $hadAny = [];      // memberIds that returned any 200
+
+        // Create the snapshot row up front with a unique-per-run hash so
+        // member rows can be linked as we persist them. The hash is
+        // derived from the run timestamp + 8 random bytes; dedupe across
+        // identical pulls is no longer attempted (see class doc).
+        $snapshot = Snapshot::query()->create([
+            'guild_key' => $this->guildKey,
+            'source' => Snapshot::SOURCE_BLIZZARD_SOCIAL,
+            'captured_at' => $now,
+            'payload_hash' => hash('sha256', $now->toIso8601String() . bin2hex(random_bytes(8))),
+            'member_count' => 0,
+        ]);
 
         $endpointMakers = [
             'character_media' => fn (string $slug, string $name) => $this->client->characterMediaEndpoint($slug, $name),
@@ -81,43 +105,63 @@ class SocialSnapshotImporter
             'transmogs' => fn (string $slug, string $name) => $this->client->collectionsEndpoint($slug, $name, 'transmogs'),
         ];
 
-        foreach ($endpointMakers as $type => $maker) {
-            $jobs = $this->resolveJobs($members, $maker);
-            $this->fanOut($jobs, $type, $perMember, $hadAny, $missing, $errored);
+        $matched = 0;
+        $missing = 0;
+        $errored = 0;
+
+        foreach ($members->chunk(self::CHUNK_SIZE) as $chunk) {
+            $chunkPayloads = [];   // [memberId => [endpointType => body]]
+            $chunkHadAny = [];     // memberIds in this chunk that returned any 200
+
+            foreach ($endpointMakers as $type => $maker) {
+                $jobs = $this->resolveJobs($chunk, $maker);
+                $this->fanOut($jobs, $type, $chunkPayloads, $chunkHadAny, $errored);
+            }
+
+            $matched += count($chunkHadAny);
+            $matchedSet = array_flip($chunkHadAny);
+            foreach ($chunk as $member) {
+                if (! isset($matchedSet[$member->id])) {
+                    $missing++;
+                }
+            }
+
+            $this->persistChunk($snapshot->id, $chunk, $chunkPayloads);
+
+            // Drop the chunk's payloads before fetching the next chunk so
+            // peak memory doesn't accumulate across the run.
+            unset($chunkPayloads, $chunkHadAny);
         }
 
-        // Per-member matched count: any endpoint returning a 200 makes
-        // the character "matched". Members with all 404s are missing.
-        $matched = count($hadAny);
-        $matchedMembers = array_flip($hadAny);
-        $missingMembers = $members->reject(fn (Member $m) => isset($matchedMembers[$m->id]));
-        $missing = $missingMembers->count();
+        $snapshot->forceFill(['member_count' => $matched])->save();
 
-        ksort($perMember);
-        $payloadHash = hash('sha256', json_encode($perMember, JSON_THROW_ON_ERROR));
+        return [
+            'snapshot_id' => $snapshot->id,
+            'members_queried' => $members->count(),
+            'matched' => $matched,
+            'missing' => $missing,
+            'errored' => $errored,
+        ];
+    }
 
-        return DB::transaction(function () use ($perMember, $payloadHash, $now, $matched, $missing, $errored, $members) {
-            $snapshot = Snapshot::query()->firstOrCreate(
-                [
-                    'guild_key' => $this->guildKey,
-                    'source' => Snapshot::SOURCE_BLIZZARD_SOCIAL,
-                    'payload_hash' => $payloadHash,
-                ],
-                [
-                    'captured_at' => $now,
-                    'member_count' => count($perMember),
-                ]
-            );
-
-            foreach ($perMember as $memberId => $blobs) {
-                $member = $members->firstWhere('id', $memberId);
+    /**
+     * @param  Collection<int, Member>  $chunk
+     * @param  array<int, array<string, array<string,mixed>>>  $chunkPayloads
+     */
+    private function persistChunk(int $snapshotId, Collection $chunk, array $chunkPayloads): void
+    {
+        if ($chunkPayloads === []) {
+            return;
+        }
+        DB::transaction(function () use ($snapshotId, $chunk, $chunkPayloads): void {
+            foreach ($chunkPayloads as $memberId => $blobs) {
+                $member = $chunk->firstWhere('id', $memberId);
                 if (! $member) {
                     continue;
                 }
-
                 MemberSocialSnapshot::query()->updateOrCreate(
                     [
-                        'snapshot_id' => $snapshot->id,
+                        'snapshot_id' => $snapshotId,
                         'member_id' => $member->id,
                     ],
                     [
@@ -134,14 +178,6 @@ class SocialSnapshotImporter
                     ]
                 );
             }
-
-            return [
-                'snapshot_id' => $snapshot->id,
-                'members_queried' => $members->count(),
-                'matched' => $matched,
-                'missing' => $missing,
-                'errored' => $errored,
-            ];
         });
     }
 
@@ -179,7 +215,7 @@ class SocialSnapshotImporter
      * @param  array<int, array<string, array<string,mixed>>>  $perMember
      * @param  list<int>  $hadAny
      */
-    private function fanOut(array $jobs, string $type, array &$perMember, array &$hadAny, int &$missing, int &$errored): void
+    private function fanOut(array $jobs, string $type, array &$perMember, array &$hadAny, int &$errored): void
     {
         $batchSize = max(1, $this->concurrency);
         $batches = array_chunk($jobs, $batchSize, preserve_keys: true);

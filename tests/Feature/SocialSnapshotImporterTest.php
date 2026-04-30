@@ -143,15 +143,18 @@ it('counts a member with all 404s as missing', function () {
     expect($result['missing'])->toBe(1);
 });
 
-it('stamps the snapshot with source=blizzard_social and dedupes', function () {
+it('stamps the snapshot with source=blizzard_social and writes one row per pull', function () {
     makeSocialMember('Sheday-Silvermoon');
     fakeAllSocialEndpoints('sheday');
 
     $first = makeSocialImporter()->pull();
     $second = makeSocialImporter()->pull();
 
-    expect($first['snapshot_id'])->toBe($second['snapshot_id']);
-    expect(Snapshot::query()->where('source', Snapshot::SOURCE_BLIZZARD_SOCIAL)->count())->toBe(1);
+    // Dedupe-by-payload-hash was dropped when the importer moved to
+    // chunked incremental persistence (see SocialSnapshotImporter
+    // class doc). Each pull now writes its own snapshot row.
+    expect($first['snapshot_id'])->not->toBe($second['snapshot_id']);
+    expect(Snapshot::query()->where('source', Snapshot::SOURCE_BLIZZARD_SOCIAL)->count())->toBe(2);
 });
 
 it('throws when credentials are missing', function () {
