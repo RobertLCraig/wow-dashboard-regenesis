@@ -43,11 +43,12 @@ class SocialSnapshotImporter
 
     /**
      * Members per chunk. Each chunk does six Http::pool fetches and one
-     * DB::transaction. 25 keeps peak memory well under 64MB on a typical
-     * roster while keeping the per-chunk overhead small (28 chunks for a
-     * 700-member roster).
+     * DB::transaction. 10 keeps peak memory comfortably inside Hostinger's
+     * 512MB CLI ceiling: a single character's transmogs payload can hit
+     * 1MB+ and 6 endpoints worth of those plus framework overhead per
+     * chunk used to push us past the limit at chunk_size=25.
      */
-    private const CHUNK_SIZE = 25;
+    private const CHUNK_SIZE = 10;
 
     public function __construct(
         private readonly BlizzardClient $client,
@@ -74,6 +75,12 @@ class SocialSnapshotImporter
                 . 'Set BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET.'
             );
         }
+
+        // Hostinger's PHP CLI defaults to 512MB and the chunked loop sits
+        // close to that ceiling on a full 700-member roster (transmogs
+        // payloads dominate). Bumping in-process so neither cron nor the
+        // queue worker has to know to set -d memory_limit on the call.
+        @ini_set('memory_limit', '768M');
 
         $members = Member::query()
             ->forGuild($this->guildKey)
@@ -129,8 +136,12 @@ class SocialSnapshotImporter
             $this->persistChunk($snapshot->id, $chunk, $chunkPayloads);
 
             // Drop the chunk's payloads before fetching the next chunk so
-            // peak memory doesn't accumulate across the run.
+            // peak memory doesn't accumulate across the run. PHP's garbage
+            // collector is reference-count-first and only sweeps cycles
+            // periodically; nudging it explicitly between chunks keeps
+            // memory flat instead of sawtoothing up to the limit.
             unset($chunkPayloads, $chunkHadAny);
+            gc_collect_cycles();
         }
 
         $snapshot->forceFill(['member_count' => $matched])->save();
