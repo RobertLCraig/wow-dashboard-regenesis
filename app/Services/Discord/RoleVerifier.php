@@ -5,8 +5,6 @@ namespace App\Services\Discord;
 use App\Models\User;
 use App\Services\Teams\TeamResolver;
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\RequestException;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -45,10 +43,20 @@ class RoleVerifier
             return $cached === '' ? null : $cached;
         }
 
-        $accessToken = $this->refreshedAccessToken($user);
+        try {
+            $accessToken = $this->refreshedAccessToken($user);
+        } catch (TransientDiscordFailure $e) {
+            // Discord blipped (5xx / 429 / timeout). Don't lock the user
+            // out for the full TTL; cache the last known tier briefly so
+            // a flood of requests doesn't keep retrying, and try again
+            // soon.
+            Cache::put($cacheKey, $user->tier ?? '', now()->addSeconds(30));
+            return $user->tier;
+        }
+
         if ($accessToken === null) {
-            // No refresh token or refresh failed; treat as no access. The
-            // caller will redirect back to OAuth on the next request.
+            // Refresh token is genuinely rejected (or absent). User
+            // needs to re-OAuth; cache the deny for the full TTL.
             Cache::put($cacheKey, '', now()->addMinutes($this->cacheTtlMinutes));
             return null;
         }
@@ -60,8 +68,7 @@ class RoleVerifier
                 ->get("https://discord.com/api/v10/users/@me/guilds/{$this->guildId}/member");
         } catch (ConnectionException $e) {
             Log::warning('Discord role check connection failed', ['user_id' => $user->id, 'message' => $e->getMessage()]);
-            // Don't cache a transient network failure as "no tier" -
-            // returns the last known tier from the User row instead.
+            Cache::put($cacheKey, $user->tier ?? '', now()->addSeconds(30));
             return $user->tier;
         }
 
@@ -70,6 +77,12 @@ class RoleVerifier
             Cache::put($cacheKey, '', now()->addMinutes($this->cacheTtlMinutes));
             $user->forceFill(['tier' => null, 'last_role_check_at' => now()])->save();
             return null;
+        }
+
+        if ($resp->status() >= 500 || $resp->status() === 429) {
+            Log::warning('Discord role check transient', ['user_id' => $user->id, 'status' => $resp->status()]);
+            Cache::put($cacheKey, $user->tier ?? '', now()->addSeconds(30));
+            return $user->tier;
         }
 
         if (! $resp->successful()) {
@@ -117,6 +130,11 @@ class RoleVerifier
      * Use the stored refresh token to obtain a fresh access token. We do
      * NOT persist access tokens (they're short-lived); each role check
      * trades the long-lived refresh token for a one-shot access token.
+     *
+     * Returns null only when Discord actively rejects the refresh token
+     * (the user genuinely needs to re-OAuth). Throws TransientDiscordFailure
+     * on 5xx / 429 / network errors so the caller can fall back to the
+     * last known good tier instead of locking the user out.
      */
     private function refreshedAccessToken(User $user): ?string
     {
@@ -132,10 +150,24 @@ class RoleVerifier
                     'client_secret' => config('services.discord.client_secret'),
                     'grant_type' => 'refresh_token',
                     'refresh_token' => $refresh,
-                ])
-                ->throw();
-        } catch (ConnectionException|RequestException $e) {
-            Log::warning('Discord token refresh failed', ['user_id' => $user->id, 'message' => $e->getMessage()]);
+                ]);
+        } catch (ConnectionException $e) {
+            Log::warning('Discord token refresh connection failed', ['user_id' => $user->id, 'message' => $e->getMessage()]);
+            throw new TransientDiscordFailure('connection failed', previous: $e);
+        }
+
+        if ($resp->status() >= 500 || $resp->status() === 429) {
+            Log::warning('Discord token refresh transient', ['user_id' => $user->id, 'status' => $resp->status()]);
+            throw new TransientDiscordFailure('discord status '.$resp->status());
+        }
+
+        if (! $resp->successful()) {
+            // 4xx (typically 400 invalid_grant): refresh token is bad.
+            Log::warning('Discord token refresh rejected', [
+                'user_id' => $user->id,
+                'status' => $resp->status(),
+                'body' => mb_substr($resp->body(), 0, 200),
+            ]);
             return null;
         }
 

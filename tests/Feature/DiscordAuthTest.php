@@ -5,6 +5,7 @@ use App\Models\User;
 use App\Services\Discord\RoleVerifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
 
@@ -47,14 +48,53 @@ it('lets a fresh-tier user through', function () {
     $this->actingAs($user)->get('/dashboard')->assertOk();
 });
 
-it('rerolls Discord when the cached tier is stale', function () {
+it('serves a stale officer immediately and defers the Discord re-check', function () {
     $user = makeUser(User::TIER_OFFICER);
     // Simulate stale cache: last check was longer ago than TTL.
     $user->forceFill(['last_role_check_at' => now()->subHour()])->save();
 
-    // Without a refresh token Discord can't be queried; that path
-    // returns no tier and the middleware 403s.
-    $this->actingAs($user)->get('/dashboard')->assertStatus(403);
+    // The deferred refresh runs in app()->terminating(); fake the HTTP
+    // layer so it doesn't try to hit Discord for real.
+    Http::fake();
+
+    // The page render itself must NOT depend on Discord and must return
+    // 200 even if no refresh token is present.
+    $this->actingAs($user)->get('/dashboard')->assertOk();
+});
+
+it('does not lock out a still-valid officer when Discord token refresh blips', function () {
+    $user = makeUser(User::TIER_OFFICER);
+    $user->discord_refresh_token = 'placeholder-refresh-token';
+    $user->save();
+
+    // Simulate Discord returning a 503 on the token refresh endpoint.
+    Http::fake([
+        'discord.com/api/v10/oauth2/token' => Http::response('Service Unavailable', 503),
+    ]);
+
+    $tier = RoleVerifier::fromConfig()->tierFor($user, force: true);
+
+    expect($tier)->toBe(User::TIER_OFFICER);
+
+    // And the deny cache MUST NOT be set for the full TTL.
+    $cached = Cache::get("discord.tier.user.{$user->id}");
+    expect($cached)->not->toBe('');
+});
+
+it('locks out a user whose refresh token is genuinely rejected', function () {
+    $user = makeUser(User::TIER_OFFICER);
+    $user->discord_refresh_token = 'placeholder-refresh-token';
+    $user->save();
+
+    // Discord returns 400 invalid_grant when the refresh token is bad.
+    Http::fake([
+        'discord.com/api/v10/oauth2/token' => Http::response(['error' => 'invalid_grant'], 400),
+    ]);
+
+    $tier = RoleVerifier::fromConfig()->tierFor($user, force: true);
+
+    expect($tier)->toBeNull();
+    expect(Cache::get("discord.tier.user.{$user->id}"))->toBe('');
 });
 
 it('isOfficerTier returns true for any of the four tiers', function () {
