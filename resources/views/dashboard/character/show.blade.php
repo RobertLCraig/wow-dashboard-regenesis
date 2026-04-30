@@ -171,10 +171,25 @@
     @include('dashboard.character._mplus-activity', ['mplusActivity' => $mplusActivity])
 
     {{-- BiS comparison: per-slot enchant + gem status against the
-         class+spec SimulationCraft profile. Renders only when we have
-         a RIO snapshot (for actual gear) AND a BiS profile loaded. --}}
+         class+spec SimulationCraft profile. Sources gear from Blizzard
+         /character/equipment first, then RIO, then the most recent WCL
+         parse - whichever has data. --}}
     @if ($bisComparison)
         @include('dashboard.character._bis-comparison', ['comparison' => $bisComparison])
+    @else
+        <section class="bg-panel border border-line rounded-lg p-4 mb-6">
+            <h2 class="text-sm font-semibold uppercase tracking-wider mb-2">BiS comparison</h2>
+            <p class="text-xs text-muted">
+                @if ($bisGearSampleMissing)
+                    No gear sample for this character yet. Blizzard, Raider.IO, and WCL all returned
+                    empty. The character will appear here after the next sync that picks them up.
+                @else
+                    Gear sample available, but no SimulationCraft BiS profile is loaded for this
+                    spec. SimC profiles only cover DPS and tank specs; healers need a manually
+                    curated profile in <span class="font-mono">bis_profiles</span>.
+                @endif
+            </p>
+        </section>
     @endif
 
     {{-- Bottom: parses + activity / actions / alts --}}

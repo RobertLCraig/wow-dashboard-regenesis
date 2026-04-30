@@ -2,8 +2,12 @@
 
 use App\Models\BisProfile;
 use App\Models\Member;
+use App\Models\MemberEquipmentSnapshot;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
+use App\Models\WclActorParse;
+use App\Models\WclFight;
+use App\Models\WclReport;
 use App\Services\Bis\BisComparisonService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -323,6 +327,213 @@ it('countIssues totals missing and wrong enchants + gems separately', function (
     expect($issues['missing_gems'])->toBe(1);
     expect($issues['wrong_gems'])->toBe(2);
     expect($issues['total'])->toBe(6);
+});
+
+// ---------------------------------------------------------------
+// Multi-source resolver: Blizzard equipment > Raider.IO > WCL
+// ---------------------------------------------------------------
+
+function blizzardEquipmentFor(Member $m, array $pieces): MemberEquipmentSnapshot
+{
+    $snap = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now(),
+        'source' => Snapshot::SOURCE_BLIZZARD_EQUIPMENT,
+        'payload_hash' => bin2hex(random_bytes(8)),
+    ]);
+    return MemberEquipmentSnapshot::query()->create([
+        'snapshot_id' => $snap->id,
+        'member_id' => $m->id,
+        'equipped_ilvl' => 282,
+        'pieces' => $pieces,
+    ]);
+}
+
+function blizzardProfileFor(Member $m, array $rawJson): MemberSnapshot
+{
+    $snap = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now(),
+        'source' => Snapshot::SOURCE_BLIZZARD,
+        'payload_hash' => bin2hex(random_bytes(8)),
+    ]);
+    return MemberSnapshot::query()->create([
+        'snapshot_id' => $snap->id,
+        'member_id' => $m->id,
+        'raw_json' => $rawJson,
+    ]);
+}
+
+function wclParseFor(Member $m, string $actorSpec, array $gear): WclActorParse
+{
+    $report = WclReport::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'code' => bin2hex(random_bytes(4)),
+        'title' => 'Fixture',
+        'start_time' => now()->subHour(),
+        'end_time' => now(),
+        'captured_at' => now(),
+    ]);
+    $fight = WclFight::query()->create([
+        'wcl_report_id' => $report->id,
+        'fight_id' => 1,
+        'encounter_id' => 1,
+        'name' => 'fixture',
+        'difficulty' => 5,
+        'kill' => true,
+        'duration_ms' => 60000,
+        'start_time' => now()->subHour(),
+        'end_time' => now(),
+    ]);
+    return WclActorParse::query()->create([
+        'wcl_fight_id' => $fight->id,
+        'member_id' => $m->id,
+        'actor_name' => $m->name,
+        'actor_class' => ucfirst(strtolower($m->class)),
+        'actor_spec' => $actorSpec,
+        'role' => 'dps',
+        'item_level' => 282,
+        'raw_json' => ['gear' => $gear],
+    ]);
+}
+
+it('extracts gear from Blizzard equipment pieces (slot type + enchantments + sockets)', function () {
+    $service = new BisComparisonService();
+    $gear = $service->extractFromBlizzardEquipment([
+        [
+            'slot' => ['type' => 'HEAD'],
+            'item' => ['id' => 12345],
+            'name' => 'Test Helm',
+            'enchantments' => [['enchantment_id' => 7961]],
+            'sockets' => [['item' => ['id' => 213743]]],
+        ],
+        [
+            'slot' => ['type' => 'FINGER_1'],
+            'item' => ['id' => 555],
+            'name' => 'Ring One',
+            'enchantments' => [['enchantment_id' => 8001]],
+            'sockets' => [],
+        ],
+        [
+            'slot' => ['type' => 'MAIN_HAND'],
+            'item' => ['id' => 9999],
+            'name' => 'Big Sword',
+            'enchantments' => [],
+            'sockets' => [],
+        ],
+    ]);
+
+    expect($gear['head']['item_id'])->toBe(12345);
+    expect($gear['head']['enchant_ids'])->toBe([7961]);
+    expect($gear['head']['gem_ids'])->toBe([213743]);
+    expect($gear['finger1']['item_id'])->toBe(555);
+    expect($gear['main_hand']['item_id'])->toBe(9999);
+    expect($gear['main_hand']['enchant_ids'])->toBe([]);
+});
+
+it('skips Blizzard pieces whose enchantment row carries no enchantment_id', function () {
+    // Blizzard sometimes returns a slot-level enchantment row with the
+    // id field absent (slot is enchant-aware but currently unenchanted).
+    $service = new BisComparisonService();
+    $gear = $service->extractFromBlizzardEquipment([
+        [
+            'slot' => ['type' => 'CHEST'],
+            'item' => ['id' => 100],
+            'enchantments' => [['source_item' => ['id' => 1]]], // no enchantment_id
+            'sockets' => [],
+        ],
+    ]);
+    expect($gear['chest']['enchant_ids'])->toBe([]);
+});
+
+it('prefers Blizzard equipment over RIO when both exist', function () {
+    $m = bisMember();
+    bisProfileFor('death_knight', 'frost', [
+        'head' => ['slot' => 'head', 'name' => 'bis', 'item_id' => 100, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+    ]);
+    // Blizzard says they're wearing item 100; RIO says 999. Blizzard wins.
+    blizzardProfileFor($m, ['active_spec' => ['name' => 'Frost', 'id' => 251]]);
+    blizzardEquipmentFor($m, [
+        ['slot' => ['type' => 'HEAD'], 'item' => ['id' => 100], 'enchantments' => [], 'sockets' => []],
+    ]);
+    rioSnapshotFor($m, [
+        'active_spec_name' => 'Frost',
+        'gear' => ['items' => ['head' => ['item_id' => 999, 'name' => 'rio', 'enchants' => [], 'gems' => []]]],
+    ]);
+
+    $result = (new BisComparisonService())->compareForMember($m);
+    expect($result['source'])->toBe('blizzard');
+    expect($result['slots']['head']['actual_item_id'])->toBe(100);
+    expect($result['slots']['head']['item_match'])->toBeTrue();
+});
+
+it('falls back to Raider.IO when Blizzard equipment is missing', function () {
+    $m = bisMember();
+    bisProfileFor('death_knight', 'frost', [
+        'head' => ['slot' => 'head', 'name' => 'bis', 'item_id' => 100, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+    ]);
+    rioSnapshotFor($m, [
+        'active_spec_name' => 'Frost',
+        'gear' => ['items' => ['head' => ['item_id' => 100, 'name' => 'rio', 'enchants' => [], 'gems' => []]]],
+    ]);
+
+    $result = (new BisComparisonService())->compareForMember($m);
+    expect($result['source'])->toBe('raiderio');
+    expect($result['slots']['head']['item_match'])->toBeTrue();
+});
+
+it('falls back to WCL parse when Blizzard and RIO are both missing', function () {
+    $m = bisMember();
+    bisProfileFor('death_knight', 'frost', [
+        'head' => ['slot' => 'head', 'name' => 'bis', 'item_id' => 100, 'enchant_id' => 7987, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+    ]);
+    wclParseFor($m, 'DeathKnight-Frost', [
+        ['slot' => 0, 'id' => 100, 'name' => 'wcl_head', 'permanentEnchant' => 7987],
+    ]);
+
+    $result = (new BisComparisonService())->compareForMember($m);
+    expect($result['source'])->toBe('wcl');
+    expect($result['slots']['head']['actual_item_id'])->toBe(100);
+    expect($result['slots']['head']['enchant_status'])->toBe('matched');
+});
+
+it('resolves spec from Blizzard active_spec.name when RIO has no spec field', function () {
+    // Blizzard equipment carries no spec; profile-summary does. RIO is
+    // intentionally absent so the resolver has to fall through to Blizz.
+    $m = bisMember(['class' => 'SHAMAN']);
+    bisProfileFor('shaman', 'restoration', [
+        'head' => ['slot' => 'head', 'name' => 'bis', 'item_id' => 100, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+    ]);
+    blizzardProfileFor($m, ['active_spec' => ['name' => 'Restoration', 'id' => 264]]);
+    blizzardEquipmentFor($m, [
+        ['slot' => ['type' => 'HEAD'], 'item' => ['id' => 100], 'enchantments' => [], 'sockets' => []],
+    ]);
+
+    $result = (new BisComparisonService())->compareForMember($m);
+    expect($result)->not->toBeNull();
+    expect($result['spec'])->toBe('restoration');
+});
+
+it('resolves spec from WCL actor_spec when nothing else has it', function () {
+    // Blizzard equipment but no profile-summary, no RIO; spec must come
+    // off the parse's Class-Spec string.
+    $m = bisMember(['class' => 'SHAMAN']);
+    bisProfileFor('shaman', 'restoration', [
+        'head' => ['slot' => 'head', 'name' => 'bis', 'item_id' => 100, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+    ]);
+    blizzardEquipmentFor($m, [
+        ['slot' => ['type' => 'HEAD'], 'item' => ['id' => 100], 'enchantments' => [], 'sockets' => []],
+    ]);
+    wclParseFor($m, 'Shaman-Restoration', []);
+
+    $result = (new BisComparisonService())->compareForMember($m);
+    expect($result['spec'])->toBe('restoration');
+});
+
+it('returns null when no source has any data', function () {
+    $m = bisMember();
+    bisProfileFor('death_knight', 'frost', []);
+    expect((new BisComparisonService())->compareForMember($m))->toBeNull();
 });
 
 it('skips slots where neither BiS nor actual data exists', function () {

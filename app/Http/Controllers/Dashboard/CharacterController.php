@@ -66,6 +66,25 @@ class CharacterController extends Controller
             $bisComparison = null;
         }
 
+        // When the comparison is null we want to render a placeholder
+        // explaining why. Two distinct causes the officer should see:
+        // (a) no gear sample anywhere yet (sync hasn't picked them up),
+        // (b) gear available but no BiS profile for the spec (healers).
+        // Cheap second resolveGearReading call - same path the service
+        // just took, used here only to discriminate the placeholder.
+        // Wrapped in its own try/catch so a service failure here doesn't
+        // 500 the whole page on the way to rendering the fallback.
+        $bisGearSampleMissing = false;
+        if ($bisComparison === null) {
+            try {
+                $bisGearSampleMissing = $bis->resolveGearReading($member) === null;
+            } catch (\Throwable) {
+                // Fall back to "gear present" (i.e. no-profile placeholder)
+                // since we can't actually tell - the service is broken.
+                $bisGearSampleMissing = false;
+            }
+        }
+
         return view('dashboard.character.show', [
             'member' => $member,
             'latestSnapshots' => $latestSnapshots,
@@ -75,6 +94,7 @@ class CharacterController extends Controller
             'altCohort' => $altCohort,
             'attendance' => $attendance,
             'bisComparison' => $bisComparison,
+            'bisGearSampleMissing' => $bisGearSampleMissing,
             'mplusActivity' => $mplusActivity,
         ]);
     }

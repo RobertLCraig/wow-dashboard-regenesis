@@ -64,6 +64,7 @@ Plan file: [`~/.claude/plans/luminous-moseying-bear.md`](C:/Users/r/.claude/plan
 | Battle.net (Blizzard) ilvl source | done |
 | Multi-source ilvl resolver (Blizzard > Wowaudit > RIO) | done |
 | BiS comparison vs SimulationCraft profiles | done |
+| Multi-source BiS gear resolver (Blizzard > RIO > WCL) | done |
 | Hero-talent-aware BiS matching | done |
 | Roster BiS issues column + filter | done |
 | Wowhead-linked items in BiS section | done |
@@ -166,7 +167,19 @@ php artisan blizzard:pull
 
 Pulls canonical BiS gear / enchants / gems / consumables per class+spec
 from <https://github.com/simulationcraft/simc> and stores them in the
-`bis_profiles` table for future "your gear vs BiS" comparison views.
+`bis_profiles` table. Powers the per-slot comparison panel on each
+character page (and the BiS-issues column on the roster). Note: SimC
+ships profiles for DPS and tank specs only - healing specs need a
+manually curated `bis_profiles` row to render a comparison; without
+one the character page shows a placeholder explaining the gap.
+
+The character-page widget resolves the player's currently-equipped gear
+through a fallback chain so it works for the whole roster, not just
+RIO-indexed mythic raiders: Blizzard `/character/equipment` first
+(authoritative + ~100% coverage), then Raider.IO, then the most-recent
+WCL parse. Spec is resolved on the same chain (Blizzard
+`active_spec.name` -> RIO `active_spec_name` -> WCL `actor_spec`). The
+header on the BiS section names whichever source actually fired.
 
 Set a writable path for the cached `.simc` files:
 ```

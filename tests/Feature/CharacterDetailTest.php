@@ -273,9 +273,11 @@ it('still renders the character page even when the BiS comparison service throws
         ->get('/character/Crash-Silvermoon')
         ->assertOk()
         ->assertSee('Crash-Silvermoon')
-        // The BiS section should be omitted when the service throws,
-        // so its header text ("BiS comparison") is not in the response.
-        ->assertDontSee('BiS comparison');
+        // BiS section now always renders (widget or placeholder); a
+        // service throw should still degrade gracefully rather than 500
+        // the page. Either the "no gear sample" or "no profile loaded"
+        // placeholder copy is present, depending on what data exists.
+        ->assertSeeText('BiS comparison');
 });
 
 it('renders an empty-state Mythic+ activity panel when the character has no runs', function () {

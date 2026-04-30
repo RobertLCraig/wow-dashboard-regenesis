@@ -247,11 +247,19 @@ class RosterController extends Controller
                 continue;
             }
             $candidates = $profilesByClassSpec->get($class . '|' . $spec, collect());
-            $profile = $service->pickBestProfile($candidates, $raw);
+            $gear = $service->extractFromRio($raw);
+            $profile = $service->pickBestProfileFromGear($candidates, $gear);
             if ($profile === null) {
                 continue;
             }
-            $comparison = $service->compareWithData($member, $raw, $profile);
+            $comparison = $service->buildComparison(
+                class: $class,
+                spec: $spec,
+                actualGear: $gear,
+                profile: $profile,
+                sourceLabel: 'raiderio',
+                capturedAt: null,
+            );
             $out->put($member->id, $service->countIssues($comparison));
         }
         return $out;

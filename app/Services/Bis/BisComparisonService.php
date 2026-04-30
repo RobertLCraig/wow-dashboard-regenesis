@@ -4,25 +4,37 @@ namespace App\Services\Bis;
 
 use App\Models\BisProfile;
 use App\Models\Member;
+use App\Models\MemberEquipmentSnapshot;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
+use App\Models\WclActorParse;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 
 /**
  * Compares a member's actual gear against their class+spec BiS profile.
  *
- * Source of actual gear: the most recent Raider.IO snapshot's raw_json,
- * because that's where we get per-slot enchants and gems. Wowaudit also
- * carries this and could be a fallback (Phase 3b); Blizzard's profile
- * summary doesn't, so it's not useful here even though it wins on ilvl.
+ * Source-of-truth precedence for the player's actual gear:
+ *   1. Blizzard /character/equipment      (member_equipment_snapshots)
+ *   2. Raider.IO /profile gear            (member_snapshots, source=raiderio)
+ *   3. Most-recent WCL parse raw_json.gear (per-fight snapshot)
  *
- * Source of BiS data: bis_profiles, populated from SimulationCraft
- * profile files. We match on (class, spec, hero_talent IS NULL) - the
- * default profile per spec. Hero-talent-aware matching is a follow-up
- * once we can read the active hero talent from the same raw payload.
+ * Blizzard wins because it's the upstream source - RIO and wowaudit
+ * scrape their data from Blizzard themselves, often hours behind, and
+ * RIO only indexes characters that have logged a recent enough action
+ * for them to have noticed. Falling back keeps us covering the long
+ * tail (alts, fresh joiners, name changes) that RIO/wowaudit miss.
  *
- * Returns null when any input is missing (no RIO data, can't determine
- * spec, no matching BiS profile). The character page renders nothing
- * in that case.
+ * Spec is resolved on the same fallback chain but ordered independently
+ * since the gear and spec sources don't have to agree:
+ *   1. Blizzard profile-summary active_spec.name
+ *   2. Raider.IO active_spec_name
+ *   3. Most-recent WCL parse actor_spec
+ *
+ * BiS reference data continues to come from bis_profiles, populated
+ * from SimulationCraft profile files. Returns null when any input is
+ * missing (no gear sample anywhere, can't determine spec, no matching
+ * BiS profile). The character page renders a placeholder in that case.
  */
 class BisComparisonService
 {
@@ -70,6 +82,56 @@ class BisComparisonService
         'offhand'  => 'off_hand',
     ];
 
+    /**
+     * Blizzard /character/equipment uses uppercase enum slot types
+     * (per the slot.type field). FINGER_1/TRINKET_1 carry an underscore;
+     * SimC drops it.
+     */
+    private const BLIZZARD_TO_SIMC_SLOT = [
+        'HEAD'      => 'head',
+        'NECK'      => 'neck',
+        'SHOULDER'  => 'shoulders',
+        'BACK'      => 'back',
+        'CHEST'     => 'chest',
+        'WRIST'     => 'wrists',
+        'HANDS'     => 'hands',
+        'WAIST'     => 'waist',
+        'LEGS'      => 'legs',
+        'FEET'      => 'feet',
+        'FINGER_1'  => 'finger1',
+        'FINGER_2'  => 'finger2',
+        'TRINKET_1' => 'trinket1',
+        'TRINKET_2' => 'trinket2',
+        'MAIN_HAND' => 'main_hand',
+        'OFF_HAND'  => 'off_hand',
+    ];
+
+    /**
+     * WCL parses use numeric slot indices; this matches WoW's internal
+     * inventory slot constants so the mapping is stable across patches.
+     * Tabard (19) and shirt (3) are intentionally absent - never relevant
+     * to a BiS comparison. Slot 5 (chest) is the body chest, slot 4 is
+     * shirt and excluded.
+     */
+    private const WCL_SLOT_TO_SIMC = [
+        0  => 'head',
+        1  => 'neck',
+        2  => 'shoulders',
+        14 => 'back',
+        4  => 'chest',
+        8  => 'wrists',
+        9  => 'hands',
+        5  => 'waist',
+        6  => 'legs',
+        7  => 'feet',
+        10 => 'finger1',
+        11 => 'finger2',
+        12 => 'trinket1',
+        13 => 'trinket2',
+        15 => 'main_hand',
+        16 => 'off_hand',
+    ];
+
     private const ALL_SLOTS = [
         'head', 'neck', 'shoulders', 'back', 'chest', 'wrists',
         'hands', 'waist', 'legs', 'feet',
@@ -84,63 +146,104 @@ class BisComparisonService
      *   profile_name:string,
      *   profile_gear_ilvl:?float,
      *   source:string,
-     *   source_captured_at:?\Carbon\CarbonInterface,
+     *   source_captured_at:?CarbonInterface,
      *   slots:array<string, array<string,mixed>>,
      *   consumables:array<string,string>,
      * }|null
      */
     public function compareForMember(Member $member): ?array
     {
-        $rioSnap = MemberSnapshot::query()
-            ->whereHas('snapshot', fn ($q) => $q->where('source', Snapshot::SOURCE_RAIDERIO))
-            ->where('member_id', $member->id)
-            ->with('snapshot:id,source,captured_at')
-            ->orderByDesc('id')
-            ->first();
-        if ($rioSnap === null) {
+        $reading = $this->resolveGearReading($member);
+        if ($reading === null) {
             return null;
         }
 
-        $raw = $this->rawArray($rioSnap);
-        if ($raw === null) {
+        $spec = $reading['spec'] ?? $this->resolveSpec($member);
+        $class = $this->classKey($member);
+        if ($spec === null || $class === null) {
             return null;
         }
 
-        $profile = $this->resolveProfileFor($member, $raw);
+        $candidates = BisProfile::query()
+            ->where('class', $class)
+            ->where('spec', $spec)
+            ->get();
+        $profile = $this->pickBestProfileFromGear($candidates, $reading['gear']);
         if ($profile === null) {
             return null;
         }
 
-        return $this->compareWithData($member, $raw, $profile, $rioSnap->snapshot?->captured_at);
+        return $this->buildComparison(
+            class: $class,
+            spec: $spec,
+            actualGear: $reading['gear'],
+            profile: $profile,
+            sourceLabel: $reading['source'],
+            capturedAt: $reading['captured_at'],
+        );
     }
 
     /**
-     * Resolve the best-matching BiS profile for a member based on their
-     * class and active spec. When multiple profiles exist for the same
-     * class+spec (one default + N hero-talent variants), score each by
-     * item-id overlap with the actual RIO gear and pick the highest.
-     * Tie goes to the default (hero_talent IS NULL) profile.
+     * Resolve the player's currently-equipped gear from whichever
+     * source has fresh data, in priority order. The reading carries
+     * the canonical-slot gear array, the source label for the UI, the
+     * timestamp for "X minutes ago" formatting, and (when the source
+     * also exposes spec) a spec hint so we don't have to make a
+     * second resolution pass.
      *
-     * Bulk callers should prefer pre-loading the candidates and passing
-     * them in so we don't N+1 across the whole roster.
-     *
-     * @param  array<string,mixed>  $rioRaw
-     * @param  \Illuminate\Support\Collection<int,BisProfile>|null  $candidates
+     * @return array{gear:array<string, array{item_id:int,name:?string,enchant_ids:list<int>,gem_ids:list<int>}>, source:string, captured_at:?CarbonInterface, spec:?string}|null
      */
-    public function resolveProfileFor(Member $member, array $rioRaw, ?\Illuminate\Support\Collection $candidates = null): ?BisProfile
+    public function resolveGearReading(Member $member): ?array
     {
-        if ($candidates === null) {
-            $class = $this->classKey($member);
-            $spec = $this->normaliseSpec($rioRaw['active_spec_name'] ?? null);
-            if ($class === null || $spec === null) {
-                return null;
-            }
-            $candidates = BisProfile::query()
-                ->where('class', $class)
-                ->where('spec', $spec)
-                ->get();
+        if ($r = $this->readingFromBlizzardEquipment($member)) {
+            return $r;
         }
-        return $this->pickBestProfile($candidates, $rioRaw);
+        if ($r = $this->readingFromRaiderio($member)) {
+            return $r;
+        }
+        if ($r = $this->readingFromWcl($member)) {
+            return $r;
+        }
+        return null;
+    }
+
+    /**
+     * Resolve spec independently of gear. Same fallback chain because
+     * the player's active spec is also a Blizzard-authoritative fact
+     * that RIO and WCL only mirror.
+     */
+    public function resolveSpec(Member $member): ?string
+    {
+        $blizzard = $this->latestRawJson($member, Snapshot::SOURCE_BLIZZARD);
+        if (is_array($blizzard)) {
+            $name = is_array($blizzard['active_spec'] ?? null) ? ($blizzard['active_spec']['name'] ?? null) : null;
+            $spec = $this->normaliseSpec($name);
+            if ($spec !== null) {
+                return $spec;
+            }
+        }
+
+        $rio = $this->latestRawJson($member, Snapshot::SOURCE_RAIDERIO);
+        if (is_array($rio)) {
+            $spec = $this->normaliseSpec($rio['active_spec_name'] ?? null);
+            if ($spec !== null) {
+                return $spec;
+            }
+        }
+
+        $wclSpec = WclActorParse::query()
+            ->where('member_id', $member->id)
+            ->orderByDesc('id')
+            ->value('actor_spec');
+        if (is_string($wclSpec) && $wclSpec !== '') {
+            // WCL stores "Class-Spec" e.g. "Shaman-Restoration".
+            $parts = explode('-', $wclSpec, 2);
+            if (count($parts) === 2) {
+                return $this->normaliseSpec($parts[1]);
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -150,9 +253,9 @@ class BisComparisonService
      * sensible fallback.
      *
      * @param  \Illuminate\Support\Collection<int,BisProfile>  $candidates
-     * @param  array<string,mixed>  $rioRaw
+     * @param  array<string, array{item_id:int,name:?string,enchant_ids:list<int>,gem_ids:list<int>}>  $actualGear
      */
-    public function pickBestProfile(\Illuminate\Support\Collection $candidates, array $rioRaw): ?BisProfile
+    public function pickBestProfileFromGear(\Illuminate\Support\Collection $candidates, array $actualGear): ?BisProfile
     {
         if ($candidates->isEmpty()) {
             return null;
@@ -162,9 +265,7 @@ class BisComparisonService
         }
 
         $default = $candidates->first(fn (BisProfile $p) => $p->hero_talent === null);
-        $actualGear = $this->extractActualGear($rioRaw);
         if ($actualGear === []) {
-            // No gear to score against; prefer the default profile.
             return $default ?? $candidates->first();
         }
 
@@ -196,50 +297,21 @@ class BisComparisonService
         return self::CLASS_NORMALISE[strtoupper((string) $member->class)] ?? null;
     }
 
-    /**
-     * Pure comparison: no DB lookups, callers pre-load both sides.
-     * Useful for the roster's bulk path where we'd N+1 otherwise.
-     *
-     * @param  array<string,mixed>  $rioRaw
-     */
-    public function compareWithData(Member $member, array $rioRaw, BisProfile $profile, ?\Carbon\CarbonInterface $capturedAt = null): array
+    public function normaliseSpec(mixed $value): ?string
     {
-        $class = self::CLASS_NORMALISE[strtoupper((string) $member->class)] ?? (string) $profile->class;
-        $spec = $this->normaliseSpec($rioRaw['active_spec_name'] ?? null) ?? (string) $profile->spec;
-
-        $actualGear = $this->extractActualGear($rioRaw);
-        $bisGear = is_array($profile->parsed_data['gear'] ?? null) ? $profile->parsed_data['gear'] : [];
-
-        $slots = [];
-        foreach (self::ALL_SLOTS as $slot) {
-            $actual = $actualGear[$slot] ?? null;
-            $bis = $bisGear[$slot] ?? null;
-            if ($actual === null && $bis === null) {
-                continue;
-            }
-            $slots[$slot] = $this->compareSlot($slot, $actual, $bis);
+        if (! is_string($value) || $value === '') {
+            return null;
         }
-
-        return [
-            'class' => $class,
-            'spec' => $spec,
-            'profile_name' => (string) $profile->profile_name,
-            'profile_gear_ilvl' => is_numeric($profile->parsed_data['gear_ilvl'] ?? null) ? (float) $profile->parsed_data['gear_ilvl'] : null,
-            'source' => 'raiderio',
-            'source_captured_at' => $capturedAt,
-            'slots' => $slots,
-            'consumables' => is_array($profile->parsed_data['consumables'] ?? null) ? $profile->parsed_data['consumables'] : [],
-        ];
+        // 'Frost' -> 'frost', 'Beast Mastery' -> 'beast_mastery'.
+        return strtolower(str_replace([' ', '-'], '_', trim($value)));
     }
 
     /**
      * Aggregate counts of actionable issues from a comparison result.
-     * "missing" reads as a clear gear-prep failure (slot needs the
-     * enchant / sockets need filling); "wrong" / "count_mismatch" is
-     * suspicious but the player may have made an intentional choice,
-     * so we tally it separately. Total is the sum officers can sort by.
+     * "missing" reads as a clear gear-prep failure; "wrong" / "count_mismatch"
+     * is suspicious but the player may have made an intentional choice.
      *
-     * @param  array<string,mixed>  $comparison  result of compareWithData()
+     * @param  array<string,mixed>  $comparison  result of compareForMember()
      * @return array{missing_enchants:int, wrong_enchants:int, missing_gems:int, wrong_gems:int, total:int}
      */
     public function countIssues(array $comparison): array
@@ -269,32 +341,169 @@ class BisComparisonService
         ];
     }
 
+    // ---------------------------------------------------------------
+    // Source-specific gear extraction
+    // ---------------------------------------------------------------
+
     /**
-     * @return array<string,mixed>|null
+     * @return array{gear:array<string, array{item_id:int,name:?string,enchant_ids:list<int>,gem_ids:list<int>}>, source:string, captured_at:?CarbonInterface, spec:?string}|null
      */
-    public function rawArray(MemberSnapshot $snap): ?array
+    private function readingFromBlizzardEquipment(Member $member): ?array
     {
-        $raw = $snap->raw_json;
+        $snap = MemberEquipmentSnapshot::query()
+            ->where('member_id', $member->id)
+            ->with('snapshot:id,captured_at,source')
+            ->orderByDesc('id')
+            ->first();
+        if ($snap === null || ! is_array($snap->pieces) || $snap->pieces === []) {
+            return null;
+        }
+
+        $gear = $this->extractFromBlizzardEquipment($snap->pieces);
+        if ($gear === []) {
+            return null;
+        }
+
+        return [
+            'gear' => $gear,
+            'source' => 'blizzard',
+            'captured_at' => $snap->snapshot?->captured_at,
+            'spec' => null, // Spec lives on the profile-summary snapshot, resolved separately.
+        ];
+    }
+
+    /**
+     * @return array{gear:array<string, array{item_id:int,name:?string,enchant_ids:list<int>,gem_ids:list<int>}>, source:string, captured_at:?CarbonInterface, spec:?string}|null
+     */
+    private function readingFromRaiderio(Member $member): ?array
+    {
+        $snap = MemberSnapshot::query()
+            ->whereHas('snapshot', fn ($q) => $q->where('source', Snapshot::SOURCE_RAIDERIO))
+            ->where('member_id', $member->id)
+            ->with('snapshot:id,source,captured_at')
+            ->orderByDesc('id')
+            ->first();
+        if ($snap === null) {
+            return null;
+        }
+        $raw = $this->rawArray($snap);
+        if ($raw === null) {
+            return null;
+        }
+
+        $gear = $this->extractFromRio($raw);
+        $spec = $this->normaliseSpec($raw['active_spec_name'] ?? null);
+        // Empty gear is still a usable reading when we at least have a
+        // spec - the comparison renders BiS-side data with empty "Have"
+        // rows, which is informative for fresh-dinged alts.
+        if ($gear === [] && $spec === null) {
+            return null;
+        }
+
+        return [
+            'gear' => $gear,
+            'source' => 'raiderio',
+            'captured_at' => $snap->snapshot?->captured_at,
+            'spec' => $spec,
+        ];
+    }
+
+    /**
+     * Per-parse gear from the most recent WCL log. Less authoritative
+     * than Blizzard/RIO (the player may have respec'd or reforged
+     * between the parse and now) but still better than rendering
+     * nothing at all - and for active raiders it's never more than a
+     * few days stale.
+     *
+     * @return array{gear:array<string, array{item_id:int,name:?string,enchant_ids:list<int>,gem_ids:list<int>}>, source:string, captured_at:?CarbonInterface, spec:?string}|null
+     */
+    private function readingFromWcl(Member $member): ?array
+    {
+        $parse = WclActorParse::query()
+            ->where('member_id', $member->id)
+            ->with('fight:id,wcl_report_id,start_time')
+            ->orderByDesc('id')
+            ->first();
+        if ($parse === null) {
+            return null;
+        }
+
+        $raw = $parse->raw_json;
         if (is_string($raw)) {
             $raw = json_decode($raw, true);
         }
-        return is_array($raw) ? $raw : null;
-    }
-
-    public function normaliseSpec(mixed $value): ?string
-    {
-        if (! is_string($value) || $value === '') {
+        if (! is_array($raw)) {
             return null;
         }
-        // 'Frost' -> 'frost', 'Beast Mastery' -> 'beast_mastery'.
-        return strtolower(str_replace([' ', '-'], '_', trim($value)));
+
+        $gear = $this->extractFromWcl($raw);
+        if ($gear === []) {
+            return null;
+        }
+
+        $spec = null;
+        if (is_string($parse->actor_spec) && $parse->actor_spec !== '') {
+            $parts = explode('-', $parse->actor_spec, 2);
+            if (count($parts) === 2) {
+                $spec = $this->normaliseSpec($parts[1]);
+            }
+        }
+
+        return [
+            'gear' => $gear,
+            'source' => 'wcl',
+            'captured_at' => $parse->fight?->start_time,
+            'spec' => $spec,
+        ];
     }
 
     /**
-     * @param  array<string,mixed>  $raw
-     * @return array<string, array{item_id:int, name:?string, enchant_ids:list<int>, gem_ids:list<int>}>
+     * @param  list<array<string,mixed>>  $pieces  Blizzard equipped_items array
+     * @return array<string, array{item_id:int,name:?string,enchant_ids:list<int>,gem_ids:list<int>}>
      */
-    private function extractActualGear(array $raw): array
+    public function extractFromBlizzardEquipment(array $pieces): array
+    {
+        $out = [];
+        foreach ($pieces as $piece) {
+            if (! is_array($piece)) {
+                continue;
+            }
+            $blizzSlot = $piece['slot']['type'] ?? null;
+            $simcSlot = is_string($blizzSlot) ? (self::BLIZZARD_TO_SIMC_SLOT[$blizzSlot] ?? null) : null;
+            if ($simcSlot === null) {
+                continue;
+            }
+            $itemId = $piece['item']['id'] ?? null;
+            if (! is_numeric($itemId)) {
+                continue;
+            }
+            $enchants = [];
+            foreach (is_array($piece['enchantments'] ?? null) ? $piece['enchantments'] : [] as $row) {
+                if (is_array($row) && is_numeric($row['enchantment_id'] ?? null) && (int) $row['enchantment_id'] > 0) {
+                    $enchants[] = (int) $row['enchantment_id'];
+                }
+            }
+            $gems = [];
+            foreach (is_array($piece['sockets'] ?? null) ? $piece['sockets'] : [] as $socket) {
+                if (is_array($socket) && is_array($socket['item'] ?? null) && is_numeric($socket['item']['id'] ?? null)) {
+                    $gems[] = (int) $socket['item']['id'];
+                }
+            }
+            $out[$simcSlot] = [
+                'item_id' => (int) $itemId,
+                'name' => is_string($piece['name'] ?? null) ? $piece['name'] : null,
+                'enchant_ids' => $enchants,
+                'gem_ids' => $gems,
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * @param  array<string,mixed>  $raw  RIO /profile body
+     * @return array<string, array{item_id:int,name:?string,enchant_ids:list<int>,gem_ids:list<int>}>
+     */
+    public function extractFromRio(array $raw): array
     {
         $items = $raw['gear']['items'] ?? null;
         if (! is_array($items)) {
@@ -325,6 +534,110 @@ class BisComparisonService
             ];
         }
         return $out;
+    }
+
+    /**
+     * @param  array<string,mixed>  $raw  WCL parse raw_json
+     * @return array<string, array{item_id:int,name:?string,enchant_ids:list<int>,gem_ids:list<int>}>
+     */
+    public function extractFromWcl(array $raw): array
+    {
+        $items = $raw['gear'] ?? null;
+        if (! is_array($items)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $slot = $item['slot'] ?? null;
+            $simcSlot = is_int($slot) ? (self::WCL_SLOT_TO_SIMC[$slot] ?? null) : null;
+            if ($simcSlot === null) {
+                continue;
+            }
+            $itemId = $item['id'] ?? null;
+            if (! is_numeric($itemId) || (int) $itemId <= 0) {
+                continue;
+            }
+            $enchants = [];
+            $enchantId = $item['permanentEnchant'] ?? null;
+            if (is_numeric($enchantId) && (int) $enchantId > 0) {
+                $enchants[] = (int) $enchantId;
+            }
+            $gems = [];
+            foreach (is_array($item['gems'] ?? null) ? $item['gems'] : [] as $gem) {
+                $gid = is_array($gem) ? ($gem['id'] ?? null) : $gem;
+                if (is_numeric($gid) && (int) $gid > 0) {
+                    $gems[] = (int) $gid;
+                }
+            }
+            $out[$simcSlot] = [
+                'item_id' => (int) $itemId,
+                'name' => is_string($item['name'] ?? null) ? $item['name'] : null,
+                'enchant_ids' => $enchants,
+                'gem_ids' => $gems,
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * Build the per-slot comparison output. Pure: no DB lookups.
+     *
+     * @param  array<string, array{item_id:int,name:?string,enchant_ids:list<int>,gem_ids:list<int>}>  $actualGear
+     * @return array{class:string, spec:string, profile_name:string, profile_gear_ilvl:?float, source:string, source_captured_at:?CarbonInterface, slots:array<string,array<string,mixed>>, consumables:array<string,string>}
+     */
+    public function buildComparison(string $class, string $spec, array $actualGear, BisProfile $profile, string $sourceLabel, ?CarbonInterface $capturedAt): array
+    {
+        $bisGear = is_array($profile->parsed_data['gear'] ?? null) ? $profile->parsed_data['gear'] : [];
+
+        $slots = [];
+        foreach (self::ALL_SLOTS as $slot) {
+            $actual = $actualGear[$slot] ?? null;
+            $bis = $bisGear[$slot] ?? null;
+            if ($actual === null && $bis === null) {
+                continue;
+            }
+            $slots[$slot] = $this->compareSlot($slot, $actual, $bis);
+        }
+
+        return [
+            'class' => $class,
+            'spec' => $spec,
+            'profile_name' => (string) $profile->profile_name,
+            'profile_gear_ilvl' => is_numeric($profile->parsed_data['gear_ilvl'] ?? null) ? (float) $profile->parsed_data['gear_ilvl'] : null,
+            'source' => $sourceLabel,
+            'source_captured_at' => $capturedAt,
+            'slots' => $slots,
+            'consumables' => is_array($profile->parsed_data['consumables'] ?? null) ? $profile->parsed_data['consumables'] : [],
+        ];
+    }
+
+    /**
+     * @return array<string,mixed>|null
+     */
+    public function rawArray(MemberSnapshot $snap): ?array
+    {
+        $raw = $snap->raw_json;
+        if (is_string($raw)) {
+            $raw = json_decode($raw, true);
+        }
+        return is_array($raw) ? $raw : null;
+    }
+
+    /**
+     * @return array<string,mixed>|null
+     */
+    private function latestRawJson(Member $member, string $source): ?array
+    {
+        $snap = MemberSnapshot::query()
+            ->whereHas('snapshot', fn ($q) => $q->where('source', $source))
+            ->where('member_id', $member->id)
+            ->orderByDesc('id')
+            ->first();
+        return $snap ? $this->rawArray($snap) : null;
     }
 
     /**
