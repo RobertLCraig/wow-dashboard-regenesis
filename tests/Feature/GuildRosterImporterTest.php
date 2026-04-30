@@ -69,14 +69,14 @@ function importer(): GuildRosterImporter
     );
 }
 
-it('hits the dynamic namespace guild roster endpoint', function () {
+it('hits the profile namespace guild roster endpoint', function () {
     bnetRosterFake([bnetRosterEntry()]);
 
     importer()->pull();
 
     Http::assertSent(fn ($req) =>
         str_contains($req->url(), 'eu.api.blizzard.test/data/wow/guild/silvermoon/regenesis/roster')
-        && $req->hasHeader('Battlenet-Namespace', 'dynamic-eu')
+        && $req->hasHeader('Battlenet-Namespace', 'profile-eu')
         && $req->hasHeader('Authorization', 'Bearer tok'));
 });
 

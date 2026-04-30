@@ -27,9 +27,9 @@ class PullRaiderioSnapshot extends Command
         $importer = new RaiderioSnapshotImporter(
             client: $client,
             guildKey: (string) config('grm.guild_key'),
-            requestDelayMs: (int) config('raiderio.request_delay_ms', 100),
+            requestDelayMs: (int) config('raiderio.request_delay_ms', 1500),
             minLevel: (int) ($this->option('min-level') ?? 70),
-            concurrency: (int) config('raiderio.sync_concurrency', 10),
+            concurrency: (int) config('raiderio.sync_concurrency', 1),
         );
 
         try {

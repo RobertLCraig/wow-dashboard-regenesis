@@ -261,16 +261,17 @@ class BlizzardClient
     }
 
     /**
-     * Guild roster. Uses dynamic-{region} (not profile-{region}). The
-     * payload is { guild: {...}, members: [{ character: { name, id,
-     * realm: { slug, name } }, rank: int }, ...] }. One call covers
-     * every member, no fan-out needed.
+     * Guild roster. Uses profile-{region}; Blizzard moved guild endpoints
+     * to the profile namespace some time ago and dynamic-{region} now
+     * returns 404. The payload is { guild: {...}, members: [{ character:
+     * { name, id, realm: { slug, name } }, rank: int }, ...] }. One call
+     * covers every member, no fan-out needed.
      */
     public function guildRoster(string $realmSlug, string $guildNameSlug): Response
     {
         return Http::acceptJson()
             ->timeout($this->timeoutSeconds)
-            ->withHeaders($this->dynamicHeaders())
+            ->withHeaders($this->profileHeaders())
             ->get(
                 sprintf(
                     '%s/data/wow/guild/%s/%s/roster',

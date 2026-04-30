@@ -57,25 +57,29 @@ return [
     | Inter-batch delay (milliseconds)
     |--------------------------------------------------------------------------
     |
-    | Sleep applied between concurrent batches (NOT between individual
-    | requests; those go in parallel via Http::pool). At concurrency=10 a
-    | 100ms inter-batch delay puts the steady-state ceiling at 100 reqs/s,
-    | well under Raider.IO's unwritten ~600/min. Set to 0 in tests.
+    | Sleep applied between batches dispatched via Http::pool. With
+    | sync_concurrency=1 every batch is a single request, so this becomes
+    | the per-request gap. At 1500ms that is ~40 reqs/min, comfortably
+    | under Raider.IO's per-IP cap (which we observed enforced at well
+    | under 600/min from a shared-hosting outbound IP - production was
+    | seeing blanket 429s at concurrency=10 + 100ms). Set to 0 in tests.
     */
-    'request_delay_ms' => (int) env('RAIDERIO_REQUEST_DELAY_MS', 100),
+    'request_delay_ms' => (int) env('RAIDERIO_REQUEST_DELAY_MS', 1500),
 
     /*
     |--------------------------------------------------------------------------
     | Concurrency for officer-triggered sync
     |--------------------------------------------------------------------------
     |
-    | Number of Raider.IO requests the importer fires in parallel. With ~50
-    | members and 10-concurrency the sync finishes in ~5 batches, which
-    | comfortably fits under PHP's 30s wall-clock cap on shared hosting.
-    | The scheduled artisan command uses the same value - parallel is
-    | strictly faster, never slower, on a quiet API.
+    | Number of Raider.IO requests the importer fires in parallel via
+    | Http::pool. Defaults to 1 (sequential) because shared-hosting
+    | outbound IPs share a rate budget with whoever else lives on the
+    | box; bursts of 10 parallel requests reliably tripped 429s on every
+    | member. Sequential + 1500ms request_delay_ms is slow (~18 min for
+    | a 700-member roster) but completes; the artisan command runs from
+    | cron without a wall-clock limit.
     */
-    'sync_concurrency' => (int) env('RAIDERIO_SYNC_CONCURRENCY', 10),
+    'sync_concurrency' => (int) env('RAIDERIO_SYNC_CONCURRENCY', 1),
 
     /*
     |--------------------------------------------------------------------------

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\IngestSnapshotJob;
+use App\Models\RaidEvent;
 use App\Models\Snapshot;
 use App\Models\WclReport;
 use App\Services\Grm\GrmSnapshotIngester;
@@ -34,6 +35,12 @@ class SyncDashboardController extends Controller
         $bnet = $this->latestSnapshot($guildKey, Snapshot::SOURCE_BLIZZARD);
         $wcl = WclReport::query()->latest('captured_at')->first();
         $wclTotal = WclReport::query()->count();
+        // Raid-Helper has no Snapshot row - the sync upserts directly into
+        // raid_events. Use the freshest last_synced_at as the telemetry
+        // surface so the dashboard reflects whether webhook + daily pull
+        // are actually keeping the cache current.
+        $rhLast = RaidEvent::query()->max('last_synced_at');
+        $rhCount = RaidEvent::query()->count();
 
         $sources = [
             SyncStatus::SOURCE_GRM => [
@@ -49,8 +56,8 @@ class SyncDashboardController extends Controller
             SyncStatus::SOURCE_RAIDHELPER => [
                 'label' => 'Raid-Helper',
                 'description' => 'Discord raid signups. Real-time push via webhook + a daily safety-net pull.',
-                'last_seen_at' => null,
-                'last_summary' => null,
+                'last_seen_at' => $rhLast ? \Illuminate\Support\Carbon::parse($rhLast) : null,
+                'last_summary' => $rhLast ? "{$rhCount} events cached" : null,
                 'state' => SyncStatus::get(SyncStatus::SOURCE_RAIDHELPER),
                 'cadence' => 'Push: webhook on event create/update/delete. Pull: daily 06:15 UK.',
                 'has_button' => false,

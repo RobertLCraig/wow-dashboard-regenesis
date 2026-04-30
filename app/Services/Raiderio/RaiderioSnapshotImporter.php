@@ -63,6 +63,7 @@ class RaiderioSnapshotImporter
         $matched = 0;
         $missing = 0;
         $errored = 0;
+        $rateLimited = 0;
         $unknownRealms = [];
 
         // Build the per-member fetch plan up front so the pool builder
@@ -131,10 +132,17 @@ class RaiderioSnapshotImporter
                 }
 
                 if (! $resp->successful()) {
-                    Log::warning('raiderio non-2xx', [
-                        'member' => $job['member']->name, 'slug' => $job['slug'],
-                        'status' => $resp->status(), 'body' => mb_substr($resp->body(), 0, 200),
-                    ]);
+                    if ($resp->status() === 429) {
+                        // Aggregated below into a single warning per pull -
+                        // logging one line per 429 in a 700-member 429-storm
+                        // floods the log to no useful end.
+                        $rateLimited++;
+                    } else {
+                        Log::warning('raiderio non-2xx', [
+                            'member' => $job['member']->name, 'slug' => $job['slug'],
+                            'status' => $resp->status(), 'body' => mb_substr($resp->body(), 0, 200),
+                        ]);
+                    }
                     $errored++;
                     continue;
                 }
@@ -162,6 +170,32 @@ class RaiderioSnapshotImporter
                 'realms' => array_keys($unknownRealms),
                 'hint' => 'Add to config/raiderio.php realm_slugs map if any returned 404.',
             ]);
+        }
+
+        if ($rateLimited > 0) {
+            Log::warning('raiderio rate-limited (429)', [
+                'rate_limited' => $rateLimited,
+                'matched' => $matched,
+                'members_queried' => $members->count(),
+                'hint' => 'Lower RAIDERIO_SYNC_CONCURRENCY or raise RAIDERIO_REQUEST_DELAY_MS.',
+            ]);
+        }
+
+        // Refuse to persist a snapshot when the pull was a total wash:
+        // every member errored and none came back. The snapshots table
+        // dedupes by payload_hash, so an empty payload would otherwise
+        // create one all-zeros snapshot and then resurface its captured_at
+        // every 3 hours, masking the failure on the dashboard. Throwing
+        // here surfaces the failure to the command (FAILURE exit) and the
+        // queue job (FAILED status), so the next manual or scheduled run
+        // can fix it.
+        if ($members->count() > 0 && $matched === 0 && $errored > 0) {
+            throw new \RuntimeException(sprintf(
+                'Raider.IO pull aborted: %d members queried, 0 matched, %d errored (%d rate-limited).',
+                $members->count(),
+                $errored,
+                $rateLimited,
+            ));
         }
 
         // Hash sorted by member id so payload order doesn't bust the

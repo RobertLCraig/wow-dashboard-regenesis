@@ -46,16 +46,19 @@ class SyncRaiderioSnapshotJob implements ShouldQueue
             'error' => null,
         ]);
 
-        // Push past Hostinger's 30s default; the per-request HTTP timeout
-        // inside the importer is the real bound.
-        @set_time_limit(180);
+        // Push past any inherited wall-clock cap. Sequential mode at
+        // ~1.5s per request takes ~18 minutes for a 700-member roster,
+        // so 1800s leaves headroom even on the largest rosters. The
+        // per-request HTTP timeout inside the importer is the real
+        // bound on any single network call.
+        @set_time_limit(1800);
 
         try {
             $result = (new RaiderioSnapshotImporter(
                 client: RaiderioClient::fromConfig(),
                 guildKey: $this->guildKey,
-                requestDelayMs: (int) config('raiderio.request_delay_ms', 100),
-                concurrency: (int) config('raiderio.sync_concurrency', 10),
+                requestDelayMs: (int) config('raiderio.request_delay_ms', 1500),
+                concurrency: (int) config('raiderio.sync_concurrency', 1),
             ))->pull();
 
             SyncStatus::set(SyncStatus::SOURCE_RAIDERIO, [

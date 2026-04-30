@@ -187,7 +187,7 @@ it('hits the equipment sub-resource with the profile namespace', function () {
         && $req->hasHeader('Battlenet-Namespace', 'profile-eu'));
 });
 
-it('hits the guild roster endpoint with the dynamic namespace', function () {
+it('hits the guild roster endpoint with the profile namespace', function () {
     Http::fake([
         'oauth.battle.test/token' => Http::response(['access_token' => 'tok', 'expires_in' => 86399], 200),
         'eu.api.blizzard.test/*' => Http::response(['guild' => [], 'members' => []], 200),
@@ -197,6 +197,6 @@ it('hits the guild roster endpoint with the dynamic namespace', function () {
 
     Http::assertSent(fn ($req) =>
         str_contains($req->url(), '/data/wow/guild/silvermoon/regenesis/roster')
-        && $req->hasHeader('Battlenet-Namespace', 'dynamic-eu')
+        && $req->hasHeader('Battlenet-Namespace', 'profile-eu')
         && $req->hasHeader('Authorization', 'Bearer tok'));
 });
