@@ -18,7 +18,9 @@ use Illuminate\Console\Command;
  */
 class PullBlizzardSnapshot extends Command
 {
-    protected $signature = 'blizzard:pull {--min-level= : Override the level floor}';
+    protected $signature = 'blizzard:pull
+        {--min-level= : Override the level floor}
+        {--limit= : Cap how many members to fetch this run; oldest-first}';
 
     protected $description = 'Pull current Blizzard profile data for every active member into a fresh snapshot';
 
@@ -30,12 +32,16 @@ class PullBlizzardSnapshot extends Command
             return self::SUCCESS;
         }
 
+        $limitOpt = $this->option('limit');
+        $limit = is_numeric($limitOpt) && (int) $limitOpt > 0 ? (int) $limitOpt : null;
+
         $importer = new BlizzardSnapshotImporter(
             client: $client,
             guildKey: (string) config('grm.guild_key'),
             requestDelayMs: (int) config('blizzard.request_delay_ms', 50),
             minLevel: (int) ($this->option('min-level') ?? 70),
             concurrency: (int) config('blizzard.sync_concurrency', 10),
+            limit: $limit,
         );
 
         try {

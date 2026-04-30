@@ -41,15 +41,15 @@ Schedule::command('raiderio:pull')
     ->onOneServer()
     ->withoutOverlapping();
 
-// Twice-daily Blizzard profile pull. Authoritative ilvl source: data
-// updates within minutes of a character logging out, so this is more
-// reliable than RIO for the roster's ilvl column. Same cadence as
-// raiderio:pull because both fundamentally depend on members logging
-// out in-game; nothing finer is informative. Short-circuits cleanly
-// when BLIZZARD_CLIENT_ID / BLIZZARD_CLIENT_SECRET are unset.
-Schedule::command('blizzard:pull')
-    ->twiceDaily(7, 18)
-    ->timezone(config('raidhelper.timezone', 'Europe/London'))
+// Half-hourly batched Blizzard profile pull. Each run picks the 100
+// stalest members (NULL last-sync first, then oldest captured_at) so
+// the queue rotates the whole roster in ~4 hours and we never blow
+// past Hostinger's 30s PHP wall-clock budget on a single tick.
+// Authoritative source for ilvl + active spec, so this is what the
+// BiS comparison and roster ilvl columns lean on. Short-circuits
+// cleanly when BLIZZARD_CLIENT_ID / BLIZZARD_CLIENT_SECRET are unset.
+Schedule::command('blizzard:pull --limit=100')
+    ->everyThirtyMinutes()
     ->onOneServer()
     ->withoutOverlapping();
 
@@ -65,16 +65,15 @@ Schedule::command('blizzard:pull-roster')
     ->onOneServer()
     ->withoutOverlapping();
 
-// Twice-daily per-piece equipment pull. The /equipment endpoint
-// returns the full equipped_items array per character (item ids,
-// enchants, sockets, bonus list) - the data behind pre-raid readiness
-// checks. Same cadence as profile because both depend on logout, but
-// run on a separate schedule slot so a slow equipment fan-out can't
-// stall the lighter ilvl pull. Short-circuits cleanly when credentials
-// are unset.
-Schedule::command('blizzard:pull-equipment')
-    ->twiceDaily(7, 18)
-    ->timezone(config('raidhelper.timezone', 'Europe/London'))
+// Half-hourly batched per-piece equipment pull. Same batching pattern
+// as the profile pull: 100 stalest members per tick, NULLs first so a
+// fresh deploy fills the table fastest. Offset by 15 minutes from the
+// profile pull so the two don't pile concurrent fan-outs on top of
+// each other. The /equipment endpoint backs the BiS comparison's
+// primary gear source, the roster's gear-health column, and pre-raid
+// readiness checks. Short-circuits cleanly when credentials are unset.
+Schedule::command('blizzard:pull-equipment --limit=100')
+    ->cron('15,45 * * * *') // :15 and :45 each hour, between profile pulls
     ->onOneServer()
     ->withoutOverlapping();
 

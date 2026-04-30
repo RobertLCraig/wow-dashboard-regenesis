@@ -89,7 +89,7 @@ class SyncDashboardController extends Controller
                 'last_seen_at' => $bnet?->captured_at,
                 'last_summary' => $bnet ? "{$bnet->member_count} members" : null,
                 'state' => SyncStatus::get(SyncStatus::SOURCE_BLIZZARD),
-                'cadence' => 'Pull: roster daily 06:45 UK, profile twice-daily (07:00 + 18:00 UK). Manual button runs both.',
+                'cadence' => 'Pull: roster daily 06:45 UK; profile + equipment every 30 min, batched 100 members per tick (oldest first). Manual button runs all three.',
                 'has_button' => true,
                 'has_upload' => false,
             ],

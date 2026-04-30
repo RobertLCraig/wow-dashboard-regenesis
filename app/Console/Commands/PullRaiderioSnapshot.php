@@ -17,19 +17,24 @@ use Illuminate\Console\Command;
  */
 class PullRaiderioSnapshot extends Command
 {
-    protected $signature = 'raiderio:pull {--min-level= : Override the level floor}';
+    protected $signature = 'raiderio:pull
+        {--min-level= : Override the level floor}
+        {--limit= : Cap how many members to fetch this run; oldest-first}';
 
     protected $description = 'Pull current Raider.IO data for every active member into a fresh snapshot';
 
     public function handle(): int
     {
         $client = RaiderioClient::fromConfig();
+        $limitOpt = $this->option('limit');
+        $limit = is_numeric($limitOpt) && (int) $limitOpt > 0 ? (int) $limitOpt : null;
         $importer = new RaiderioSnapshotImporter(
             client: $client,
             guildKey: (string) config('grm.guild_key'),
             requestDelayMs: (int) config('raiderio.request_delay_ms', 1500),
             minLevel: (int) ($this->option('min-level') ?? 70),
             concurrency: (int) config('raiderio.sync_concurrency', 1),
+            limit: $limit,
         );
 
         try {

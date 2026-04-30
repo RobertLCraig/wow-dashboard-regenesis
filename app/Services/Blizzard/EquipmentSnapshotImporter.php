@@ -6,6 +6,7 @@ use App\Models\Member;
 use App\Models\MemberEquipmentSnapshot;
 use App\Models\Snapshot;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -36,6 +37,13 @@ class EquipmentSnapshotImporter
         private readonly int $requestDelayMs = 50,
         private readonly int $minLevel = 70,
         private readonly int $concurrency = 10,
+        /**
+         * Cap how many members get fetched per run. Null = no cap (one
+         * sweep of the whole roster). With a cap, members are picked
+         * by oldest-equipment-first so a recurring schedule rotates
+         * through the roster instead of always re-pulling the same N.
+         */
+        private readonly ?int $limit = null,
     ) {}
 
     /**
@@ -56,12 +64,7 @@ class EquipmentSnapshotImporter
             );
         }
 
-        $members = Member::query()
-            ->forGuild($this->guildKey)
-            ->active()
-            ->where('level', '>=', $this->minLevel)
-            ->orderBy('id')
-            ->get();
+        $members = $this->selectMembersToFetch();
 
         $now = CarbonImmutable::now();
         $perMemberPayloads = [];
@@ -188,6 +191,43 @@ class EquipmentSnapshotImporter
                 'errored' => $errored,
             ];
         });
+    }
+
+    /**
+     * Pick members to fetch in this run. With $limit set, returns the
+     * N members whose equipment is most stale: never-imported first
+     * (NULL last_seen), then ordered by oldest captured_at. Without a
+     * limit, returns every active member - same shape as before.
+     *
+     * Stable secondary sort by member.id breaks ties so two members
+     * that share a NULL last_seen always come back in the same order
+     * across runs (no member "jumps the queue" by accident).
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, Member>
+     */
+    private function selectMembersToFetch(): \Illuminate\Database\Eloquent\Collection
+    {
+        $latestPerMember = DB::table('member_equipment_snapshots as mes')
+            ->select('mes.member_id', DB::raw('MAX(s.captured_at) as last_seen'))
+            ->join('snapshots as s', 's.id', '=', 'mes.snapshot_id')
+            ->where('s.source', Snapshot::SOURCE_BLIZZARD_EQUIPMENT)
+            ->groupBy('mes.member_id');
+
+        $query = Member::query()
+            ->forGuild($this->guildKey)
+            ->active()
+            ->where('level', '>=', $this->minLevel)
+            ->leftJoinSub($latestPerMember, 'latest', fn ($j) => $j->on('latest.member_id', '=', 'members.id'))
+            ->orderByRaw('latest.last_seen IS NULL DESC')
+            ->orderBy('latest.last_seen', 'asc')
+            ->orderBy('members.id', 'asc')
+            ->select('members.*');
+
+        if ($this->limit !== null && $this->limit > 0) {
+            $query->limit($this->limit);
+        }
+
+        return $query->get();
     }
 
     /**

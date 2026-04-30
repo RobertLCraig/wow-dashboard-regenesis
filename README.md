@@ -155,13 +155,25 @@ BLIZZARD_CLIENT_ID=<from develop.battle.net>
 BLIZZARD_CLIENT_SECRET=<from develop.battle.net>
 BLIZZARD_REGION=eu
 ```
-The twice-daily `blizzard:pull` cron job populates `Snapshot::SOURCE_BLIZZARD`
-rows. The roster reads Blizzard -> Wowaudit -> Raider.IO in priority order
-per member. Runs as a no-op when credentials are empty, so cron stays
-armed without errors. Manually:
+Two batched Blizzard pulls run every 30 minutes (offset 15 min apart so
+they don't fan out concurrently): `blizzard:pull --limit=100` for
+profile summaries (active spec, equipped ilvl) and
+`blizzard:pull-equipment --limit=100` for per-piece gear (item ids,
+enchants, gems). Each run picks the 100 stalest members
+(NULL last-sync first, then oldest captured_at) so a full roster
+sweep takes ~4 hours and no single tick blows past Hostinger's 30s
+PHP wall clock. The roster reads Blizzard -> Wowaudit -> Raider.IO in
+priority order per member. Runs as a no-op when credentials are empty,
+so cron stays armed without errors. Manually:
 ```sh
-php artisan blizzard:pull
+php artisan blizzard:pull              # profile summary, full roster
+php artisan blizzard:pull --limit=100  # batched: stalest 100 only
+php artisan blizzard:pull-equipment    # per-piece gear, full roster
 ```
+
+The same `--limit=N` + oldest-first ordering is also available on
+`raiderio:pull` for parity, in case a future rate-limit squeeze makes
+batched RIO pulls preferable to the current 3-hourly full sweep.
 
 ### 5a. SimulationCraft BiS profiles (optional)
 

@@ -36,6 +36,12 @@ class BlizzardSnapshotImporter
         private readonly int $requestDelayMs = 50,
         private readonly int $minLevel = 70,
         private readonly int $concurrency = 10,
+        /**
+         * Cap how many members get fetched per run. Null = no cap. With
+         * a cap, oldest-profile-first so a recurring schedule rotates
+         * through the roster instead of always re-pulling the same N.
+         */
+        private readonly ?int $limit = null,
     ) {}
 
     /**
@@ -56,12 +62,7 @@ class BlizzardSnapshotImporter
             );
         }
 
-        $members = Member::query()
-            ->forGuild($this->guildKey)
-            ->active()
-            ->where('level', '>=', $this->minLevel)
-            ->orderBy('id')
-            ->get();
+        $members = $this->selectMembersToFetch();
 
         $now = CarbonImmutable::now();
         $perMemberPayloads = [];
@@ -222,6 +223,40 @@ class BlizzardSnapshotImporter
                 'errored' => $errored,
             ];
         });
+    }
+
+    /**
+     * Pick members to fetch in this run. With $limit set, returns the
+     * N members whose profile-summary is most stale: never-imported
+     * first (NULL last_seen), then ordered by oldest captured_at.
+     * Without a limit, returns every active member - same shape as
+     * before. Stable secondary sort by member.id breaks ties.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, Member>
+     */
+    private function selectMembersToFetch(): \Illuminate\Database\Eloquent\Collection
+    {
+        $latestPerMember = DB::table('member_snapshots as ms')
+            ->select('ms.member_id', DB::raw('MAX(s.captured_at) as last_seen'))
+            ->join('snapshots as s', 's.id', '=', 'ms.snapshot_id')
+            ->where('s.source', Snapshot::SOURCE_BLIZZARD)
+            ->groupBy('ms.member_id');
+
+        $query = Member::query()
+            ->forGuild($this->guildKey)
+            ->active()
+            ->where('level', '>=', $this->minLevel)
+            ->leftJoinSub($latestPerMember, 'latest', fn ($j) => $j->on('latest.member_id', '=', 'members.id'))
+            ->orderByRaw('latest.last_seen IS NULL DESC')
+            ->orderBy('latest.last_seen', 'asc')
+            ->orderBy('members.id', 'asc')
+            ->select('members.*');
+
+        if ($this->limit !== null && $this->limit > 0) {
+            $query->limit($this->limit);
+        }
+
+        return $query->get();
     }
 
     /**
