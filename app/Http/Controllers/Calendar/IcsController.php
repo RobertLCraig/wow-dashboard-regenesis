@@ -24,11 +24,25 @@ use Illuminate\Http\Response;
  * The subscription endpoint uses a stable random token on the User row
  * that the user can rotate from a settings page if it leaks.
  *
- * Caching: Cache-Control: max-age=300 + ETag(MAX(updated_at)) so Google
- * Calendar's polling is cheap.
+ * Caching: Cache-Control: max-age=300 + ETag(content fingerprint, with
+ * DTSTAMP stripped so re-renders at different seconds produce the same
+ * etag) so Google Calendar's polling is cheap.
  */
 class IcsController extends Controller
 {
+    /**
+     * SHA-256 of the body with DTSTAMP lines stripped. DTSTAMP is the
+     * only time-varying content in the rendered ICS, so removing it
+     * gives an etag that fingerprints the data, not the rendering
+     * moment - otherwise every request a second apart looks "new" to
+     * the client and the 304 path never fires.
+     */
+    private function stableEtag(string $body): string
+    {
+        $stable = preg_replace('/^DTSTAMP:[^\r\n]*\r?\n?/m', '', $body);
+        return '"' . hash('sha256', (string) $stable) . '"';
+    }
+
     public function show(Request $request, RaidEvent $event, IcsBuilder $builder): Response
     {
         $expected = hash_hmac('sha256', $event->ics_uid . '|' . $event->ics_sequence, config('app.key'));
@@ -66,7 +80,7 @@ class IcsController extends Controller
 
         $body = $builder->buildSocialFeed($raidEvents, $worldEvents);
         $latestUpdate = $raidEvents->max('updated_at');
-        $etag = '"' . hash('sha256', $body) . '"';
+        $etag = $this->stableEtag($body);
 
         if ($request->headers->get('If-None-Match') === $etag) {
             return response('', 304, [
@@ -100,7 +114,7 @@ class IcsController extends Controller
         $worldEvents = $worldCalendar->eventsInRange($now, $now->addDays(365));
 
         $body = $builder->buildSocialFeed([], $worldEvents);
-        $etag = '"' . hash('sha256', $body) . '"';
+        $etag = $this->stableEtag($body);
 
         if ($request->headers->get('If-None-Match') === $etag) {
             return response('', 304, [
@@ -130,7 +144,7 @@ class IcsController extends Controller
 
         $body = $builder->buildFeed($events);
         $latestUpdate = $events->max('updated_at');
-        $etag = '"' . hash('sha256', $body) . '"';
+        $etag = $this->stableEtag($body);
 
         if ($request->headers->get('If-None-Match') === $etag) {
             return response('', 304, [
