@@ -180,10 +180,15 @@ batched RIO pulls preferable to the current 3-hourly full sweep.
 Pulls canonical BiS gear / enchants / gems / consumables per class+spec
 from <https://github.com/simulationcraft/simc> and stores them in the
 `bis_profiles` table. Powers the per-slot comparison panel on each
-character page (and the BiS-issues column on the roster). Note: SimC
-ships profiles for DPS and tank specs only - healing specs need a
-manually curated `bis_profiles` row to render a comparison; without
-one the character page shows a placeholder explaining the gap.
+character page (and the BiS-issues column on the roster). SimC ships
+profiles for DPS and tank specs only; healing specs are seeded from
+a small curated JSON file at `database/data/healer-bis-profiles.json`,
+applied by `php artisan bis:seed-healers` (run once after setup, then
+again whenever the data file changes). The healer rows are stub
+shells - consumables filled in, gear empty - so the widget renders
+for healers and lists their currently-equipped items, even though
+per-slot BiS recommendations need filling in by hand from a current-
+tier source like Wowhead / Method / QuestionablyEpic.
 
 The character-page widget resolves the player's currently-equipped gear
 through a fallback chain so it works for the whole roster, not just

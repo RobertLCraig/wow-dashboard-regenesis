@@ -1,0 +1,125 @@
+{
+  "_meta": {
+    "tier": "MID1",
+    "season": "Midnight Season 1",
+    "purpose": "Stub BiS profiles for healing specs (and Augmentation Evoker), which SimC's profiles/MID1/ directory does not ship. Populates the bis_profiles table so the BiS comparison widget renders for healers, even though SimC won't sim them.",
+    "data_source_status": "consumables harvested from the same-class DPS profile; gear and per-slot enchants left empty. Fill in from Wowhead / Method / QuestionablyEpic when authoritative current-tier BiS lists are available - the comparison still works incrementally, slot by slot.",
+    "regenerate_with": "php artisan bis:seed-healers"
+  },
+
+  "profiles": [
+    {
+      "class": "shaman",
+      "spec": "restoration",
+      "hero_talent": null,
+      "profile_name": "MID1_Shaman_Restoration_stub",
+      "consumables": {
+        "potion": "lights_potential_2",
+        "flask": "flask_of_the_magisters_2",
+        "food": "harandar_celebration",
+        "augmentation": "void_touched",
+        "temporary_enchant_main_hand": "thalassian_phoenix_oil_2"
+      },
+      "gear": {}
+    },
+    {
+      "class": "druid",
+      "spec": "restoration",
+      "hero_talent": null,
+      "profile_name": "MID1_Druid_Restoration_stub",
+      "consumables": {
+        "potion": "lights_potential_2",
+        "flask": "magisters_2",
+        "food": "harandar_celebration",
+        "augmentation": "void_touched",
+        "temporary_enchant_main_hand": "thalassian_phoenix_oil_2"
+      },
+      "gear": {}
+    },
+    {
+      "class": "paladin",
+      "spec": "holy",
+      "hero_talent": null,
+      "profile_name": "MID1_Paladin_Holy_stub",
+      "consumables": {
+        "potion": "lights_potential_2",
+        "flask": "flask_of_the_shattered_sun_2",
+        "food": "blooming_feast",
+        "augmentation": "void_touched",
+        "temporary_enchant_main_hand": "thalassian_phoenix_oil_2"
+      },
+      "gear": {}
+    },
+    {
+      "class": "priest",
+      "spec": "discipline",
+      "hero_talent": null,
+      "profile_name": "MID1_Priest_Discipline_stub",
+      "consumables": {
+        "potion": "lights_potential_2",
+        "flask": "flask_of_the_magisters_2",
+        "food": "silvermoon_parade",
+        "augmentation": "void_touched",
+        "temporary_enchant_main_hand": "thalassian_phoenix_oil_2"
+      },
+      "gear": {}
+    },
+    {
+      "class": "priest",
+      "spec": "holy",
+      "hero_talent": null,
+      "profile_name": "MID1_Priest_Holy_stub",
+      "consumables": {
+        "potion": "lights_potential_2",
+        "flask": "flask_of_the_magisters_2",
+        "food": "silvermoon_parade",
+        "augmentation": "void_touched",
+        "temporary_enchant_main_hand": "thalassian_phoenix_oil_2"
+      },
+      "gear": {}
+    },
+    {
+      "class": "monk",
+      "spec": "mistweaver",
+      "hero_talent": null,
+      "profile_name": "MID1_Monk_Mistweaver_stub",
+      "consumables": {
+        "potion": "draught_of_rampant_abandon_2",
+        "flask": "flask_of_the_magisters_2",
+        "food": "harandar_celebration",
+        "augmentation": "void_touched",
+        "temporary_enchant_main_hand": "thalassian_phoenix_oil_2",
+        "temporary_enchant_off_hand": "thalassian_phoenix_oil_2"
+      },
+      "gear": {}
+    },
+    {
+      "class": "evoker",
+      "spec": "preservation",
+      "hero_talent": null,
+      "profile_name": "MID1_Evoker_Preservation_stub",
+      "consumables": {
+        "potion": "lights_potential_2",
+        "flask": "flask_of_the_shattered_sun_2",
+        "food": "silvermoon_parade",
+        "augmentation": "void_touched",
+        "temporary_enchant_main_hand": "thalassian_phoenix_oil_2"
+      },
+      "gear": {}
+    },
+    {
+      "class": "evoker",
+      "spec": "augmentation",
+      "hero_talent": null,
+      "profile_name": "MID1_Evoker_Augmentation_stub",
+      "consumables": {
+        "potion": "lights_potential_2",
+        "flask": "flask_of_the_shattered_sun_2",
+        "food": "silvermoon_parade",
+        "augmentation": "void_touched",
+        "temporary_enchant_main_hand": "thalassian_phoenix_oil_2"
+      },
+      "gear": {}
+    }
+  ]
+}
