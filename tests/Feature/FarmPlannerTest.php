@@ -52,26 +52,22 @@ function farmSnap(int $memberId, int $snapshotId, array $payloads): MemberSocial
         'mounts' => null,
         'pets' => null,
         'toys' => null,
-        'transmogs' => null,
     ], $payloads));
 }
 
-it('analyzer detects mount ownership through the mounts.{n}.mount.id path', function () {
+it('analyzer detects mount ownership in the slim ID-only mount array', function () {
     $snap = new MemberSocialSnapshot();
-    $snap->mounts = ['mounts' => [
-        ['mount' => ['id' => 1234, 'name' => 'Test Mount']],
-        ['mount' => ['id' => 5678, 'name' => 'Other Mount']],
-    ]];
+    $snap->mounts = ['mounts' => [1234, 5678]];
 
     $analyzer = new CollectionsAnalyzer();
     expect($analyzer->memberHas($snap, CollectionsAnalyzer::TYPE_MOUNT, 1234))->toBeTrue();
     expect($analyzer->memberHas($snap, CollectionsAnalyzer::TYPE_MOUNT, 9999))->toBeFalse();
 });
 
-it('analyzer detects pet ownership through species.id and toy through toy.id', function () {
+it('analyzer detects pet + toy ownership in slim ID-only arrays', function () {
     $snap = new MemberSocialSnapshot();
-    $snap->pets = ['pets' => [['species' => ['id' => 42, 'name' => 'P']]]];
-    $snap->toys = ['toys' => [['toy' => ['id' => 99, 'name' => 'T']]]];
+    $snap->pets = ['pets' => [42, 43]];
+    $snap->toys = ['toys' => [99]];
 
     $analyzer = new CollectionsAnalyzer();
     expect($analyzer->memberHas($snap, CollectionsAnalyzer::TYPE_PET, 42))->toBeTrue();
@@ -92,10 +88,10 @@ it('gap() buckets members into has / missing / no_data with coverage percent', f
     ]);
     $snaps = collect([
         $hasIt->id => farmSnap($hasIt->id, $snapshot->id, [
-            'mounts' => ['mounts' => [['mount' => ['id' => 1234]]]],
+            'mounts' => ['mounts' => [1234]],
         ]),
         $needs->id => farmSnap($needs->id, $snapshot->id, [
-            'mounts' => ['mounts' => [['mount' => ['id' => 9999]]]],
+            'mounts' => ['mounts' => [9999]],
         ]),
         // Unknown has no MemberSocialSnapshot row at all.
     ]);
@@ -128,7 +124,7 @@ it('farm-planner page renders has/missing buckets for a real query', function ()
         'payload_hash' => 'h-farm-page',
     ]);
     farmSnap($hasIt->id, $snapshot->id, [
-        'mounts' => ['mounts' => [['mount' => ['id' => 7777]]]],
+        'mounts' => ['mounts' => [7777]],
     ]);
     farmSnap($needs->id, $snapshot->id, [
         'mounts' => ['mounts' => []],

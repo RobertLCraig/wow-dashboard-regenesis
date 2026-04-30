@@ -12,14 +12,19 @@ use Illuminate\Support\Collection;
  * pick a collectible (mount / pet / toy) by id and find out who in
  * the guild already has it and who does not.
  *
- * The collections payloads use slightly different shapes per type:
+ * The collections columns store ID-only arrays - the importer slims
+ * Blizzard's verbose payload (which embeds each entry's name + key +
+ * source) down to a flat list of the only thing the analyzer actually
+ * needs:
  *
- *   mounts -> { mounts: [{ mount: { id, name, key } }, ...] }
- *   pets   -> { pets:   [{ species: { id, name, key }, ... }, ...] }
- *   toys   -> { toys:   [{ toy: { id, name, key } }, ...] }
+ *   mounts -> { mounts: [int, int, ...] }
+ *   pets   -> { pets:   [int, int, ...] }
+ *   toys   -> { toys:   [int, int, ...] }
  *
- * The analyzer normalises that so callers can think in terms of
- * "type + id".
+ * Going slim was a Hostinger 3GB-quota response (see
+ * project_social_snapshots_constraints memory). If a future feature
+ * needs the names back, hydrate from a static reference rather than
+ * re-fattening the per-character payloads.
  */
 class CollectionsAnalyzer
 {
@@ -36,18 +41,7 @@ class CollectionsAnalyzer
 
     public function memberHas(MemberSocialSnapshot $snap, string $type, int $id): bool
     {
-        $items = $this->itemsArray($snap, $type);
-        $idPath = $this->idPath($type);
-        foreach ($items as $item) {
-            if (! is_array($item)) {
-                continue;
-            }
-            $candidate = $this->dig($item, $idPath);
-            if (is_numeric($candidate) && (int) $candidate === $id) {
-                return true;
-            }
-        }
-        return false;
+        return in_array($id, $this->itemsArray($snap, $type), true);
     }
 
     /**
@@ -97,7 +91,7 @@ class CollectionsAnalyzer
     }
 
     /**
-     * @return array<int, mixed>
+     * @return list<int>
      */
     private function itemsArray(MemberSocialSnapshot $snap, string $type): array
     {
@@ -116,34 +110,15 @@ class CollectionsAnalyzer
             self::TYPE_TOY => 'toys',
         };
         $items = $payload[$key] ?? null;
-        return is_array($items) ? $items : [];
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function idPath(string $type): array
-    {
-        return match ($type) {
-            self::TYPE_MOUNT => ['mount', 'id'],
-            self::TYPE_PET => ['species', 'id'],
-            self::TYPE_TOY => ['toy', 'id'],
-        };
-    }
-
-    /**
-     * @param  array<string, mixed>  $arr
-     * @param  list<string>  $path
-     */
-    private function dig(array $arr, array $path): mixed
-    {
-        $cursor = $arr;
-        foreach ($path as $segment) {
-            if (! is_array($cursor) || ! array_key_exists($segment, $cursor)) {
-                return null;
-            }
-            $cursor = $cursor[$segment];
+        if (! is_array($items)) {
+            return [];
         }
-        return $cursor;
+        // Filter to integers - defensive against legacy verbose payloads
+        // that may still be in the DB during a gradual rollout, plus any
+        // garbage Blizzard might send.
+        return array_values(array_filter(array_map(
+            fn ($v) => is_numeric($v) ? (int) $v : null,
+            $items,
+        ), fn ($v) => is_int($v)));
     }
 }

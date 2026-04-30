@@ -17,7 +17,6 @@ class MemberSocialSnapshot extends Model
             'mounts' => 'array',
             'pets' => 'array',
             'toys' => 'array',
-            'transmogs' => 'array',
         ];
     }
 

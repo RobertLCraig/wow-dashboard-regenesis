@@ -58,21 +58,31 @@ function fakeAllSocialEndpoints(string $charSlug): void
         "eu.api.blizzard.test/profile/wow/character/silvermoon/{$charSlug}/achievements*" => Http::response([
             'total_quantity' => 1234,
             'total_points' => 23456,
-            'achievements' => [],
+            'achievements' => [
+                [
+                    'id' => 6,
+                    'achievement' => ['id' => 6, 'name' => 'Level 10'],
+                    'criteria' => ['id' => 31, 'is_completed' => true, 'child_criteria' => [['id' => 32, 'is_completed' => true]]],
+                    'completed_timestamp' => 1700000000000,
+                ],
+                [
+                    'id' => 16403,
+                    'achievement' => ['id' => 16403, 'name' => 'Glory of the Ny\'alotha Raider'],
+                    'criteria' => ['id' => 9999, 'child_criteria' => array_fill(0, 12, ['id' => 0, 'is_completed' => true])],
+                    'completed_timestamp' => 1710000000000,
+                ],
+            ],
+            'category_progress' => array_fill(0, 50, ['category' => ['id' => 1], 'points' => 10]),
         ], 200),
         "eu.api.blizzard.test/profile/wow/character/silvermoon/{$charSlug}/collections/mounts*" => Http::response([
-            'mounts' => array_fill(0, 412, ['mount' => ['id' => 1]]),
+            'mounts' => array_map(fn ($i) => ['mount' => ['id' => $i, 'name' => "Mount {$i}", 'key' => ['href' => 'x']]], range(1, 412)),
         ], 200),
         "eu.api.blizzard.test/profile/wow/character/silvermoon/{$charSlug}/collections/pets*" => Http::response([
             'total_quantity_collected' => 891,
-            'pets' => array_fill(0, 891, ['species' => ['id' => 1]]),
+            'pets' => array_map(fn ($i) => ['species' => ['id' => $i + 1000, 'name' => "Pet {$i}"]], range(1, 891)),
         ], 200),
         "eu.api.blizzard.test/profile/wow/character/silvermoon/{$charSlug}/collections/toys*" => Http::response([
-            'toys' => array_fill(0, 234, ['toy' => ['id' => 1]]),
-        ], 200),
-        "eu.api.blizzard.test/profile/wow/character/silvermoon/{$charSlug}/collections/transmogs*" => Http::response([
-            'appearance_sets' => [],
-            'slots' => [],
+            'toys' => array_map(fn ($i) => ['toy' => ['id' => $i + 2000, 'name' => "Toy {$i}"]], range(1, 234)),
         ], 200),
     ]);
 }
@@ -88,7 +98,7 @@ function makeSocialImporter(): SocialSnapshotImporter
     );
 }
 
-it('pulls all six endpoints per member and stores them with denormalised counts', function () {
+it('pulls every endpoint per member and stores slim payloads with denormalised counts', function () {
     makeSocialMember('Sheday-Silvermoon');
     fakeAllSocialEndpoints('sheday');
 
@@ -103,6 +113,25 @@ it('pulls all six endpoints per member and stores them with denormalised counts'
     expect($row->total_mounts)->toBe(412);
     expect($row->total_pets)->toBe(891);
     expect($row->total_toys)->toBe(234);
+
+    // Achievements stored slim: id + completed_timestamp only, no
+    // criteria tree or category_progress. Glory-style achievements
+    // are still trackable by id.
+    expect($row->achievements)->toBeArray();
+    expect($row->achievements['total_points'])->toBe(23456);
+    expect($row->achievements['total_quantity'])->toBe(1234);
+    expect($row->achievements['achievements'])->toHaveCount(2);
+    expect($row->achievements['achievements'][1]['id'])->toBe(16403);
+    expect($row->achievements['achievements'][1]['completed_timestamp'])->toBe(1710000000000);
+    // Bloat fields explicitly absent.
+    expect($row->achievements)->not->toHaveKey('category_progress');
+    expect($row->achievements['achievements'][0])->not->toHaveKey('criteria');
+
+    // Collections stored as integer ID arrays. No names, no keys.
+    expect($row->mounts)->toBe(['mounts' => range(1, 412)]);
+    expect($row->pets['pets'][0])->toBe(1001);
+    expect($row->pets['pets'][890])->toBe(1891);
+    expect($row->toys['toys'][0])->toBe(2001);
 });
 
 it('treats per-endpoint 404 as a soft miss without poisoning the others', function () {
@@ -115,7 +144,6 @@ it('treats per-endpoint 404 as a soft miss without poisoning the others', functi
         'eu.api.blizzard.test/profile/wow/character/silvermoon/sheday/collections/mounts*' => Http::response(['mounts' => []], 200),
         'eu.api.blizzard.test/profile/wow/character/silvermoon/sheday/collections/pets*' => Http::response(['code' => 404], 404),
         'eu.api.blizzard.test/profile/wow/character/silvermoon/sheday/collections/toys*' => Http::response(['toys' => []], 200),
-        'eu.api.blizzard.test/profile/wow/character/silvermoon/sheday/collections/transmogs*' => Http::response(['code' => 404], 404),
     ]);
 
     $result = makeSocialImporter()->pull();
@@ -125,8 +153,23 @@ it('treats per-endpoint 404 as a soft miss without poisoning the others', functi
     $row = MemberSocialSnapshot::query()->firstOrFail();
     expect($row->achievement_points)->toBe(100);
     expect($row->pets)->toBeNull();
-    expect($row->transmogs)->toBeNull();
     expect($row->achievements)->toBeArray();
+});
+
+it('prunes prior social snapshots for members it just wrote', function () {
+    // Two pulls back-to-back: the second should delete the first row
+    // for the same member, keeping retention at one-snapshot-per-member.
+    makeSocialMember('Sheday-Silvermoon');
+    fakeAllSocialEndpoints('sheday');
+
+    $first = makeSocialImporter()->pull();
+    $second = makeSocialImporter()->pull();
+
+    expect($first['snapshot_id'])->not->toBe($second['snapshot_id']);
+    // Two Snapshot rows, but only one MemberSocialSnapshot row for Sheday.
+    expect(Snapshot::query()->where('source', Snapshot::SOURCE_BLIZZARD_SOCIAL)->count())->toBe(2);
+    expect(MemberSocialSnapshot::query()->count())->toBe(1);
+    expect(MemberSocialSnapshot::query()->first()->snapshot_id)->toBe($second['snapshot_id']);
 });
 
 it('counts a member with all 404s as missing', function () {
