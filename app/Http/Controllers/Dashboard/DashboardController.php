@@ -73,13 +73,23 @@ class DashboardController extends Controller
      * Empty teams are dropped so the widget only renders teams that
      * actually have someone on them.
      *
-     * @return array{captured_at: ?\Carbon\CarbonInterface, teams: array<string,array{count:int,with_data:int,best_raid_summary:?string,best_raid_key:?string,avg_ilvl:?int,top_rio:?float,top_key:?int}>}
+     * Boss-level breakdown comes from the latest Blizzard raid-encounters
+     * snapshot (different cadence to RIO; daily vs. three-hourly). When
+     * Blizzard data is missing the breakdown is just empty - the rest of
+     * the rollup still renders from RIO numbers as before.
+     *
+     * @return array{captured_at: ?\Carbon\CarbonInterface, teams: array<string,array{count:int,with_data:int,best_raid_summary:?string,best_raid_key:?string,avg_ilvl:?int,top_rio:?float,top_key:?int,breakdown:list<array<string,mixed>>,breakdown_captured_at:?\Carbon\CarbonInterface}>}
      */
     private function teamProgression(string $guildKey): array
     {
         $latest = Snapshot::query()
             ->where('guild_key', $guildKey)
             ->where('source', Snapshot::SOURCE_RAIDERIO)
+            ->latest('captured_at')
+            ->first();
+        $latestRaids = Snapshot::query()
+            ->where('guild_key', $guildKey)
+            ->where('source', Snapshot::SOURCE_BLIZZARD_RAIDS)
             ->latest('captured_at')
             ->first();
 
@@ -103,6 +113,15 @@ class DashboardController extends Controller
                 ->get()
                 ->keyBy('member_id');
         }
+
+        $raidSnapsByMember = collect();
+        if ($latestRaids) {
+            $raidSnapsByMember = MemberRaidSnapshot::query()
+                ->where('snapshot_id', $latestRaids->id)
+                ->get()
+                ->keyBy('member_id');
+        }
+        $analyzer = new RaidProgressionAnalyzer();
 
         $teams = [];
         foreach (TeamMapping::TEAMS as $team) {
@@ -162,6 +181,14 @@ class DashboardController extends Controller
             $rios = $snaps->pluck('mplus_score')->filter()->all();
             $keys = $snaps->pluck('mplus_keystone')->filter()->all();
 
+            $teamRaidSnaps = $members
+                ->map(fn ($m) => $raidSnapsByMember->get($m->id))
+                ->filter()
+                ->values();
+            $breakdown = $teamRaidSnaps->isNotEmpty()
+                ? $analyzer->teamBossBreakdown($teamRaidSnaps, $maxDiff)
+                : [];
+
             $teams[$team] = [
                 'count' => $members->count(),
                 'with_data' => $snaps->count(),
@@ -170,6 +197,8 @@ class DashboardController extends Controller
                 'avg_ilvl' => $ilvls ? (int) round(array_sum($ilvls) / count($ilvls)) : null,
                 'top_rio' => $rios ? (float) max($rios) : null,
                 'top_key' => $keys ? (int) max($keys) : null,
+                'breakdown' => $breakdown,
+                'breakdown_captured_at' => $breakdown !== [] ? $latestRaids?->captured_at : null,
             ];
         }
 

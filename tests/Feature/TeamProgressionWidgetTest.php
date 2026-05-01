@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Member;
+use App\Models\MemberRaidSnapshot;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
@@ -182,6 +183,115 @@ it('caps the Heroic team rollup at heroic difficulty even when one member has my
     // mythic kills ignored. Should NOT display "4/9 M".
     $resp->assertSee('8/9 H');
     $resp->assertDontSee('4/9 M');
+});
+
+it('renders the boss-by-boss breakdown for each team from blizzard raid snapshots', function () {
+    $h1 = makeTeamMember('Healer-Silvermoon', TeamMapping::TEAM_HEROIC);
+    $h2 = makeTeamMember('Tank-Silvermoon', TeamMapping::TEAM_HEROIC);
+
+    // RIO snapshot first so the widget has the headline numbers.
+    snapshotWithRow($h1->id, ['ilvl' => 640]);
+
+    // Blizzard raid-encounters snapshot. Healer has Plexus + Loom; Tank
+    // has Plexus only; Soulbinder is undown for the team.
+    $raidSnap = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now(),
+        'source' => Snapshot::SOURCE_BLIZZARD_RAIDS,
+        'payload_hash' => 'breakdown-test',
+    ]);
+    $manaforge = fn (array $encounters) => [
+        ['expansion' => ['id' => 503, 'name' => 'TWW'], 'instances' => [
+            ['instance' => ['id' => 1296, 'name' => 'Manaforge Omega'], 'modes' => [
+                ['difficulty' => ['type' => 'HEROIC', 'name' => 'Heroic'], 'progress' => [
+                    'completed_count' => count(array_filter($encounters, fn ($e) => $e['completed_count'] > 0)),
+                    'total_count' => 3,
+                    'encounters' => $encounters,
+                ]],
+            ]],
+        ]],
+    ];
+    MemberRaidSnapshot::query()->create([
+        'snapshot_id' => $raidSnap->id,
+        'member_id' => $h1->id,
+        'expansions' => $manaforge([
+            ['encounter' => ['id' => 1, 'name' => 'Plexus Sentinel'], 'completed_count' => 1, 'last_kill_timestamp' => 1_700_000_000_000],
+            ['encounter' => ['id' => 2, 'name' => "Loom'ithar"], 'completed_count' => 1, 'last_kill_timestamp' => 1_700_000_000_000],
+            ['encounter' => ['id' => 3, 'name' => 'Soulbinder'], 'completed_count' => 0, 'last_kill_timestamp' => 0],
+        ]),
+    ]);
+    MemberRaidSnapshot::query()->create([
+        'snapshot_id' => $raidSnap->id,
+        'member_id' => $h2->id,
+        'expansions' => $manaforge([
+            ['encounter' => ['id' => 1, 'name' => 'Plexus Sentinel'], 'completed_count' => 1, 'last_kill_timestamp' => 1_700_000_000_000],
+            ['encounter' => ['id' => 2, 'name' => "Loom'ithar"], 'completed_count' => 0, 'last_kill_timestamp' => 0],
+            ['encounter' => ['id' => 3, 'name' => 'Soulbinder'], 'completed_count' => 0, 'last_kill_timestamp' => 0],
+        ]),
+    ]);
+
+    $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
+
+    $resp = $this->actingAs($user)->get('/dashboard');
+    $resp->assertOk();
+    $resp->assertSee('Boss breakdown');
+    $resp->assertSee('Manaforge Omega');
+    $resp->assertSee('Plexus Sentinel');
+    // Apostrophe gets escaped by Blade -> assertSee with default $escape=true
+    // re-escapes our expected value so the comparison matches the rendered HTML.
+    $resp->assertSee("Loom'ithar");
+    $resp->assertSee('Soulbinder');
+    // 2 of 3 bosses team-killed on Heroic.
+    $resp->assertSee('2/3 H');
+});
+
+it('renders the empty-state hint when blizzard raid data is missing for a team', function () {
+    makeTeamMember('Heroic1-Silvermoon', TeamMapping::TEAM_HEROIC);
+    snapshotWithRow(Member::query()->first()->id, ['ilvl' => 640]);
+
+    $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
+
+    $resp = $this->actingAs($user)->get('/dashboard');
+    $resp->assertOk();
+    $resp->assertSee('No Blizzard raid-encounters data');
+});
+
+it('caps the heroic team breakdown at heroic, dropping mythic encounters', function () {
+    $crossover = makeTeamMember('Crossover-Silvermoon', TeamMapping::TEAM_HEROIC);
+    snapshotWithRow($crossover->id, ['ilvl' => 642]);
+
+    $raidSnap = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now(),
+        'source' => Snapshot::SOURCE_BLIZZARD_RAIDS,
+        'payload_hash' => 'breakdown-cap-test',
+    ]);
+    MemberRaidSnapshot::query()->create([
+        'snapshot_id' => $raidSnap->id,
+        'member_id' => $crossover->id,
+        'expansions' => [
+            ['expansion' => ['id' => 503, 'name' => 'TWW'], 'instances' => [
+                ['instance' => ['id' => 1296, 'name' => 'Manaforge Omega'], 'modes' => [
+                    ['difficulty' => ['type' => 'HEROIC', 'name' => 'Heroic'], 'progress' => [
+                        'completed_count' => 1, 'total_count' => 1,
+                        'encounters' => [['encounter' => ['id' => 1, 'name' => 'Plexus Sentinel'], 'completed_count' => 1, 'last_kill_timestamp' => 1]],
+                    ]],
+                    ['difficulty' => ['type' => 'MYTHIC', 'name' => 'Mythic'], 'progress' => [
+                        'completed_count' => 1, 'total_count' => 1,
+                        'encounters' => [['encounter' => ['id' => 99, 'name' => 'MythicOnlyBoss'], 'completed_count' => 1, 'last_kill_timestamp' => 1]],
+                    ]],
+                ]],
+            ]],
+        ],
+    ]);
+
+    $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
+    $resp = $this->actingAs($user)->get('/dashboard');
+
+    $resp->assertOk();
+    $resp->assertSee('Plexus Sentinel');
+    $resp->assertDontSee('MythicOnlyBoss');
+    $resp->assertDontSee('1/1 M');
 });
 
 it('widget renders empty state when no member has a team assigned', function () {

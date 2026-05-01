@@ -1,11 +1,13 @@
 @php
     /**
-     * Per-team rollup of the latest Raider.IO snapshot. One panel per
-     * team that has at least one active member. Empty teams are dropped
-     * upstream by the controller.
+     * Per-team rollup of the latest Raider.IO snapshot, plus a per-boss
+     * breakdown sourced from the latest Blizzard raid-encounters
+     * snapshot. One panel per team that has at least one active
+     * member. Empty teams are dropped upstream by the controller.
      *
      * Member counts come from the GRM-derived members.team column;
-     * ilvl/RIO/raid stats come from the latest raiderio MemberSnapshot.
+     * ilvl/RIO/raid stats come from the latest raiderio MemberSnapshot;
+     * the boss-by-boss pip rows come from MemberRaidSnapshot.expansions.
      */
     $tone = function (string $team) {
         return match ($team) {
@@ -21,6 +23,27 @@
         if (! $key) return '';
         // raider.io returns slugs like "manaforge-omega"; titlecase them.
         return ucwords(str_replace(['-', '_'], ' ', $key));
+    };
+
+    // Difficulty-keyed pip styles: filled = team-killed, empty = not yet.
+    $diffPipClass = function (string $type, bool $killed): string {
+        if (! $killed) {
+            return 'border-line/60 bg-panel/40 text-muted';
+        }
+        return match ($type) {
+            'MYTHIC' => 'border-amber-500/70 bg-amber-500/20 text-amber-200',
+            'HEROIC' => 'border-emerald-500/70 bg-emerald-500/20 text-emerald-200',
+            'NORMAL' => 'border-sky-500/70 bg-sky-500/20 text-sky-200',
+            default  => 'border-line bg-panel text-ink',
+        };
+    };
+    $diffBadgeClass = function (string $type): string {
+        return match ($type) {
+            'MYTHIC' => 'text-amber-300',
+            'HEROIC' => 'text-emerald-300',
+            'NORMAL' => 'text-sky-300',
+            default  => 'text-muted',
+        };
     };
 @endphp
 
@@ -44,9 +67,13 @@
             average item level, top mythic+ score and top weekly key for each team
             (Mythic, Mythic Trial, Heroic, Heroic Trial). Use it to compare how teams
             are pacing through the current tier and to spot a team that's fallen behind
-            on gear or RIO before it becomes a problem on raid night. Team membership
-            comes from the GRM rank-to-team mapping under Team mapping; RIO numbers come
-            from the periodic raider.io sync.
+            on gear or RIO before it becomes a problem on raid night. The boss-by-boss
+            breakdown below the headline numbers comes from the daily Blizzard raid
+            encounters pull: each pip is an encounter in that raid, filled when at
+            least one team member has the kill on that difficulty. Difficulty is
+            capped per team (Heroic team panels never show Mythic, even if a member
+            crossed over). Team membership comes from the GRM rank-to-team mapping
+            under Team mapping; RIO numbers come from the periodic raider.io sync.
         </x-explainer-panel>
     </div>
 
@@ -110,6 +137,66 @@
                             </div>
                         </div>
                     </div>
+
+                    @if (! empty($stats['breakdown']))
+                        <div class="mt-4 pt-3 border-t border-line/60 space-y-3">
+                            <div class="flex items-baseline justify-between">
+                                <h4 class="text-xs uppercase tracking-wider text-muted">Boss breakdown</h4>
+                                @if (! empty($stats['breakdown_captured_at']))
+                                    <span class="text-[10px] text-muted">
+                                        blizzard {{ $stats['breakdown_captured_at']->diffForHumans() }}
+                                    </span>
+                                @endif
+                            </div>
+                            @foreach ($stats['breakdown'] as $instance)
+                                <div>
+                                    <div class="text-sm font-medium text-ink">{{ $instance['name'] ?: 'Raid' }}</div>
+                                    <div class="mt-1.5 space-y-1.5">
+                                        @foreach ($instance['difficulties'] as $diff)
+                                            <div class="flex items-center gap-2 text-xs">
+                                                <span class="font-mono w-12 shrink-0 {{ $diffBadgeClass($diff['type']) }}">
+                                                    {{ $diff['killed'] }}/{{ $diff['total'] }} {{ $diff['short'] }}
+                                                </span>
+                                                <ul class="flex flex-wrap gap-1 list-none m-0 p-0">
+                                                    @foreach ($diff['encounters'] as $enc)
+                                                        @php
+                                                            $killed = $enc['killers'] > 0;
+                                                            $title = $enc['name'];
+                                                            if ($killed) {
+                                                                $title .= ' - killed by ' . $enc['killers']
+                                                                    . ' team ' . \Illuminate\Support\Str::plural('member', $enc['killers']);
+                                                                if (! empty($enc['last_kill_ms'])) {
+                                                                    $title .= ' - last ' . \Carbon\CarbonImmutable::createFromTimestampMs($enc['last_kill_ms'])->diffForHumans();
+                                                                }
+                                                            } else {
+                                                                $title .= ' - not yet down';
+                                                            }
+                                                        @endphp
+                                                        <li class="m-0 p-0">
+                                                            <span
+                                                                class="inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1 rounded border text-[10px] font-medium leading-none {{ $diffPipClass($diff['type'], $killed) }}"
+                                                                title="{{ $title }}"
+                                                                aria-label="{{ $title }}"
+                                                            >
+                                                                {{ $enc['name'] !== '' ? \Illuminate\Support\Str::limit($enc['name'], 14, '...') : '#' . $enc['id'] }}
+                                                            </span>
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @elseif (empty($stats['breakdown']) && $stats['count'] > 0)
+                        <div class="mt-4 pt-3 border-t border-line/60">
+                            <p class="text-[11px] text-muted italic">
+                                No Blizzard raid-encounters data for this team yet. The daily
+                                blizzard:pull-raids sync populates the boss-by-boss breakdown.
+                            </p>
+                        </div>
+                    @endif
                 </div>
             @endforeach
         </div>
