@@ -20,10 +20,14 @@ Schedule::command('raidhelper:sync-attendance')
 // then per-tracked-character /historical_data/{id} for best_gear). The
 // per-character calls hit the cache after the first pull each hour.
 // Short-circuits cleanly when WOWAUDIT_API_KEY is unset.
+//
+// withoutOverlapping(50) so a crashed run doesn't hold the mutex for
+// the default 24h - one missed crash here used to silently skip every
+// subsequent tick until manual intervention.
 Schedule::command('wowaudit:pull')
     ->hourly()
     ->onOneServer()
-    ->withoutOverlapping();
+    ->withoutOverlapping(50);
 
 // Three-hourly Raider.IO pull covering every active member in the
 // local roster (no per-team gating, unlike wowaudit). One HTTP call
@@ -39,7 +43,7 @@ Schedule::command('raiderio:pull')
     ->cron('0 */3 * * *') // 00:00, 03:00, 06:00, ... UK
     ->timezone(config('raidhelper.timezone', 'Europe/London'))
     ->onOneServer()
-    ->withoutOverlapping();
+    ->withoutOverlapping(120); // 2h ceiling - run takes ~18 min, schedule fires every 3h
 
 // Half-hourly batched Blizzard profile pull. Each run picks the 100
 // stalest members (NULL last-sync first, then oldest captured_at) so
@@ -51,7 +55,7 @@ Schedule::command('raiderio:pull')
 Schedule::command('blizzard:pull --limit=100')
     ->everyThirtyMinutes()
     ->onOneServer()
-    ->withoutOverlapping();
+    ->withoutOverlapping(25);
 
 // Daily Blizzard guild roster pull. Authoritative "who is in the guild
 // right now" source - one HTTP call covers the whole roster, no
@@ -75,7 +79,7 @@ Schedule::command('blizzard:pull-roster')
 Schedule::command('blizzard:pull-equipment --limit=100')
     ->cron('15,45 * * * *') // :15 and :45 each hour, between profile pulls
     ->onOneServer()
-    ->withoutOverlapping();
+    ->withoutOverlapping(25);
 
 // Daily Blizzard mythic-keystone-profile pull. Stored alongside RIO
 // for cross-validation and outage fallback; RIO stays the day-to-day
@@ -152,7 +156,7 @@ Schedule::command('wcl:pull')
 Schedule::command('events:dispatch-reminders')
     ->everyFiveMinutes()
     ->onOneServer()
-    ->withoutOverlapping();
+    ->withoutOverlapping(4);
 
 // Hourly Discord announcements pull. The announcements channel is
 // low-traffic (a few posts per week typically) so hourly is generous;
@@ -162,7 +166,7 @@ Schedule::command('events:dispatch-reminders')
 Schedule::command('discord:fetch-announcements')
     ->hourly()
     ->onOneServer()
-    ->withoutOverlapping();
+    ->withoutOverlapping(50);
 
 // Weekly M+ run retention sweep. Drops rows from member_mplus_runs
 // older than config('raiderio.runs_retention_days') (default 180,
