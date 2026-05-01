@@ -2,6 +2,7 @@
 
 use App\Models\Member;
 use App\Models\WclActorParse;
+use App\Models\WclDeath;
 use App\Models\WclFight;
 use App\Models\WclReport;
 use App\Services\Wcl\WclFightImporter;
@@ -50,6 +51,22 @@ function deepReportResponse(): array
         ]]]],
     ]]);
 
+    // Deaths table: Bruiser eats a tankbuster on the kill, Healer dies
+    // twice on the wipe (battle-rezzed and dies again to a different
+    // ability). Sheday survives both fights.
+    $deaths = json_encode(['data' => ['entries' => [
+        ['name' => 'Bruiser', 'type' => 'WARRIOR', 'icon' => 'Warrior-Arms', 'events' => [
+            ['timestamp' => 250_000, 'amount' => 1_500_000, 'overkill' => 50_000,
+             'ability' => ['guid' => 999111, 'name' => 'Devastating Blow', 'icon' => 'ability_warrior_devastate']],
+        ]],
+        ['name' => 'Healer', 'type' => 'PRIEST', 'icon' => 'Priest-Holy', 'events' => [
+            ['timestamp' => 700_000, 'amount' =>   850_000, 'overkill' => 10_000,
+             'ability' => ['guid' => 999222, 'name' => 'Ground Wave', 'icon' => 'spell_nature_earthquake']],
+            ['timestamp' => 850_000, 'amount' =>   600_000, 'overkill' =>      0,
+             'ability' => ['guid' => 999333, 'name' => 'Spike',       'icon' => 'spell_shadow_shadowbolt']],
+        ]],
+    ]]]);
+
     return ['data' => ['reportData' => ['report' => [
         'code' => 'rrrrrr',
         'title' => 'Tuesday Heroic',
@@ -65,6 +82,7 @@ function deepReportResponse(): array
         'healing' => $healing,
         'dpsRankings' => $dpsRankings,
         'hpsRankings' => $hpsRankings,
+        'deaths' => $deaths,
     ]]]];
 }
 
@@ -199,6 +217,97 @@ it('skips reports that already have fights_imported_at set unless forced', funct
     // Forcing reimports.
     $r = WclFightImporter::fromConfig()->backfillUnimported(maxReports: 5, force: true);
     expect($r['reports_processed'])->toBe(1);
+});
+
+it('imports deaths with killer ability, time and overkill from the deaths table', function () {
+    Http::fake([
+        'wcl.test/oauth/token'   => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
+        'wcl.test/api/v2/client' => Http::response(deepReportResponse(), 200),
+    ]);
+    $report = WclReport::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'code' => 'rrrrrr', 'title' => 't',
+        'start_time' => CarbonImmutable::parse('2026-04-22 19:30'),
+        'captured_at' => now(),
+    ]);
+
+    $r = WclFightImporter::fromConfig()->backfillUnimported(maxReports: 5);
+
+    // Fixture exposes 3 death events per per-fight response (Bruiser
+    // once + Healer twice). Same response replays for both kept
+    // fights, so 6 rows total across the two wcl_fight rows.
+    expect($r['deaths_inserted'])->toBe(6);
+
+    $kill = WclFight::query()->where('wcl_report_id', $report->id)->where('fight_id', 1)->first();
+
+    $bruiserDeath = WclDeath::query()
+        ->where('wcl_fight_id', $kill->id)
+        ->where('actor_name', 'Bruiser')
+        ->first();
+    expect($bruiserDeath)->not->toBeNull();
+    expect($bruiserDeath->killing_ability_name)->toBe('Devastating Blow');
+    expect($bruiserDeath->killing_ability_id)->toBe(999111);
+    expect($bruiserDeath->killing_ability_icon)->toBe('ability_warrior_devastate');
+    expect($bruiserDeath->death_time_ms)->toBe(250000);
+    expect($bruiserDeath->overkill_amount)->toBe(50000);
+
+    // Two distinct deaths for Healer on the same fight (battle rez
+    // case): different death_time_ms keeps them as separate rows.
+    $healerDeaths = WclDeath::query()
+        ->where('wcl_fight_id', $kill->id)
+        ->where('actor_name', 'Healer')
+        ->orderBy('death_time_ms')
+        ->get();
+    expect($healerDeaths)->toHaveCount(2);
+    expect($healerDeaths->pluck('killing_ability_name')->all())->toBe(['Ground Wave', 'Spike']);
+});
+
+it('matches the death to a local member when the actor name lines up', function () {
+    Http::fake([
+        'wcl.test/oauth/token'   => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
+        'wcl.test/api/v2/client' => Http::response(deepReportResponse(), 200),
+    ]);
+    $local = Member::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'name' => 'Bruiser-Silvermoon',
+        'class' => 'WARRIOR', 'level' => 80, 'rank_index' => 5,
+        'first_seen_at' => now(), 'last_seen_at' => now(),
+    ]);
+    WclReport::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'code' => 'rrrrrr', 'title' => 't',
+        'start_time' => CarbonImmutable::parse('2026-04-22 19:30'),
+        'captured_at' => now(),
+    ]);
+
+    WclFightImporter::fromConfig()->backfillUnimported();
+
+    $bruiserDeath = WclDeath::query()->where('actor_name', 'Bruiser')->first();
+    expect($bruiserDeath->member_id)->toBe($local->id);
+
+    $healerDeath = WclDeath::query()->where('actor_name', 'Healer')->first();
+    expect($healerDeath->member_id)->toBeNull();
+});
+
+it('replaces deaths on re-import so a corrected report does not duplicate rows', function () {
+    Http::fake([
+        'wcl.test/oauth/token'   => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
+        'wcl.test/api/v2/client' => Http::response(deepReportResponse(), 200),
+    ]);
+    WclReport::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'code' => 'rrrrrr', 'title' => 't',
+        'start_time' => CarbonImmutable::parse('2026-04-22 19:30'),
+        'captured_at' => now(),
+    ]);
+
+    WclFightImporter::fromConfig()->backfillUnimported();
+    $beforeCount = WclDeath::query()->count();
+    expect($beforeCount)->toBe(6);
+
+    WclFightImporter::fromConfig()->backfillUnimported(maxReports: 5, force: true);
+    $afterCount = WclDeath::query()->count();
+    expect($afterCount)->toBe(6);
 });
 
 it('counts an errored report without aborting the rest of the batch', function () {

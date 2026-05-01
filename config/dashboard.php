@@ -102,6 +102,13 @@ return [
             'data_key' => 'aotcGap',
             'col_span' => 'col-span-full md:col-span-2 xl:col-span-2',
         ],
+        [
+            'key'      => 'death-causes',
+            'title'    => 'What killed people',
+            'partial'  => 'dashboard.widgets.death-causes',
+            'data_key' => 'deathCauses',
+            'col_span' => 'col-span-full md:col-span-2 xl:col-span-2',
+        ],
     ],
 
 ];

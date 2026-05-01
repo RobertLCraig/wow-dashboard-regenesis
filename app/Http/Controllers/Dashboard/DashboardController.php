@@ -16,6 +16,7 @@ use App\Services\Attendance\AttendanceReconciler;
 use App\Services\Blizzard\AotcCohortGapBuilder;
 use App\Services\Blizzard\RaidProgressionAnalyzer;
 use App\Services\Dashboard\WidgetOrderResolver;
+use App\Services\Wcl\DeathCauseAggregator;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -49,6 +50,7 @@ class DashboardController extends Controller
             'teamProgression' => $this->teamProgression($guildKey),
             'raidAttendance' => (new AttendanceReconciler)->recent($guildKey),
             'aotcGap' => $this->aotcGap($guildKey),
+            'deathCauses' => (new DeathCauseAggregator($guildKey))->topByEncounter(),
         ];
 
         $widgets = WidgetOrderResolver::resolve(

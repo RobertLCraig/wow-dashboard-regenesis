@@ -4,6 +4,7 @@ namespace App\Services\Wcl;
 
 use App\Models\Member;
 use App\Models\WclActorParse;
+use App\Models\WclDeath;
 use App\Models\WclFight;
 use App\Models\WclReport;
 use Carbon\CarbonImmutable;
@@ -56,9 +57,11 @@ class WclFightImporter
     GQL;
 
     /**
-     * Phase 2: per-fight damage + healing tables + DPS/HPS rankings,
-     * scoped to a single fight ID. Aliasing four resolvers in one
-     * GraphQL request keeps it to one round-trip per pull.
+     * Phase 2: per-fight damage + healing tables + DPS/HPS rankings +
+     * deaths table, scoped to a single fight ID. Aliasing five
+     * resolvers in one GraphQL request keeps it to one round-trip per
+     * pull, so adding the deaths surface costs WCL nothing extra
+     * beyond the deaths query itself.
      */
     private const PER_FIGHT_QUERY = <<<'GQL'
     query FightDeep($code: String!, $fightId: Int!) {
@@ -68,6 +71,7 @@ class WclFightImporter
                 healing:     table(dataType: Healing,    fightIDs: [$fightId])
                 dpsRankings: rankings(playerMetric: dps, fightIDs: [$fightId])
                 hpsRankings: rankings(playerMetric: hps, fightIDs: [$fightId])
+                deaths:      table(dataType: Deaths,     fightIDs: [$fightId])
             }
         }
     }
@@ -93,6 +97,7 @@ class WclFightImporter
      *
      * @return array{
      *   reports_processed:int, fights_inserted:int, parses_inserted:int,
+     *   parses_ranked:int, deaths_inserted:int,
      *   skipped_already_imported:int, errored:int
      * }
      */
@@ -112,6 +117,7 @@ class WclFightImporter
             'fights_inserted' => 0,
             'parses_inserted' => 0,
             'parses_ranked' => 0,
+            'deaths_inserted' => 0,
             'skipped_already_imported' => 0,
             'errored' => 0,
         ];
@@ -123,6 +129,7 @@ class WclFightImporter
                 $stats['fights_inserted'] += $r['fights_inserted'];
                 $stats['parses_inserted'] += $r['parses_inserted'];
                 $stats['parses_ranked'] += $r['parses_ranked'] ?? 0;
+                $stats['deaths_inserted'] += $r['deaths_inserted'] ?? 0;
             } catch (\Throwable $e) {
                 Log::warning('WclFightImporter: report import failed', [
                     'code' => $report->code, 'message' => $e->getMessage(),
@@ -137,7 +144,7 @@ class WclFightImporter
     /**
      * Force-import one report, regardless of fights_imported_at.
      *
-     * @return array{fights_inserted:int, parses_inserted:int, parses_ranked:int}
+     * @return array{fights_inserted:int, parses_inserted:int, parses_ranked:int, deaths_inserted:int}
      */
     public function importOne(WclReport $report): array
     {
@@ -149,6 +156,7 @@ class WclFightImporter
         $fightsInserted = 0;
         $parsesInserted = 0;
         $parsesRanked = 0;
+        $deathsInserted = 0;
 
         // Per-fight loop. Each iteration is one GraphQL request to WCL
         // and one row-write transaction. We don't wrap the whole report
@@ -175,6 +183,12 @@ class WclFightImporter
             $written = $this->writeParsesForFight($fightRow, $damage, $healing, $rankings, $members);
             $parsesInserted += $written['inserted'];
             $parsesRanked += $written['ranked'];
+
+            $deathsInserted += $this->writeDeathsForFight(
+                $fightRow,
+                $this->extractActors($deep['deaths'] ?? null),
+                $members,
+            );
         }
 
         $report->forceFill(['fights_imported_at' => now()])->save();
@@ -183,6 +197,7 @@ class WclFightImporter
             'fights_inserted' => $fightsInserted,
             'parses_inserted' => $parsesInserted,
             'parses_ranked' => $parsesRanked,
+            'deaths_inserted' => $deathsInserted,
         ];
     }
 
@@ -565,5 +580,139 @@ class WclFightImporter
             return null;
         }
         return round((float) $total / ($durationMs / 1000), 1);
+    }
+
+    /**
+     * Replace every wcl_deaths row for this fight with the latest
+     * snapshot from WCL. Re-import is by-fight, not by-row, so a
+     * subsequent import that no longer sees a death (e.g. the report
+     * was re-uploaded with a tighter time window) will drop it
+     * cleanly. WCL's deaths-table response varies in shape across
+     * report versions, so the killer-ability lookup probes a few
+     * places and falls back gracefully when nothing is present.
+     *
+     * @param  list<array<string,mixed>>  $entries Decoded `data.entries[]` from the deaths table.
+     * @param  EloquentCollection<int, Member>  $members
+     */
+    private function writeDeathsForFight(
+        WclFight $fight,
+        array $entries,
+        EloquentCollection $members,
+    ): int {
+        $byNameMember = $members->keyBy(fn ($m) => mb_strtolower(explode('-', $m->name, 2)[0]));
+
+        $rows = [];
+        foreach ($entries as $entry) {
+            if (! is_array($entry) || empty($entry['name'])) {
+                continue;
+            }
+            $actorName = (string) $entry['name'];
+            $actorClass = is_string($entry['type'] ?? null) ? $entry['type'] : null;
+            $loweredName = mb_strtolower(explode('-', $actorName, 2)[0]);
+            $memberId = $byNameMember->get($loweredName)?->id;
+
+            // Two shapes show up in the wild:
+            //   1. entry has a single killer ability + scalar timestamp
+            //      (older WCL responses, often the most-recent death).
+            //   2. entry has an `events[]` array with one row per
+            //      death (newer + more accurate, especially when a
+            //      character was battle-rezzed and died again).
+            $deaths = $this->normalizeDeathEvents($entry);
+            foreach ($deaths as $d) {
+                $rows[] = [
+                    'wcl_fight_id' => $fight->id,
+                    'member_id' => $memberId,
+                    'actor_name' => $actorName,
+                    'actor_class' => $actorClass,
+                    'killing_ability_id' => $d['ability_id'],
+                    'killing_ability_name' => $d['ability_name'],
+                    'killing_ability_icon' => $d['ability_icon'],
+                    'death_time_ms' => $d['time_ms'],
+                    'death_amount' => $d['amount'],
+                    'overkill_amount' => $d['overkill'],
+                    'raw_json' => json_encode($d['raw'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        $inserted = 0;
+        DB::transaction(function () use ($fight, $rows, &$inserted) {
+            // Wipe and rewrite so a re-import cleanly drops any death
+            // that's no longer present (rare but possible if the report
+            // was edited).
+            WclDeath::query()->where('wcl_fight_id', $fight->id)->delete();
+            if ($rows === []) {
+                return;
+            }
+            foreach (array_chunk($rows, 200) as $chunk) {
+                WclDeath::query()->insert($chunk);
+                $inserted += count($chunk);
+            }
+        });
+
+        return $inserted;
+    }
+
+    /**
+     * Map a deaths-table entry into a uniform list of death records.
+     * Defends against WCL's variable shape: events[] when present,
+     * else a flat killer-ability + timestamp pair, else nothing.
+     *
+     * @param  array<string,mixed>  $entry
+     * @return list<array{
+     *   ability_id:?int, ability_name:?string, ability_icon:?string,
+     *   time_ms:int, amount:?int, overkill:?int, raw:array<string,mixed>
+     * }>
+     */
+    private function normalizeDeathEvents(array $entry): array
+    {
+        $events = is_array($entry['events'] ?? null) ? $entry['events'] : [];
+        $out = [];
+        foreach ($events as $ev) {
+            if (! is_array($ev)) continue;
+            $abilityNode = is_array($ev['ability'] ?? null) ? $ev['ability'] : [];
+            $out[] = [
+                'ability_id' => $this->intOrNull($abilityNode['guid'] ?? $ev['abilityGuid'] ?? null),
+                'ability_name' => $this->stringOrNull($abilityNode['name'] ?? $ev['abilityName'] ?? null),
+                'ability_icon' => $this->stringOrNull($abilityNode['icon'] ?? $abilityNode['abilityIcon'] ?? $ev['abilityIcon'] ?? null),
+                'time_ms' => $this->intOrNull($ev['timestamp'] ?? null) ?? 0,
+                'amount' => $this->intOrNull($ev['amount'] ?? null),
+                'overkill' => $this->intOrNull($ev['overkill'] ?? null),
+                'raw' => $ev,
+            ];
+        }
+        if ($out !== []) {
+            return $out;
+        }
+
+        // Fallback: flat shape with a single killer ability per actor.
+        // Only emit a row if we have at least a timestamp to anchor it
+        // (otherwise the unique key would collapse multiple deaths in
+        // one fight onto a single row).
+        $time = $this->intOrNull($entry['deathTime'] ?? $entry['timestamp'] ?? null);
+        if ($time === null) {
+            return [];
+        }
+        return [[
+            'ability_id' => $this->intOrNull($entry['abilityGuid'] ?? null),
+            'ability_name' => $this->stringOrNull($entry['abilityName'] ?? null),
+            'ability_icon' => $this->stringOrNull($entry['abilityIcon'] ?? null),
+            'time_ms' => $time,
+            'amount' => $this->intOrNull($entry['deathAmount'] ?? null),
+            'overkill' => $this->intOrNull($entry['overkill'] ?? null),
+            'raw' => $entry,
+        ]];
+    }
+
+    private function intOrNull(mixed $v): ?int
+    {
+        return is_numeric($v) ? (int) $v : null;
+    }
+
+    private function stringOrNull(mixed $v): ?string
+    {
+        return is_string($v) && $v !== '' ? $v : null;
     }
 }
