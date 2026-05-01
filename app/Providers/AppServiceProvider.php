@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\RaidEvent;
+use App\Observers\RaidEventObserver;
 use Illuminate\Console\Events\ScheduledTaskFailed;
 use Illuminate\Console\Events\ScheduledTaskFinished;
 use Illuminate\Console\Events\ScheduledTaskSkipped;
@@ -47,6 +49,13 @@ class AppServiceProvider extends ServiceProvider
             \SocialiteProviders\Discord\DiscordExtendSocialite::class,
             'handle',
         ]);
+
+        // Observe raid events so every write path (officer create,
+        // officer destroy, Raid-Helper webhook create/update/delete,
+        // daily raidhelper:sync-events backfill) dispatches a Google
+        // Calendar push job. Short-circuits inside the job when no
+        // officer is connected.
+        RaidEvent::observe(RaidEventObserver::class);
 
         $this->registerScheduleAuditLog();
         $this->registerGates();

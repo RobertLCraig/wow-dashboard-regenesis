@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\DiscordController;
+use App\Http\Controllers\Auth\GoogleCalendarController;
 use App\Http\Middleware\OfficerOnly;
 use Illuminate\Support\Facades\Route;
 
@@ -188,6 +189,19 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     Route::delete('/admin/webhooks/{webhook}',    [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'destroy'])->name('admin.webhooks.destroy');
     Route::post('/admin/webhooks/{webhook}/test', [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'test'])->name('admin.webhooks.test');
     Route::post('/admin/webhooks/test-all',        [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'testAll'])->name('admin.webhooks.test-all');
+
+    // Shared "Regenesis Officers" Google Calendar push integration.
+    // One officer authorises here; the dashboard creates a dedicated
+    // calendar on their account and pushes raid events to it as they
+    // are created/edited/deleted. Connect/disconnect/test live in this
+    // page; the OAuth handshake itself is the auth.google-calendar.*
+    // route group below.
+    Route::get('/admin/google-calendar', [\App\Http\Controllers\Admin\GoogleCalendarSettingsController::class, 'index'])->name('admin.google-calendar.index');
+    Route::post('/admin/google-calendar/test', [\App\Http\Controllers\Admin\GoogleCalendarSettingsController::class, 'test'])->name('admin.google-calendar.test');
+
+    Route::get('/auth/google-calendar', [GoogleCalendarController::class, 'start'])->name('auth.google-calendar.start');
+    Route::get('/auth/google-calendar/callback', [GoogleCalendarController::class, 'callback'])->name('auth.google-calendar.callback');
+    Route::post('/auth/google-calendar/disconnect', [GoogleCalendarController::class, 'disconnect'])->name('auth.google-calendar.disconnect');
 });
 
 // .ics download for a single event. Signed via HMAC(ics_uid|ics_sequence)

@@ -30,6 +30,7 @@ class SyncStatus
     public const SOURCE_RAIDHELPER = 'raidhelper';
     public const SOURCE_WCL      = 'wcl';
     public const SOURCE_BLIZZARD = 'blizzard';
+    public const SOURCE_GOOGLE_CAL = 'google_calendar';
 
     public const QUEUED  = 'queued';
     public const RUNNING = 'running';

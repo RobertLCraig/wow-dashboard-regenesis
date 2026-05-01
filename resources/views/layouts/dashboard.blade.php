@@ -461,6 +461,7 @@
         ['route' => 'admin.discord-roles.index',    'label' => 'Discord roles',  'matches' => ['admin.discord-roles.*'],          'can' => 'settings.manage'],
         ['route' => 'admin.sync.index',             'label' => 'Sync',           'matches' => ['admin.sync.*'],                   'can' => 'settings.manage'],
         ['route' => 'admin.webhooks.index',         'label' => 'Webhooks',       'matches' => ['admin.webhooks.*'],               'can' => 'settings.manage'],
+        ['route' => 'admin.google-calendar.index',  'label' => 'Google Calendar','matches' => ['admin.google-calendar.*'],        'can' => 'settings.manage'],
     ];
     $navLink = function (array $item) {
         $active = request()->routeIs(...$item['matches']);

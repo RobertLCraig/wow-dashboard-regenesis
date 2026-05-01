@@ -41,4 +41,17 @@ return [
         'redirect' => env('DISCORD_REDIRECT_URI'),
     ],
 
+    // Google Calendar push integration. One officer authorises once via
+    // /admin/google-calendar; the dashboard creates a dedicated calendar
+    // and pushes raid events to it (one-way, dashboard is the source of
+    // truth). Empty client_id disables every google-calendar:* code path
+    // cleanly.
+    'google_calendar' => [
+        'client_id' => env('GOOGLE_CALENDAR_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CALENDAR_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_CALENDAR_REDIRECT_URI'),
+        'calendar_name' => env('GOOGLE_CALENDAR_NAME', 'Regenesis Officers'),
+        'timezone' => env('GOOGLE_CALENDAR_TIMEZONE', env('RAIDHELPER_TIMEZONE', 'Europe/Paris')),
+    ],
+
 ];

@@ -271,6 +271,44 @@ Add via hPanel cron jobs:
 This drives the queue worker (jobs from `/api/ingest/grm`) and the daily
 `raidhelper:sync-attendance` command.
 
+### 9. Google Calendar (officer push)
+Optional: pushes raid events to a shared "Regenesis Officers" Google
+Calendar so officers see the schedule alongside their personal calendars
+(more reliable than ICS polling cadence). One-way only, dashboard is
+the source of truth.
+
+1. **Cloud project + API**: at https://console.cloud.google.com create
+   or reuse a project. Under "APIs & Services" > "Library" enable
+   **Google Calendar API**.
+2. **OAuth consent screen**: under "APIs & Services" > "OAuth consent
+   screen". User type: External (or Internal if a Workspace org owns
+   the project). Scopes: `https://www.googleapis.com/auth/calendar` and
+   `userinfo.email`. Add the connecting officer as a test user until
+   the app is verified or marked Production.
+3. **OAuth client credentials**: "APIs & Services" > "Credentials" >
+   "Create Credentials" > "OAuth client ID". Application type: **Web
+   application**. Authorised redirect URIs:
+   ```
+   https://regenesis.enhanceify.co.uk/auth/google-calendar/callback
+   http://regenesis.test/auth/google-calendar/callback   (Herd local)
+   ```
+   Copy the client id + secret into `.env`:
+   ```
+   GOOGLE_CALENDAR_CLIENT_ID=...
+   GOOGLE_CALENDAR_CLIENT_SECRET=...
+   ```
+4. **Connect**: an officer logs in, visits `/admin/google-calendar`,
+   clicks Connect. The dashboard creates the dedicated calendar on
+   their Google account and queues a backfill of the next 90 days.
+5. **Share with the rest of the officers**: in Google Calendar UI,
+   open the new "Regenesis Officers" calendar, "Settings and sharing"
+   > "Share with specific people or groups", add each officer's
+   Google address with "See all event details".
+
+The daily reconcile cron (05:30 UK) repairs any drift between
+raid_events and the calendar; per-event jobs handle real-time push on
+create/edit/delete. Status is on `/admin/sync` and `/admin/google-calendar`.
+
 ## Useful commands
 
 ```sh

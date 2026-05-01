@@ -179,6 +179,20 @@ Schedule::command('mplus:prune-runs')
     ->onOneServer()
     ->withoutOverlapping();
 
+// Daily reconciliation walk for the shared Google Calendar push.
+// Compares dashboard events to the calendar's contents in the same
+// rolling 7d-back/90d-forward window the ICS feed uses, dispatches
+// per-event sync jobs (upsert or delete) for any drift detected. The
+// cron itself does only a DB scan + one paginated list call so it
+// stays well under Hostinger's 30s PHP cap; per-event work happens
+// inside the queue worker. Short-circuits cleanly + visibly when
+// GOOGLE_CALENDAR_CLIENT_ID is unset or no officer is connected.
+Schedule::command('google-calendar:reconcile')
+    ->dailyAt('05:30')
+    ->timezone(config('raidhelper.timezone', 'Europe/London'))
+    ->onOneServer()
+    ->withoutOverlapping();
+
 // Weekly SimulationCraft BiS profile refresh. Profiles change with
 // patches and class tuning rounds, not minutes - one pull per week is
 // plenty. --fetch downloads fresh .simc files from GitHub before

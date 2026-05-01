@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\IngestSnapshotJob;
 use App\Models\RaidEvent;
 use App\Models\Snapshot;
+use App\Models\User;
 use App\Models\WclReport;
 use App\Services\Grm\GrmSnapshotIngester;
 use App\Services\Grm\LuaTableParser;
@@ -41,6 +42,10 @@ class SyncDashboardController extends Controller
         // are actually keeping the cache current.
         $rhLast = RaidEvent::query()->max('last_synced_at');
         $rhCount = RaidEvent::query()->count();
+        // Google Calendar push: connector identity + tracked-event count
+        // are the at-a-glance "is this configured + working" signals.
+        $gcalConnector = User::googleConnector();
+        $gcalTracked = RaidEvent::query()->whereNotNull('google_calendar_event_id')->count();
 
         $sources = [
             SyncStatus::SOURCE_GRM => [
@@ -101,6 +106,18 @@ class SyncDashboardController extends Controller
                 'state' => SyncStatus::get(SyncStatus::SOURCE_WCL),
                 'cadence' => 'Pull: daily 07:30 UK.',
                 'has_button' => true,
+                'has_upload' => false,
+            ],
+            SyncStatus::SOURCE_GOOGLE_CAL => [
+                'label' => 'Google Calendar',
+                'description' => 'One-way push of raid events to a shared "Regenesis Officers" calendar. One officer authorises once via /admin/google-calendar; per-event jobs sync on every create/edit/delete.',
+                'last_seen_at' => $gcalConnector?->google_calendar_connected_at,
+                'last_summary' => $gcalConnector
+                    ? "Connected as {$gcalConnector->google_email}, {$gcalTracked} tracked event(s)"
+                    : 'Not connected',
+                'state' => SyncStatus::get(SyncStatus::SOURCE_GOOGLE_CAL),
+                'cadence' => 'Push: per-event on create/update/delete. Reconcile: daily 05:30 UK.',
+                'has_button' => false,
                 'has_upload' => false,
             ],
         ];

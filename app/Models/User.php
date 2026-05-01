@@ -53,12 +53,20 @@ class User extends Authenticatable
         'discord_refresh_token',
         'last_role_check_at',
         'calendar_token',
+        'google_refresh_token',
+        'google_access_token',
+        'google_token_expires_at',
+        'google_calendar_id',
+        'google_calendar_connected_at',
+        'google_email',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
         'discord_refresh_token',
+        'google_refresh_token',
+        'google_access_token',
     ];
 
     protected function casts(): array
@@ -68,6 +76,8 @@ class User extends Authenticatable
             'last_role_check_at' => 'datetime',
             'password' => 'hashed',
             'dashboard_layout' => 'array',
+            'google_token_expires_at' => 'datetime',
+            'google_calendar_connected_at' => 'datetime',
         ];
     }
 
@@ -82,6 +92,36 @@ class User extends Authenticatable
             get: fn ($value) => $value === null ? null : Crypt::decryptString($value),
             set: fn ($value) => $value === null ? null : Crypt::encryptString($value),
         );
+    }
+
+    protected function googleRefreshToken(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value === null ? null : Crypt::decryptString($value),
+            set: fn ($value) => $value === null ? null : Crypt::encryptString($value),
+        );
+    }
+
+    protected function googleAccessToken(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value === null ? null : Crypt::decryptString($value),
+            set: fn ($value) => $value === null ? null : Crypt::encryptString($value),
+        );
+    }
+
+    /**
+     * The single user (if any) currently authorised to push events to the
+     * shared Google Calendar. The OAuth callback null-clears any other
+     * row's google fields before persisting itself, so this should never
+     * return more than one match. Ordered desc as belt-and-braces.
+     */
+    public static function googleConnector(): ?self
+    {
+        return self::query()
+            ->whereNotNull('google_calendar_connected_at')
+            ->orderByDesc('google_calendar_connected_at')
+            ->first();
     }
 
     /**
