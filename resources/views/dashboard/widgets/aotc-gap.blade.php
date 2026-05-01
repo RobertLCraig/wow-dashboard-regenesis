@@ -30,7 +30,16 @@
             $haveCount = count($gap['has_aotc']);
             $missingCount = $missing->count();
             $ceCount = count($gap['has_ce']);
+            $cohortCount = (int) ($gap['active_count'] ?? 0);
+            $memberCount = (int) ($gap['active_member_count'] ?? $cohortCount);
         @endphp
+
+        <p class="text-[11px] text-muted mb-2">
+            Counts are players (alt cohorts), not characters.
+            @if ($memberCount !== $cohortCount)
+                <span class="text-muted/70">{{ $cohortCount }} players across {{ $memberCount }} active chars.</span>
+            @endif
+        </p>
 
         <div class="grid grid-cols-3 gap-2 mb-4 text-center">
             <div class="rounded border border-emerald-700/50 bg-emerald-950/20 px-2 py-1.5">
@@ -48,7 +57,7 @@
         </div>
 
         @if ($missingCount === 0)
-            <p class="text-xs text-emerald-300 italic">Everyone active is AOTC-cleared.</p>
+            <p class="text-xs text-emerald-300 italic">Every active player has AOTC on at least one character.</p>
         @else
             <details class="text-xs">
                 <summary class="cursor-pointer text-muted hover:text-ink select-none">
@@ -56,10 +65,19 @@
                 </summary>
                 <ul class="mt-2 grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-1">
                     @foreach ($missing as $m)
-                        @php $cls = 'cls-' . strtoupper($m['class'] ?? ''); @endphp
+                        @php
+                            $cls = 'cls-' . strtoupper($m['class'] ?? '');
+                            $alts = $m['alts'] ?? [];
+                            $altCount = count($alts);
+                        @endphp
                         <li>
                             <a href="{{ route('character.show', $m['name']) }}"
                                class="{{ $cls }} hover:underline">{{ $m['name'] }}</a>
+                            @if ($altCount > 0)
+                                <span class="text-muted/70" title="{{ implode(', ', $alts) }}">
+                                    +{{ $altCount }}
+                                </span>
+                            @endif
                         </li>
                     @endforeach
                 </ul>

@@ -13,6 +13,7 @@ use App\Models\RaidEvent;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
 use App\Services\Attendance\AttendanceReconciler;
+use App\Services\Blizzard\AotcCohortGapBuilder;
 use App\Services\Blizzard\RaidProgressionAnalyzer;
 use App\Services\Dashboard\WidgetOrderResolver;
 use Carbon\CarbonImmutable;
@@ -596,11 +597,10 @@ class DashboardController extends Controller
     }
 
     /**
-     * AOTC / CE gap analysis for the latest tier. Pulls every active
-     * member's most recent Blizzard raid snapshot, asks the analyzer
-     * which tier is "current", then partitions the roster into has-AOTC
-     * vs missing-AOTC. Officers use the missing-list to plan one-off
-     * social runs to backfill AOTC for the social side of the guild.
+     * AOTC / CE gap analysis for the latest tier, rolled up by alt
+     * cohort. Pulls the latest Blizzard raid snapshot and the active
+     * roster, then defers to AotcCohortGapBuilder for the actual
+     * cohort math (kept pure for unit testing).
      *
      * Returns null when there's no equipment data yet at all (fresh
      * deploy, importer never ran), so the widget can render an empty
@@ -609,9 +609,10 @@ class DashboardController extends Controller
      * @return ?array{
      *   tier: array{expansion_id:int, expansion_name:string, instance_id:int, instance_name:string},
      *   active_count: int,
-     *   has_aotc: list<array{name:string, class:?string}>,
-     *   missing_aotc: list<array{name:string, class:?string}>,
-     *   has_ce: list<array{name:string, class:?string}>,
+     *   active_member_count: int,
+     *   has_aotc: list<array{name:string, class:?string, alts:list<string>}>,
+     *   missing_aotc: list<array{name:string, class:?string, alts:list<string>}>,
+     *   has_ce: list<array{name:string, class:?string, alts:list<string>}>,
      *   captured_at: ?\Carbon\CarbonInterface,
      * }
      */
@@ -630,7 +631,7 @@ class DashboardController extends Controller
             ->forGuild($guildKey)
             ->active()
             ->orderBy('name')
-            ->get(['id', 'name', 'class']);
+            ->get(['id', 'name', 'class', 'alt_group_id', 'main_member_id']);
         if ($members->isEmpty()) {
             return null;
         }
@@ -643,41 +644,13 @@ class DashboardController extends Controller
             return null;
         }
 
-        $analyzer = new RaidProgressionAnalyzer();
-        $tier = $analyzer->currentTier($rows);
-        if ($tier === null) {
+        $built = (new AotcCohortGapBuilder(new RaidProgressionAnalyzer()))->build($members, $rows);
+        if ($built === null) {
             return null;
         }
 
-        $byMember = $rows->keyBy('member_id');
-        $hasAotc = [];
-        $missingAotc = [];
-        $hasCe = [];
+        $built['captured_at'] = $latest->captured_at;
 
-        foreach ($members as $m) {
-            $snap = $byMember->get($m->id);
-            $entry = ['name' => $m->name, 'class' => $m->class];
-            if ($snap === null) {
-                $missingAotc[] = $entry;
-                continue;
-            }
-            if ($analyzer->hasAotcOn($snap, $tier['instance_id'])) {
-                $hasAotc[] = $entry;
-                if ($analyzer->hasCeOn($snap, $tier['instance_id'])) {
-                    $hasCe[] = $entry;
-                }
-            } else {
-                $missingAotc[] = $entry;
-            }
-        }
-
-        return [
-            'tier' => $tier,
-            'active_count' => $members->count(),
-            'has_aotc' => $hasAotc,
-            'missing_aotc' => $missingAotc,
-            'has_ce' => $hasCe,
-            'captured_at' => $latest->captured_at,
-        ];
+        return $built;
     }
 }
