@@ -2,8 +2,15 @@
 
 namespace App\Providers;
 
+use App\Models\RaidEvent;
+use App\Observers\RaidEventObserver;
+use Illuminate\Console\Events\ScheduledTaskFailed;
+use Illuminate\Console\Events\ScheduledTaskFinished;
+use Illuminate\Console\Events\ScheduledTaskSkipped;
+use Illuminate\Console\Events\ScheduledTaskStarting;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 
@@ -43,7 +50,56 @@ class AppServiceProvider extends ServiceProvider
             'handle',
         ]);
 
+        // Observe raid events so every write path (officer create,
+        // officer destroy, Raid-Helper webhook create/update/delete,
+        // daily raidhelper:sync-events backfill) dispatches a Google
+        // Calendar push job. Short-circuits inside the job when no
+        // officer is connected.
+        RaidEvent::observe(RaidEventObserver::class);
+
+        $this->registerScheduleAuditLog();
         $this->registerGates();
+    }
+
+    /**
+     * Per-tick scheduler audit trail to storage/logs/cron.log.
+     *
+     * Hostinger's hPanel cron wrapper swallows shell-level >> redirects,
+     * so the cron line cannot point its stdout at a file the way every
+     * tutorial says to. Wire Laravel's own ScheduledTask* events
+     * straight at the cron channel instead - independent of how the
+     * cron command is configured at the OS level.
+     */
+    private function registerScheduleAuditLog(): void
+    {
+        Event::listen(ScheduledTaskStarting::class, function (ScheduledTaskStarting $e): void {
+            Log::channel('cron')->info('starting', [
+                'cmd' => $e->task->command ?? $e->task->description,
+            ]);
+        });
+
+        Event::listen(ScheduledTaskFinished::class, function (ScheduledTaskFinished $e): void {
+            Log::channel('cron')->info('finished', [
+                'cmd' => $e->task->command ?? $e->task->description,
+                'runtime_s' => round($e->runtime, 2),
+            ]);
+        });
+
+        Event::listen(ScheduledTaskFailed::class, function (ScheduledTaskFailed $e): void {
+            Log::channel('cron')->error('failed', [
+                'cmd' => $e->task->command ?? $e->task->description,
+                'exception' => $e->exception?->getMessage(),
+            ]);
+        });
+
+        // ScheduledTaskSkipped fires when withoutOverlapping / onOneServer
+        // refuses the run. Worth knowing about - that's exactly the
+        // failure mode that masked itself for hours yesterday.
+        Event::listen(ScheduledTaskSkipped::class, function (ScheduledTaskSkipped $e): void {
+            Log::channel('cron')->warning('skipped (mutex held)', [
+                'cmd' => $e->task->command ?? $e->task->description,
+            ]);
+        });
     }
 
     /**

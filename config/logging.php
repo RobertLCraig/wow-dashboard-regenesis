@@ -65,6 +65,19 @@ return [
             'replace_placeholders' => true,
         ],
 
+        // Per-tick scheduled command log: "task started / finished /
+        // failed / skipped" written via event listeners in
+        // AppServiceProvider. Independent surface from laravel.log so
+        // an audit of scheduler health doesn't require grepping through
+        // the noisy main log. Necessary on Hostinger because hPanel's
+        // cron wrapper swallows the shell-level >> redirect.
+        'cron' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/cron.log'),
+            'level' => env('LOG_LEVEL', 'info'),
+            'replace_placeholders' => true,
+        ],
+
         'daily' => [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
