@@ -267,3 +267,41 @@ it('teamBossBreakdown returns empty when the snapshot collection is empty', func
     $out = (new RaidProgressionAnalyzer())->teamBossBreakdown(new Collection(), 'mythic');
     expect($out)->toBe([]);
 });
+
+it('teamBossBreakdown filters to a single expansion when onlyExpansionId is set', function () {
+    // Same snap covers two expansions. With onlyExpansionId locked to
+    // the newer one, only that expansion's instances should survive.
+    $snap = snap([
+        ['expansion' => ['id' => 503, 'name' => 'TWW'], 'instances' => [
+            instance(1296, 'Manaforge', [
+                mode('HEROIC', 1, 1, [encounter(31, 'Plexus', 1, 1_700_000_000_000)]),
+            ]),
+        ]],
+        ['expansion' => ['id' => 510, 'name' => 'Midnight'], 'instances' => [
+            instance(1400, 'Mirrorhall', [
+                mode('HEROIC', 1, 1, [encounter(41, 'Echoshade', 1, 1_710_000_000_000)]),
+            ]),
+        ]],
+    ]);
+
+    $analyzer = new RaidProgressionAnalyzer();
+    $out = $analyzer->teamBossBreakdown(new Collection([$snap]), 'mythic', 510);
+
+    expect($out)->toHaveCount(1);
+    expect($out[0]['name'])->toBe('Mirrorhall');
+    expect($out[0]['expansion_id'])->toBe(510);
+});
+
+it('teamBossBreakdown returns empty when onlyExpansionId matches no instance', function () {
+    $snap = snap([
+        ['expansion' => ['id' => 503, 'name' => 'TWW'], 'instances' => [
+            instance(1296, 'Manaforge', [
+                mode('HEROIC', 1, 1, [encounter(31, 'Plexus', 1, 1_700_000_000_000)]),
+            ]),
+        ]],
+    ]);
+
+    $out = (new RaidProgressionAnalyzer())->teamBossBreakdown(new Collection([$snap]), 'mythic', 999);
+
+    expect($out)->toBe([]);
+});

@@ -157,6 +157,11 @@ class RaidProgressionAnalyzer
      * encounters and instances with no surviving difficulties are
      * dropped so the view doesn't render empty rows.
      *
+     * Pass $onlyExpansionId to restrict the breakdown to a single
+     * expansion (typically the current tier as picked by currentTier()).
+     * Instances from older expansions are dropped silently. When null
+     * every expansion present in the snapshots is included.
+     *
      * @param  Collection<int, MemberRaidSnapshot>  $snaps
      * @param  'mythic'|'heroic'|'normal'  $maxDifficulty
      * @return list<array{
@@ -169,7 +174,7 @@ class RaidProgressionAnalyzer
      *   }>,
      * }>
      */
-    public function teamBossBreakdown(Collection $snaps, string $maxDifficulty = 'mythic'): array
+    public function teamBossBreakdown(Collection $snaps, string $maxDifficulty = 'mythic', ?int $onlyExpansionId = null): array
     {
         $allowed = $this->allowedDifficulties($maxDifficulty);
         if ($allowed === [] || $snaps->isEmpty()) {
@@ -184,6 +189,9 @@ class RaidProgressionAnalyzer
             foreach ((array) ($snap->expansions ?? []) as $ex) {
                 $expansionId = $this->intOrNull($ex['expansion']['id'] ?? null);
                 if ($expansionId === null) {
+                    continue;
+                }
+                if ($onlyExpansionId !== null && $expansionId !== $onlyExpansionId) {
                     continue;
                 }
                 $expansionName = is_string($ex['expansion']['name'] ?? null) ? $ex['expansion']['name'] : '';

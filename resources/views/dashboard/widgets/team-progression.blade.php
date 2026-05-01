@@ -7,7 +7,9 @@
      *
      * Member counts come from the GRM-derived members.team column;
      * ilvl/RIO/raid stats come from the latest raiderio MemberSnapshot;
-     * the boss-by-boss pip rows come from MemberRaidSnapshot.expansions.
+     * the boss-by-boss pip rows come from MemberRaidSnapshot.expansions
+     * filtered to the current tier (latest expansion id) so the panel
+     * stays scoped to the active season.
      */
     $tone = function (string $team) {
         return match ($team) {
@@ -49,12 +51,17 @@
 
 <section class="bg-panel border border-line rounded-lg overflow-hidden">
     <div x-data="{ explain: false }">
-        <header class="px-4 py-3 border-b border-line flex items-center justify-between">
-            <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+        <header class="px-4 py-3 border-b border-line flex items-center justify-between gap-3">
+            <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2 flex-wrap">
                 <span>Team progression</span>
+                @if (! empty($teamProgression['current_tier']['instance_name']))
+                    <span class="text-xs font-normal normal-case tracking-normal text-muted">
+                        {{ $teamProgression['current_tier']['instance_name'] }}
+                    </span>
+                @endif
                 <x-explainer-toggle />
             </h2>
-            <span class="text-xs text-muted">
+            <span class="text-xs text-muted text-right shrink-0">
                 @if ($teamProgression['captured_at'])
                     raider.io {{ $teamProgression['captured_at']->diffForHumans() }}
                 @else
@@ -63,14 +70,17 @@
             </span>
         </header>
         <x-explainer-panel title="Team progression">
-            Per-team rollup of the latest Raider.IO snapshot. Best raid progression,
-            average item level, top mythic+ score and top weekly key for each team
-            (Mythic, Mythic Trial, Heroic, Heroic Trial). Use it to compare how teams
-            are pacing through the current tier and to spot a team that's fallen behind
-            on gear or RIO before it becomes a problem on raid night. The boss-by-boss
-            breakdown below the headline numbers comes from the daily Blizzard raid
+            Per-team rollup of the latest Raider.IO snapshot, scoped to the current
+            raid tier (the latest expansion's raid, currently
+            {{ $teamProgression['current_tier']['instance_name'] ?? 'the active season raid' }}).
+            Best raid progression, average item level, top mythic+ score and top weekly
+            key for each team (Mythic, Mythic Trial, Heroic, Heroic Trial). Use it to
+            compare how teams are pacing through the current tier and to spot a team
+            that's fallen behind on gear or RIO before it becomes a problem on raid
+            night. The boss-by-boss breakdown comes from the daily Blizzard raid
             encounters pull: each pip is an encounter in that raid, filled when at
-            least one team member has the kill on that difficulty. Difficulty is
+            least one team member has the kill on that difficulty. Older tiers are
+            hidden so the panel stays focused on the active season. Difficulty is
             capped per team (Heroic team panels never show Mythic, even if a member
             crossed over). Team membership comes from the GRM rank-to-team mapping
             under Team mapping; RIO numbers come from the periodic raider.io sync.
@@ -140,17 +150,18 @@
 
                     @if (! empty($stats['breakdown']))
                         <div class="mt-4 pt-3 border-t border-line/60 space-y-3">
-                            <div class="flex items-baseline justify-between">
-                                <h4 class="text-xs uppercase tracking-wider text-muted">Boss breakdown</h4>
-                                @if (! empty($stats['breakdown_captured_at']))
-                                    <span class="text-[10px] text-muted">
-                                        blizzard {{ $stats['breakdown_captured_at']->diffForHumans() }}
-                                    </span>
-                                @endif
-                            </div>
                             @foreach ($stats['breakdown'] as $instance)
                                 <div>
-                                    <div class="text-sm font-medium text-ink">{{ $instance['name'] ?: 'Raid' }}</div>
+                                    <div class="flex items-baseline justify-between gap-2">
+                                        <h4 class="text-xs uppercase tracking-wider text-muted">
+                                            {{ $instance['name'] ?: 'Boss breakdown' }}
+                                        </h4>
+                                        @if ($loop->first && ! empty($stats['breakdown_captured_at']))
+                                            <span class="text-[10px] text-muted shrink-0">
+                                                blizzard {{ $stats['breakdown_captured_at']->diffForHumans() }}
+                                            </span>
+                                        @endif
+                                    </div>
                                     <div class="mt-1.5 space-y-1.5">
                                         @foreach ($instance['difficulties'] as $diff)
                                             <div class="flex items-center gap-2 text-xs">

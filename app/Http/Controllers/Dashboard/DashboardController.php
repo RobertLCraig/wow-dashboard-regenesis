@@ -123,6 +123,17 @@ class DashboardController extends Controller
         }
         $analyzer = new RaidProgressionAnalyzer();
 
+        // Lock the boss-by-boss breakdown to the current tier (latest
+        // expansion seen across the whole guild's raid snapshots). Older
+        // expansions still live in the snapshot payload, so without this
+        // filter the widget would render every prior tier's boss list
+        // alongside the current one. Computed once at this scope so every
+        // team's panel resolves to the same season.
+        $currentTier = $raidSnapsByMember->isNotEmpty()
+            ? $analyzer->currentTier($raidSnapsByMember->values())
+            : null;
+        $currentExpansionId = $currentTier['expansion_id'] ?? null;
+
         $teams = [];
         foreach (TeamMapping::TEAMS as $team) {
             $members = $membersByTeam->get($team, collect());
@@ -186,7 +197,7 @@ class DashboardController extends Controller
                 ->filter()
                 ->values();
             $breakdown = $teamRaidSnaps->isNotEmpty()
-                ? $analyzer->teamBossBreakdown($teamRaidSnaps, $maxDiff)
+                ? $analyzer->teamBossBreakdown($teamRaidSnaps, $maxDiff, $currentExpansionId)
                 : [];
 
             $teams[$team] = [
@@ -204,6 +215,7 @@ class DashboardController extends Controller
 
         return [
             'captured_at' => $latest?->captured_at,
+            'current_tier' => $currentTier,
             'teams' => $teams,
         ];
     }

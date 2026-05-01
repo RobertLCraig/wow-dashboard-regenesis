@@ -234,7 +234,6 @@ it('renders the boss-by-boss breakdown for each team from blizzard raid snapshot
 
     $resp = $this->actingAs($user)->get('/dashboard');
     $resp->assertOk();
-    $resp->assertSee('Boss breakdown');
     $resp->assertSee('Manaforge Omega');
     $resp->assertSee('Plexus Sentinel');
     // Apostrophe gets escaped by Blade -> assertSee with default $escape=true
@@ -243,6 +242,64 @@ it('renders the boss-by-boss breakdown for each team from blizzard raid snapshot
     $resp->assertSee('Soulbinder');
     // 2 of 3 bosses team-killed on Heroic.
     $resp->assertSee('2/3 H');
+});
+
+it('hides older-expansion raids in the breakdown so only the current tier shows', function () {
+    // Snapshot carries both the previous expansion (TWW / Manaforge) and
+    // the current expansion (Midnight S1 / Mirrorhall). The widget should
+    // only render the latest expansion's instance, since "team progression"
+    // is now scoped to the active tier only.
+    $h1 = makeTeamMember('Healer-Silvermoon', TeamMapping::TEAM_HEROIC);
+    // Headline rollup pulls raid_progression_json off the RIO snap, so
+    // line that up with the same season the breakdown is testing.
+    snapshotWithRow($h1->id, [
+        'ilvl' => 645,
+        'raid_progression_json' => [
+            'mirrorhall' => [
+                'summary' => '1/1 H',
+                'total_bosses' => 1,
+                'heroic_bosses_killed' => 1,
+                'mythic_bosses_killed' => 0,
+            ],
+        ],
+    ]);
+
+    $raidSnap = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now(),
+        'source' => Snapshot::SOURCE_BLIZZARD_RAIDS,
+        'payload_hash' => 'current-tier-only-test',
+    ]);
+    MemberRaidSnapshot::query()->create([
+        'snapshot_id' => $raidSnap->id,
+        'member_id' => $h1->id,
+        'expansions' => [
+            ['expansion' => ['id' => 503, 'name' => 'TWW'], 'instances' => [
+                ['instance' => ['id' => 1296, 'name' => 'OldRaid-TWW'], 'modes' => [
+                    ['difficulty' => ['type' => 'HEROIC', 'name' => 'Heroic'], 'progress' => [
+                        'completed_count' => 1, 'total_count' => 1,
+                        'encounters' => [['encounter' => ['id' => 91, 'name' => 'OldBoss-TWW'], 'completed_count' => 1, 'last_kill_timestamp' => 1]],
+                    ]],
+                ]],
+            ]],
+            ['expansion' => ['id' => 510, 'name' => 'Midnight'], 'instances' => [
+                ['instance' => ['id' => 1400, 'name' => 'Mirrorhall'], 'modes' => [
+                    ['difficulty' => ['type' => 'HEROIC', 'name' => 'Heroic'], 'progress' => [
+                        'completed_count' => 1, 'total_count' => 1,
+                        'encounters' => [['encounter' => ['id' => 101, 'name' => 'CurrentBoss-MN'], 'completed_count' => 1, 'last_kill_timestamp' => 1]],
+                    ]],
+                ]],
+            ]],
+        ],
+    ]);
+
+    $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
+    $resp = $this->actingAs($user)->get('/dashboard');
+    $resp->assertOk();
+    $resp->assertSee('Mirrorhall');
+    $resp->assertSee('CurrentBoss-MN');
+    $resp->assertDontSee('OldRaid-TWW');
+    $resp->assertDontSee('OldBoss-TWW');
 });
 
 it('renders the empty-state hint when blizzard raid data is missing for a team', function () {
