@@ -240,8 +240,91 @@ it('renders the boss-by-boss breakdown for each team from blizzard raid snapshot
     // re-escapes our expected value so the comparison matches the rendered HTML.
     $resp->assertSee("Loom'ithar");
     $resp->assertSee('Soulbinder');
-    // 2 of 3 bosses team-killed on Heroic.
-    $resp->assertSee('2/3 H');
+    // 2 of 3 bosses team-killed on Heroic. The new layout puts the
+    // count in a progress-row cell and the difficulty in a separate
+    // badge, so assert each piece is on the page.
+    $resp->assertSee('2/3');
+    $resp->assertSee('Heroic');
+});
+
+it('renders the comparison table with one column per team and an insights footer when the data supports it', function () {
+    // Mythic team avg ilvl 660 vs Heroic team avg ilvl 642: a +18
+    // delta should surface as an insight line. Heroic team also clears
+    // both Heroic encounters, which should show up as an AOTC line.
+    $m1 = makeTeamMember('M1-Silvermoon', TeamMapping::TEAM_MYTHIC);
+    $h1 = makeTeamMember('H1-Silvermoon', TeamMapping::TEAM_HEROIC);
+    $h2 = makeTeamMember('H2-Silvermoon', TeamMapping::TEAM_HEROIC);
+
+    $rio = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now(),
+        'source' => Snapshot::SOURCE_RAIDERIO,
+        'payload_hash' => 'compare-test',
+    ]);
+    MemberSnapshot::query()->create([
+        'snapshot_id' => $rio->id, 'member_id' => $m1->id,
+        'ilvl' => 660, 'mplus_score' => 2400.0, 'mplus_keystone' => 18,
+        'raid_progression_json' => ['mirrorhall' => [
+            'summary' => '6/8 M', 'total_bosses' => 8,
+            'mythic_bosses_killed' => 6, 'heroic_bosses_killed' => 8,
+        ]],
+    ]);
+    foreach ([$h1, $h2] as $h) {
+        MemberSnapshot::query()->create([
+            'snapshot_id' => $rio->id, 'member_id' => $h->id,
+            'ilvl' => 642, 'mplus_score' => 1100.0, 'mplus_keystone' => 12,
+            'raid_progression_json' => ['mirrorhall' => [
+                'summary' => '8/8 H', 'total_bosses' => 8,
+                'heroic_bosses_killed' => 8,
+            ]],
+        ]);
+    }
+
+    $raidSnap = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now(),
+        'source' => Snapshot::SOURCE_BLIZZARD_RAIDS,
+        'payload_hash' => 'compare-bliz',
+    ]);
+    $heroicAllCleared = [
+        ['encounter' => ['id' => 1, 'name' => 'Plexus'], 'completed_count' => 1, 'last_kill_timestamp' => 1],
+        ['encounter' => ['id' => 2, 'name' => "Loom'ithar"], 'completed_count' => 1, 'last_kill_timestamp' => 1],
+    ];
+    foreach ([$m1, $h1, $h2] as $member) {
+        MemberRaidSnapshot::query()->create([
+            'snapshot_id' => $raidSnap->id,
+            'member_id' => $member->id,
+            'expansions' => [
+                ['expansion' => ['id' => 510, 'name' => 'Midnight'], 'instances' => [
+                    ['instance' => ['id' => 1400, 'name' => 'Mirrorhall'], 'modes' => [
+                        ['difficulty' => ['type' => 'HEROIC', 'name' => 'Heroic'], 'progress' => [
+                            'completed_count' => 2, 'total_count' => 2,
+                            'encounters' => $heroicAllCleared,
+                        ]],
+                    ]],
+                ]],
+            ],
+        ]);
+    }
+
+    $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
+    $resp = $this->actingAs($user)->get('/dashboard');
+    $resp->assertOk();
+
+    // Comparison table: metric labels in rows, team labels as column heads.
+    $resp->assertSee('Members');
+    $resp->assertSee('Avg ilvl');
+    $resp->assertSee('Top RIO');
+    $resp->assertSee('Top weekly key');
+    $resp->assertSee('Best raid');
+
+    // Summary chips: 2 teams represented, 3 raiders total (m1, h1, h2).
+    $resp->assertSee('raiders');
+
+    // Insights footer surfaces the ilvl gap + AOTC clear.
+    $resp->assertSee('Insights');
+    $resp->assertSee('Mythic team avg ilvl 660 vs Heroic 642 (+18).');
+    $resp->assertSee('Heroic team has cleared every Heroic boss in Mirrorhall (AOTC).');
 });
 
 it('hides older-expansion raids in the breakdown so only the current tier shows', function () {

@@ -66,19 +66,27 @@ class DashboardController extends Controller
     }
 
     /**
-     * Per-team summary built from the latest Raider.IO snapshot. Groups
-     * active members by members.team and rolls up best raid progression,
-     * average ilvl, top RIO score, and top weekly key per team.
+     * Per-team summary built from the latest Raider.IO snapshot, plus a
+     * unified raid-by-raid breakdown rolled out of the latest Blizzard
+     * raid-encounters snapshot. The shape is built around scannability:
+     * a comparison row keyed by team for shared metrics (Members, ilvl,
+     * RIO, key, best raid), and a list of raid blocks where each
+     * difficulty groups team-level progress rows side by side.
      *
      * Empty teams are dropped so the widget only renders teams that
-     * actually have someone on them.
+     * actually have someone on them. The boss breakdown is filtered to
+     * the current tier (latest expansion seen across the guild's raid
+     * snapshots), so old expansions don't bloat the panel.
      *
-     * Boss-level breakdown comes from the latest Blizzard raid-encounters
-     * snapshot (different cadence to RIO; daily vs. three-hourly). When
-     * Blizzard data is missing the breakdown is just empty - the rest of
-     * the rollup still renders from RIO numbers as before.
-     *
-     * @return array{captured_at: ?\Carbon\CarbonInterface, teams: array<string,array{count:int,with_data:int,best_raid_summary:?string,best_raid_key:?string,avg_ilvl:?int,top_rio:?float,top_key:?int,breakdown:list<array<string,mixed>>,breakdown_captured_at:?\Carbon\CarbonInterface}>}
+     * @return array{
+     *   captured_at: ?\Carbon\CarbonInterface,
+     *   breakdown_captured_at: ?\Carbon\CarbonInterface,
+     *   current_tier: ?array{expansion_id:int, expansion_name:string, instance_id:int, instance_name:string},
+     *   summary: array{team_count:int, raider_count:int, top_kills:array<string,array{killed:int,total:int,team:?string}>},
+     *   teams: array<string,array{label:string,count:int,with_data:int,max_difficulty:string,best_raid_summary:?string,best_raid_key:?string,avg_ilvl:?int,top_rio:?float,top_key:?int}>,
+     *   raids: list<array{instance_id:int,name:string,difficulties:list<array{type:string,label:string,short:string,team_rows:list<array<string,mixed>>}>}>,
+     *   insights: list<string>
+     * }
      */
     private function teamProgression(string $guildKey): array
     {
@@ -96,15 +104,16 @@ class DashboardController extends Controller
         // Even with no raiderio snapshot we still group active members by
         // team so officers see who's on which team in the empty state.
         // groupByTeam() handles members on multiple teams by pushing
-        // them into each team's bucket.
-        $membersByTeam = Member::groupByTeam(
-            Member::query()
-                ->forGuild($guildKey)
-                ->active()
-                ->hasAnyTeam()
-                ->with('teams')
-                ->get()
-        );
+        // them into each team's bucket; raiderCount is the distinct
+        // count taken before the duplication so the summary reads true.
+        $rosterMembers = Member::query()
+            ->forGuild($guildKey)
+            ->active()
+            ->hasAnyTeam()
+            ->with('teams')
+            ->get();
+        $raiderCount = $rosterMembers->count();
+        $membersByTeam = Member::groupByTeam($rosterMembers);
 
         $snapsByMember = collect();
         if ($latest) {
@@ -135,6 +144,7 @@ class DashboardController extends Controller
         $currentExpansionId = $currentTier['expansion_id'] ?? null;
 
         $teams = [];
+        $rawBreakdownByTeam = [];
         foreach (TeamMapping::TEAMS as $team) {
             $members = $membersByTeam->get($team, collect());
             if ($members->isEmpty()) {
@@ -154,7 +164,6 @@ class DashboardController extends Controller
             // the cap (Raider.IO's own summary string includes mythic
             // and would re-leak the bug).
             $maxDiff = TeamMapping::maxDifficultyFor($team);
-            $bestSummary = null;
             $bestKey = null;
             $bestM = -1;
             $bestH = -1;
@@ -196,28 +205,206 @@ class DashboardController extends Controller
                 ->map(fn ($m) => $raidSnapsByMember->get($m->id))
                 ->filter()
                 ->values();
-            $breakdown = $teamRaidSnaps->isNotEmpty()
+            $rawBreakdownByTeam[$team] = $teamRaidSnaps->isNotEmpty()
                 ? $analyzer->teamBossBreakdown($teamRaidSnaps, $maxDiff, $currentExpansionId)
                 : [];
 
             $teams[$team] = [
+                'label' => TeamMapping::teamLabel($team),
                 'count' => $members->count(),
                 'with_data' => $snaps->count(),
+                'max_difficulty' => $maxDiff,
                 'best_raid_summary' => $bestSummary,
                 'best_raid_key' => $bestKey,
                 'avg_ilvl' => $ilvls ? (int) round(array_sum($ilvls) / count($ilvls)) : null,
                 'top_rio' => $rios ? (float) max($rios) : null,
                 'top_key' => $keys ? (int) max($keys) : null,
-                'breakdown' => $breakdown,
-                'breakdown_captured_at' => $breakdown !== [] ? $latestRaids?->captured_at : null,
             ];
         }
 
+        $raids = $this->raidsFromTeamBreakdowns($rawBreakdownByTeam);
+        $summary = $this->teamProgressionSummary($teams, $raiderCount, $raids);
+        $insights = $this->teamProgressionInsights($teams, $raids);
+
         return [
             'captured_at' => $latest?->captured_at,
+            'breakdown_captured_at' => $raids !== [] ? $latestRaids?->captured_at : null,
             'current_tier' => $currentTier,
+            'summary' => $summary,
             'teams' => $teams,
+            'raids' => $raids,
+            'insights' => $insights,
         ];
+    }
+
+    /**
+     * Pivot per-team boss breakdowns into a raid-first list. Each raid
+     * groups its difficulties (M, then H, then N) and each difficulty
+     * holds one row per team that runs at that difficulty. Bosses are
+     * carried through verbatim, ordered by encounter id so the raid's
+     * intended boss order survives the pivot.
+     *
+     * @param  array<string,list<array<string,mixed>>>  $byTeam
+     * @return list<array{instance_id:int,name:string,difficulties:list<array{type:string,label:string,short:string,team_rows:list<array<string,mixed>>}>}>
+     */
+    private function raidsFromTeamBreakdowns(array $byTeam): array
+    {
+        // Difficulty render order: M > H > N. Anything outside this set
+        // is dropped (the analyzer never emits LFR but stay defensive).
+        $difficultyOrder = ['MYTHIC' => 0, 'HEROIC' => 1, 'NORMAL' => 2];
+        $teamOrder = array_flip(TeamMapping::TEAMS);
+
+        $raids = [];
+        foreach ($byTeam as $team => $breakdown) {
+            foreach ($breakdown as $raid) {
+                $instanceId = $raid['id'];
+                if (! isset($raids[$instanceId])) {
+                    $raids[$instanceId] = [
+                        'instance_id' => $instanceId,
+                        'name' => $raid['name'] ?? '',
+                        'difficulties' => [],
+                    ];
+                } elseif (($raids[$instanceId]['name'] === '') && ! empty($raid['name'])) {
+                    $raids[$instanceId]['name'] = $raid['name'];
+                }
+
+                foreach ($raid['difficulties'] as $diff) {
+                    $type = $diff['type'];
+                    if (! isset($difficultyOrder[$type])) {
+                        continue;
+                    }
+                    if (! isset($raids[$instanceId]['difficulties'][$type])) {
+                        $raids[$instanceId]['difficulties'][$type] = [
+                            'type' => $type,
+                            'label' => $diff['label'],
+                            'short' => $diff['short'],
+                            'team_rows' => [],
+                        ];
+                    }
+                    $raids[$instanceId]['difficulties'][$type]['team_rows'][] = [
+                        'team' => $team,
+                        'team_label' => TeamMapping::teamLabel($team),
+                        'killed' => $diff['killed'],
+                        'total' => $diff['total'],
+                        'pct' => $diff['total'] > 0 ? (int) round($diff['killed'] / $diff['total'] * 100) : 0,
+                        'encounters' => $diff['encounters'],
+                    ];
+                }
+            }
+        }
+
+        $out = [];
+        foreach ($raids as $raid) {
+            $diffs = $raid['difficulties'];
+            uksort($diffs, fn ($a, $b) => $difficultyOrder[$a] <=> $difficultyOrder[$b]);
+            foreach ($diffs as &$diff) {
+                usort(
+                    $diff['team_rows'],
+                    fn ($a, $b) => ($teamOrder[$a['team']] ?? 99) <=> ($teamOrder[$b['team']] ?? 99),
+                );
+            }
+            unset($diff);
+            $raid['difficulties'] = array_values($diffs);
+            $out[] = $raid;
+        }
+
+        // Newest instance first so the active raid leads. Instance ids
+        // are monotonically increasing per Blizzard's catalogue, same
+        // tie-break the analyzer's currentTier() uses.
+        usort($out, fn ($a, $b) => $b['instance_id'] <=> $a['instance_id']);
+
+        return $out;
+    }
+
+    /**
+     * Build the top-of-widget summary chip data: how many teams +
+     * raiders are represented, and the top "X/Y D" kill summary per
+     * difficulty across every team. The numbers are taken straight
+     * from the pivoted raid list so they always match what the boss
+     * breakdown shows.
+     *
+     * @param  array<string,array<string,mixed>>  $teams
+     * @param  list<array{difficulties:list<array<string,mixed>>}>  $raids
+     * @return array{team_count:int, raider_count:int, top_kills:array<string,array{killed:int,total:int,team:?string}>}
+     */
+    private function teamProgressionSummary(array $teams, int $raiderCount, array $raids): array
+    {
+        $top = [];
+        foreach ($raids as $raid) {
+            foreach ($raid['difficulties'] as $diff) {
+                $type = $diff['type'];
+                foreach ($diff['team_rows'] as $row) {
+                    $current = $top[$type] ?? null;
+                    if ($current === null
+                        || $row['killed'] > $current['killed']
+                        || ($row['killed'] === $current['killed'] && $row['total'] > $current['total'])) {
+                        $top[$type] = [
+                            'killed' => (int) $row['killed'],
+                            'total' => (int) $row['total'],
+                            'team' => $row['team'],
+                        ];
+                    }
+                }
+            }
+        }
+
+        return [
+            'team_count' => count($teams),
+            'raider_count' => $raiderCount,
+            'top_kills' => $top,
+        ];
+    }
+
+    /**
+     * Auto-generated comparison lines that surface the "so what" of the
+     * widget: which team is more geared, AOTC status, mythic progress,
+     * etc. Empty list when nothing interesting can be said yet (no data
+     * or only one team) so the view can hide the section cleanly.
+     *
+     * Kept deliberately small: each line should answer a question an
+     * officer would otherwise ask aloud while looking at the table.
+     *
+     * @param  array<string,array<string,mixed>>  $teams
+     * @param  list<array{difficulties:list<array<string,mixed>>}>  $raids
+     * @return list<string>
+     */
+    private function teamProgressionInsights(array $teams, array $raids): array
+    {
+        $out = [];
+
+        $mythic = $teams[TeamMapping::TEAM_MYTHIC] ?? null;
+        $heroic = $teams[TeamMapping::TEAM_HEROIC] ?? null;
+        if ($mythic && $heroic && $mythic['avg_ilvl'] && $heroic['avg_ilvl']) {
+            $delta = $mythic['avg_ilvl'] - $heroic['avg_ilvl'];
+            if ($delta !== 0) {
+                $sign = $delta > 0 ? '+' : '';
+                $out[] = "Mythic team avg ilvl {$mythic['avg_ilvl']} vs Heroic {$heroic['avg_ilvl']} ({$sign}{$delta}).";
+            }
+        }
+
+        // Walk the active raid for "AOTC done" / "X to CE" style hints.
+        // Only the newest raid (first entry, instance_id desc) drives
+        // these so older tiers in the snapshot don't muddy them.
+        $activeRaid = $raids[0] ?? null;
+        if ($activeRaid !== null) {
+            foreach ($activeRaid['difficulties'] as $diff) {
+                foreach ($diff['team_rows'] as $row) {
+                    if ($row['total'] === 0) {
+                        continue;
+                    }
+                    if ($diff['type'] === 'HEROIC' && $row['killed'] === $row['total']) {
+                        $out[] = "{$row['team_label']} team has cleared every Heroic boss in {$activeRaid['name']} (AOTC).";
+                    }
+                    if ($diff['type'] === 'MYTHIC' && $row['killed'] > 0 && $row['killed'] < $row['total']) {
+                        $remaining = $row['total'] - $row['killed'];
+                        $out[] = "{$row['team_label']} team has {$remaining}/{$row['total']} Mythic boss"
+                            . ($remaining === 1 ? '' : 'es') . " left to Cutting Edge in {$activeRaid['name']}.";
+                    }
+                }
+            }
+        }
+
+        return $out;
     }
 
     /**

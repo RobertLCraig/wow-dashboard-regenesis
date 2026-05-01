@@ -1,45 +1,47 @@
 @php
     /**
-     * Per-team rollup of the latest Raider.IO snapshot, plus a per-boss
-     * breakdown sourced from the latest Blizzard raid-encounters
-     * snapshot. One panel per team that has at least one active
-     * member. Empty teams are dropped upstream by the controller.
+     * Team progression widget. Three stacked layers, each one zooming
+     * in: a four-chip summary, a teams-as-columns comparison table,
+     * and a raid block where each difficulty groups its team-progress
+     * rows side by side. Boss names render full-width, no truncation,
+     * because that's the data officers want to scan.
      *
-     * Member counts come from the GRM-derived members.team column;
-     * ilvl/RIO/raid stats come from the latest raiderio MemberSnapshot;
-     * the boss-by-boss pip rows come from MemberRaidSnapshot.expansions
-     * filtered to the current tier (latest expansion id) so the panel
-     * stays scoped to the active season.
+     * Member counts come from the GRM-derived members.team mapping,
+     * ilvl/RIO/raid stats come from the latest raiderio MemberSnapshot,
+     * and the per-team boss kill rows come from MemberRaidSnapshot
+     * filtered to the current tier.
      */
-    $tone = function (string $team) {
+
+    $teamTone = function (string $team): string {
         return match ($team) {
-            \App\Models\TeamMapping::TEAM_MYTHIC       => 'border-amber-700/50 bg-amber-950/20',
-            \App\Models\TeamMapping::TEAM_MYTHIC_TRIAL => 'border-amber-700/30 bg-amber-950/10',
-            \App\Models\TeamMapping::TEAM_HEROIC       => 'border-emerald-700/50 bg-emerald-950/20',
-            \App\Models\TeamMapping::TEAM_HEROIC_TRIAL => 'border-emerald-700/30 bg-emerald-950/10',
-            default => 'border-line bg-panel',
+            \App\Models\TeamMapping::TEAM_MYTHIC       => 'text-amber-300',
+            \App\Models\TeamMapping::TEAM_MYTHIC_TRIAL => 'text-amber-200/80',
+            \App\Models\TeamMapping::TEAM_HEROIC       => 'text-emerald-300',
+            \App\Models\TeamMapping::TEAM_HEROIC_TRIAL => 'text-emerald-200/80',
+            default => 'text-ink',
         };
     };
 
-    $instanceLabel = function (?string $key): string {
-        if (! $key) return '';
-        // raider.io returns slugs like "manaforge-omega"; titlecase them.
-        return ucwords(str_replace(['-', '_'], ' ', $key));
+    $teamBarColor = function (string $team): string {
+        return match ($team) {
+            \App\Models\TeamMapping::TEAM_MYTHIC       => 'bg-amber-400',
+            \App\Models\TeamMapping::TEAM_MYTHIC_TRIAL => 'bg-amber-500/70',
+            \App\Models\TeamMapping::TEAM_HEROIC       => 'bg-emerald-400',
+            \App\Models\TeamMapping::TEAM_HEROIC_TRIAL => 'bg-emerald-500/70',
+            default => 'bg-accent',
+        };
     };
 
-    // Difficulty-keyed pip styles: filled = team-killed, empty = not yet.
-    $diffPipClass = function (string $type, bool $killed): string {
-        if (! $killed) {
-            return 'border-line/60 bg-panel/40 text-muted';
-        }
+    $diffBadgeClass = function (string $type): string {
         return match ($type) {
-            'MYTHIC' => 'border-amber-500/70 bg-amber-500/20 text-amber-200',
-            'HEROIC' => 'border-emerald-500/70 bg-emerald-500/20 text-emerald-200',
-            'NORMAL' => 'border-sky-500/70 bg-sky-500/20 text-sky-200',
+            'MYTHIC' => 'border-amber-500/60 bg-amber-500/10 text-amber-200',
+            'HEROIC' => 'border-emerald-500/60 bg-emerald-500/10 text-emerald-200',
+            'NORMAL' => 'border-sky-500/60 bg-sky-500/10 text-sky-200',
             default  => 'border-line bg-panel text-ink',
         };
     };
-    $diffBadgeClass = function (string $type): string {
+
+    $diffSummaryColor = function (string $type): string {
         return match ($type) {
             'MYTHIC' => 'text-amber-300',
             'HEROIC' => 'text-emerald-300',
@@ -47,129 +49,207 @@
             default  => 'text-muted',
         };
     };
+
+    $bossChipClass = function (string $type, bool $killed): string {
+        if (! $killed) {
+            return 'border-line/60 bg-panel/40 text-muted';
+        }
+        return match ($type) {
+            'MYTHIC' => 'border-amber-500/70 bg-amber-500/15 text-amber-200',
+            'HEROIC' => 'border-emerald-500/70 bg-emerald-500/15 text-emerald-200',
+            'NORMAL' => 'border-sky-500/70 bg-sky-500/15 text-sky-200',
+            default  => 'border-line bg-panel text-ink',
+        };
+    };
+
+    $teamColumns = $teamProgression['teams'];
+    $teamCount = count($teamColumns);
+    $tierName = $teamProgression['current_tier']['instance_name'] ?? null;
+    $tierExpansion = $teamProgression['current_tier']['expansion_name'] ?? null;
 @endphp
 
 <section class="bg-panel border border-line rounded-lg overflow-hidden">
     <div x-data="{ explain: false }">
-        <header class="px-4 py-3 border-b border-line flex items-center justify-between gap-3">
-            <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2 flex-wrap">
-                <span>Team progression</span>
-                @if (! empty($teamProgression['current_tier']['instance_name']))
-                    <span class="text-xs font-normal normal-case tracking-normal text-muted">
-                        {{ $teamProgression['current_tier']['instance_name'] }}
-                    </span>
-                @endif
-                <x-explainer-toggle />
-            </h2>
-            <span class="text-xs text-muted text-right shrink-0">
+        <header class="px-4 py-3 border-b border-line flex items-start justify-between gap-3 flex-wrap">
+            <div class="min-w-0">
+                <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2 flex-wrap">
+                    <span>Team progression</span>
+                    @if ($tierName)
+                        <span class="text-xs font-normal normal-case tracking-normal text-muted">
+                            {{ $tierName }}@if ($tierExpansion) <span class="text-muted/70">/ {{ $tierExpansion }}</span>@endif
+                        </span>
+                    @endif
+                    <x-explainer-toggle />
+                </h2>
+            </div>
+            <div class="text-xs text-muted text-right shrink-0 leading-tight space-y-0.5">
                 @if ($teamProgression['captured_at'])
-                    raider.io {{ $teamProgression['captured_at']->diffForHumans() }}
+                    <div>raider.io {{ $teamProgression['captured_at']->diffForHumans() }}</div>
                 @else
-                    no raider.io data yet
+                    <div>no raider.io data yet</div>
                 @endif
-            </span>
+                @if (! empty($teamProgression['breakdown_captured_at']))
+                    <div>blizzard {{ $teamProgression['breakdown_captured_at']->diffForHumans() }}</div>
+                @endif
+            </div>
         </header>
         <x-explainer-panel title="Team progression">
-            Per-team rollup of the latest Raider.IO snapshot, scoped to the current
-            raid tier (the latest expansion's raid, currently
-            {{ $teamProgression['current_tier']['instance_name'] ?? 'the active season raid' }}).
-            Best raid progression, average item level, top mythic+ score and top weekly
-            key for each team (Mythic, Mythic Trial, Heroic, Heroic Trial). Use it to
-            compare how teams are pacing through the current tier and to spot a team
-            that's fallen behind on gear or RIO before it becomes a problem on raid
-            night. The boss-by-boss breakdown comes from the daily Blizzard raid
-            encounters pull: each pip is an encounter in that raid, filled when at
-            least one team member has the kill on that difficulty. Older tiers are
-            hidden so the panel stays focused on the active season. Difficulty is
-            capped per team (Heroic team panels never show Mythic, even if a member
-            crossed over). Team membership comes from the GRM rank-to-team mapping
+            Three layers stacked from broadest to most detailed: a four-chip summary
+            (teams, raiders, top Mythic kills, top Heroic kills); a comparison table
+            with one column per team and the shared metrics as rows (members, average
+            item level, top mythic+ score, top weekly key, best raid summary); and a
+            raid-by-raid breakdown of {{ $tierName ?? 'the current tier' }}, where each
+            difficulty groups its teams' progress rows side by side with a progress bar
+            plus the full boss list. Difficulty caps still apply per team (Heroic team
+            rows never appear under the Mythic difficulty section, even if a member
+            crossed over). Older tiers are hidden so the panel stays focused on the
+            active season. Team membership comes from the GRM rank-to-team mapping
             under Team mapping; RIO numbers come from the periodic raider.io sync.
         </x-explainer-panel>
     </div>
 
-    @if (empty($teamProgression['teams']))
+    @if (empty($teamColumns))
         <div class="p-8 text-center text-muted text-sm">
             No members have a team assigned yet.
             <a href="{{ route('admin.teams.index') }}" class="text-accent hover:underline">Configure team mapping</a>
             and re-run the GRM sync.
         </div>
     @else
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 clarity-keep-grid">
-            @foreach ($teamProgression['teams'] as $team => $stats)
-                <div class="rounded-md border {{ $tone($team) }} p-4">
-                    <div class="flex items-baseline justify-between">
-                        <h3 class="font-semibold text-ink">
-                            {{ \App\Models\TeamMapping::teamLabel($team) }}
-                            <span class="text-muted text-sm font-normal">
-                                {{ $stats['count'] }} {{ \Illuminate\Support\Str::plural('member', $stats['count']) }}
-                            </span>
-                        </h3>
-                        @if ($stats['with_data'] < $stats['count'])
-                            <span class="text-xs text-muted">
-                                {{ $stats['with_data'] }}/{{ $stats['count'] }} on RIO
-                            </span>
-                        @endif
-                    </div>
+        @php
+            $summary = $teamProgression['summary'];
+            $topM = $summary['top_kills']['MYTHIC'] ?? null;
+            $topH = $summary['top_kills']['HEROIC'] ?? null;
+        @endphp
 
-                    <div class="mt-3 grid grid-cols-2 gap-2 text-sm clarity-keep-grid">
-                        <div>
-                            <div class="text-xs uppercase tracking-wider text-muted">Best progression</div>
-                            <div class="font-mono mt-0.5">
-                                @if ($stats['best_raid_summary'])
-                                    {{ $stats['best_raid_summary'] }}
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </div>
-                            @if ($stats['best_raid_key'])
-                                <div class="text-xs text-muted mt-0.5">{{ $instanceLabel($stats['best_raid_key']) }}</div>
-                            @endif
-                        </div>
+        <div class="px-4 pt-4 pb-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-center text-xs clarity-keep-grid">
+            <div class="rounded border border-line bg-panel/60 px-2 py-1.5">
+                <div class="text-base font-semibold text-ink">{{ $summary['team_count'] }}</div>
+                <div class="text-[10px] uppercase tracking-wider text-muted">{{ \Illuminate\Support\Str::plural('team', $summary['team_count']) }}</div>
+            </div>
+            <div class="rounded border border-line bg-panel/60 px-2 py-1.5">
+                <div class="text-base font-semibold text-ink">{{ $summary['raider_count'] }}</div>
+                <div class="text-[10px] uppercase tracking-wider text-muted">raiders</div>
+            </div>
+            <div class="rounded border border-amber-700/50 bg-amber-950/20 px-2 py-1.5">
+                <div class="text-base font-semibold {{ $diffSummaryColor('MYTHIC') }} font-mono">
+                    @if ($topM)
+                        {{ $topM['killed'] }}/{{ $topM['total'] }}
+                    @else
+                        <span class="text-muted">-</span>
+                    @endif
+                </div>
+                <div class="text-[10px] uppercase tracking-wider text-muted">top mythic</div>
+            </div>
+            <div class="rounded border border-emerald-700/50 bg-emerald-950/20 px-2 py-1.5">
+                <div class="text-base font-semibold {{ $diffSummaryColor('HEROIC') }} font-mono">
+                    @if ($topH)
+                        {{ $topH['killed'] }}/{{ $topH['total'] }}
+                    @else
+                        <span class="text-muted">-</span>
+                    @endif
+                </div>
+                <div class="text-[10px] uppercase tracking-wider text-muted">top heroic</div>
+            </div>
+        </div>
 
-                        <div>
-                            <div class="text-xs uppercase tracking-wider text-muted">Avg ilvl</div>
-                            <div class="font-mono mt-0.5">
-                                {{ $stats['avg_ilvl'] ?? '-' }}
-                            </div>
-                        </div>
+        <div class="px-4 pb-4">
+            <div class="overflow-x-auto -mx-4 px-4">
+                <table class="min-w-full text-sm border-separate border-spacing-0">
+                    <thead>
+                        <tr class="text-xs uppercase tracking-wider text-muted">
+                            <th scope="col" class="text-left font-medium py-2 pr-3 border-b border-line align-bottom">Metric</th>
+                            @foreach ($teamColumns as $teamKey => $stats)
+                                <th scope="col" class="text-left font-semibold py-2 px-3 border-b border-line align-bottom whitespace-nowrap {{ $teamTone($teamKey) }}">
+                                    {{ $stats['label'] }}
+                                </th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody class="font-mono">
+                        <tr>
+                            <th scope="row" class="text-left font-normal text-xs uppercase tracking-wider text-muted py-2 pr-3 border-b border-line/40">Members</th>
+                            @foreach ($teamColumns as $teamKey => $stats)
+                                <td class="py-2 px-3 border-b border-line/40 whitespace-nowrap">
+                                    {{ $stats['count'] }}
+                                    @if ($stats['with_data'] < $stats['count'])
+                                        <span class="text-[10px] font-sans text-muted">({{ $stats['with_data'] }} on RIO)</span>
+                                    @endif
+                                </td>
+                            @endforeach
+                        </tr>
+                        <tr>
+                            <th scope="row" class="text-left font-normal text-xs uppercase tracking-wider text-muted py-2 pr-3 border-b border-line/40">Avg ilvl</th>
+                            @foreach ($teamColumns as $stats)
+                                <td class="py-2 px-3 border-b border-line/40 whitespace-nowrap">{{ $stats['avg_ilvl'] ?? '-' }}</td>
+                            @endforeach
+                        </tr>
+                        <tr>
+                            <th scope="row" class="text-left font-normal text-xs uppercase tracking-wider text-muted py-2 pr-3 border-b border-line/40">Top RIO</th>
+                            @foreach ($teamColumns as $stats)
+                                <td class="py-2 px-3 border-b border-line/40 whitespace-nowrap">
+                                    {{ $stats['top_rio'] !== null ? number_format($stats['top_rio'], 0) : '-' }}
+                                </td>
+                            @endforeach
+                        </tr>
+                        <tr>
+                            <th scope="row" class="text-left font-normal text-xs uppercase tracking-wider text-muted py-2 pr-3 border-b border-line/40">Top weekly key</th>
+                            @foreach ($teamColumns as $stats)
+                                <td class="py-2 px-3 border-b border-line/40 whitespace-nowrap">
+                                    {{ $stats['top_key'] !== null ? '+' . $stats['top_key'] : '-' }}
+                                </td>
+                            @endforeach
+                        </tr>
+                        <tr>
+                            <th scope="row" class="text-left font-normal text-xs uppercase tracking-wider text-muted py-2 pr-3">Best raid</th>
+                            @foreach ($teamColumns as $stats)
+                                <td class="py-2 px-3 whitespace-nowrap">
+                                    {{ $stats['best_raid_summary'] ?? '-' }}
+                                </td>
+                            @endforeach
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-                        <div>
-                            <div class="text-xs uppercase tracking-wider text-muted">Top RIO</div>
-                            <div class="font-mono mt-0.5">
-                                {{ $stats['top_rio'] !== null ? number_format($stats['top_rio'], 0) : '-' }}
-                            </div>
-                        </div>
+        @if (! empty($teamProgression['raids']))
+            <div class="px-4 pb-4 space-y-4 border-t border-line pt-4">
+                @foreach ($teamProgression['raids'] as $raid)
+                    <article class="space-y-3">
+                        <h3 class="text-sm font-semibold text-ink">{{ $raid['name'] ?: 'Current raid' }}</h3>
 
-                        <div>
-                            <div class="text-xs uppercase tracking-wider text-muted">Top weekly key</div>
-                            <div class="font-mono mt-0.5">
-                                {{ $stats['top_key'] !== null ? '+' . $stats['top_key'] : '-' }}
-                            </div>
-                        </div>
-                    </div>
+                        @foreach ($raid['difficulties'] as $diff)
+                            <section class="rounded-md border border-line/60 bg-panel/40 p-3 space-y-2.5">
+                                <header class="flex items-center gap-2">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded border text-[11px] font-semibold uppercase tracking-wider {{ $diffBadgeClass($diff['type']) }}">
+                                        {{ $diff['label'] }}
+                                    </span>
+                                </header>
 
-                    @if (! empty($stats['breakdown']))
-                        <div class="mt-4 pt-3 border-t border-line/60 space-y-3">
-                            @foreach ($stats['breakdown'] as $instance)
-                                <div>
-                                    <div class="flex items-baseline justify-between gap-2">
-                                        <h4 class="text-xs uppercase tracking-wider text-muted">
-                                            {{ $instance['name'] ?: 'Boss breakdown' }}
-                                        </h4>
-                                        @if ($loop->first && ! empty($stats['breakdown_captured_at']))
-                                            <span class="text-[10px] text-muted shrink-0">
-                                                blizzard {{ $stats['breakdown_captured_at']->diffForHumans() }}
-                                            </span>
-                                        @endif
-                                    </div>
-                                    <div class="mt-1.5 space-y-1.5">
-                                        @foreach ($instance['difficulties'] as $diff)
-                                            <div class="flex items-center gap-2 text-xs">
-                                                <span class="font-mono w-12 shrink-0 {{ $diffBadgeClass($diff['type']) }}">
-                                                    {{ $diff['killed'] }}/{{ $diff['total'] }} {{ $diff['short'] }}
-                                                </span>
-                                                <ul class="flex flex-wrap gap-1 list-none m-0 p-0">
-                                                    @foreach ($diff['encounters'] as $enc)
+                                <ul class="space-y-2.5 list-none m-0 p-0">
+                                    @foreach ($diff['team_rows'] as $row)
+                                        <li class="m-0 p-0">
+                                            <div class="flex items-center gap-3 text-xs">
+                                                <div class="w-28 shrink-0 truncate font-medium {{ $teamTone($row['team']) }}">
+                                                    {{ $row['team_label'] }}
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="h-2 rounded-full bg-line/40 overflow-hidden" role="progressbar"
+                                                         aria-valuenow="{{ $row['killed'] }}"
+                                                         aria-valuemin="0"
+                                                         aria-valuemax="{{ $row['total'] }}"
+                                                         aria-label="{{ $row['team_label'] }} {{ $diff['label'] }} progress">
+                                                        <div class="h-full {{ $teamBarColor($row['team']) }}" style="width: {{ $row['pct'] }}%"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="font-mono w-16 text-right shrink-0 {{ $diffSummaryColor($diff['type']) }}">
+                                                    {{ $row['killed'] }}/{{ $row['total'] }}
+                                                </div>
+                                            </div>
+
+                                            @if (! empty($row['encounters']))
+                                                <ul class="mt-1.5 ml-28 pl-3 flex flex-wrap gap-1 list-none m-0 p-0">
+                                                    @foreach ($row['encounters'] as $enc)
                                                         @php
                                                             $killed = $enc['killers'] > 0;
                                                             $title = $enc['name'];
@@ -185,31 +265,42 @@
                                                         @endphp
                                                         <li class="m-0 p-0">
                                                             <span
-                                                                class="inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1 rounded border text-[10px] font-medium leading-none {{ $diffPipClass($diff['type'], $killed) }}"
+                                                                class="inline-flex items-center h-5 px-2 rounded border text-[10px] font-medium leading-none whitespace-nowrap {{ $bossChipClass($diff['type'], $killed) }}"
                                                                 title="{{ $title }}"
                                                                 aria-label="{{ $title }}"
                                                             >
-                                                                {{ $enc['name'] !== '' ? \Illuminate\Support\Str::limit($enc['name'], 14, '...') : '#' . $enc['id'] }}
+                                                                {{ $enc['name'] !== '' ? $enc['name'] : '#' . $enc['id'] }}
                                                             </span>
                                                         </li>
                                                     @endforeach
                                                 </ul>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
+                                            @endif
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </section>
+                        @endforeach
+                    </article>
+                @endforeach
+
+                @if (! empty($teamProgression['insights']))
+                    <aside class="rounded-md border border-line/60 bg-panel/40 px-3 py-2.5">
+                        <h4 class="text-[11px] uppercase tracking-wider text-muted mb-1.5">Insights</h4>
+                        <ul class="text-xs text-ink space-y-1 list-disc pl-4 m-0">
+                            @foreach ($teamProgression['insights'] as $line)
+                                <li>{{ $line }}</li>
                             @endforeach
-                        </div>
-                    @elseif (empty($stats['breakdown']) && $stats['count'] > 0)
-                        <div class="mt-4 pt-3 border-t border-line/60">
-                            <p class="text-[11px] text-muted italic">
-                                No Blizzard raid-encounters data for this team yet. The daily
-                                blizzard:pull-raids sync populates the boss-by-boss breakdown.
-                            </p>
-                        </div>
-                    @endif
-                </div>
-            @endforeach
-        </div>
+                        </ul>
+                    </aside>
+                @endif
+            </div>
+        @elseif (empty($teamProgression['raids']))
+            <div class="px-4 pb-4 border-t border-line pt-4">
+                <p class="text-[11px] text-muted italic">
+                    No Blizzard raid-encounters data for the current tier yet. The daily
+                    blizzard:pull-raids sync populates the boss-by-boss breakdown.
+                </p>
+            </div>
+        @endif
     @endif
 </section>
