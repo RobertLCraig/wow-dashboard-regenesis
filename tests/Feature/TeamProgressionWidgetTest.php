@@ -82,107 +82,115 @@ function snapshotWithRow(int $memberId, array $rowOverrides = []): Snapshot
 }
 
 it('dashboard shows the team progression widget with per-team rollups', function () {
-    // h1 has 3 Mythic kills (picked up via the Mythic roster), h2 has
-    // pure 8/8 H. The Heroic-team rollup should ignore the Mythic
-    // kills entirely and show 8/8 H, NOT "3/8 M". The Mythic team's
-    // panel still sees Mythic kills as the headline number.
-    $h1 = makeTeamMember('Healer-Silvermoon', TeamMapping::TEAM_HEROIC);
-    $h2 = makeTeamMember('Tank-Silvermoon', TeamMapping::TEAM_HEROIC);
+    // h1 has heroic + mythic Blizzard kills (crossover raider).
+    // h2 has heroic kills only.
+    // m1 is on the Mythic team with 6/8 mythic kills.
+    // The heroic team cap means its matrix row shows H8/8, not M3/8.
+    $h1 = makeTeamMember('Healer-Silvermoon',  TeamMapping::TEAM_HEROIC);
+    $h2 = makeTeamMember('Tank-Silvermoon',    TeamMapping::TEAM_HEROIC);
     $m1 = makeTeamMember('Bruiser-Silvermoon', TeamMapping::TEAM_MYTHIC);
 
-    $snapshot = snapshotWithRow($h1->id, ['ilvl' => 640, 'mplus_score' => 1100, 'mplus_keystone' => 12]);
-    MemberSnapshot::query()->create([
-        'snapshot_id' => $snapshot->id,
-        'member_id' => $h2->id,
-        'ilvl' => 642,
-        'mplus_score' => 950.0,
-        'mplus_keystone' => 10,
-        'raid_progression_json' => [
-            'manaforge-omega' => [
-                'summary' => '8/8 H',
-                'total_bosses' => 8,
-                'heroic_bosses_killed' => 8,
-                'mythic_bosses_killed' => 0,
-            ],
-        ],
+    $rio = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon', 'captured_at' => now(),
+        'source' => Snapshot::SOURCE_RAIDERIO, 'payload_hash' => 'rollup-rio',
     ]);
-    MemberSnapshot::query()->create([
-        'snapshot_id' => $snapshot->id,
-        'member_id' => $m1->id,
-        'ilvl' => 660,
-        'mplus_score' => 2400.0,
-        'mplus_keystone' => 18,
-        'raid_progression_json' => [
-            'manaforge-omega' => [
-                'summary' => '8/8 H 6/8 M',
-                'total_bosses' => 8,
-                'heroic_bosses_killed' => 8,
-                'mythic_bosses_killed' => 6,
-            ],
-        ],
+    foreach ([$h1->id, $h2->id] as $mid) {
+        MemberSnapshot::query()->create(['snapshot_id' => $rio->id, 'member_id' => $mid, 'ilvl' => 640]);
+    }
+    MemberSnapshot::query()->create(['snapshot_id' => $rio->id, 'member_id' => $m1->id, 'ilvl' => 660]);
+
+    $raidSnap = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon', 'captured_at' => now(),
+        'source' => Snapshot::SOURCE_BLIZZARD_RAIDS, 'payload_hash' => 'rollup-bliz',
     ]);
+    $enc  = fn (int $id, bool $k): array => [
+        'encounter' => ['id' => $id, 'name' => "Boss{$id}"],
+        'completed_count' => $k ? 1 : 0, 'last_kill_timestamp' => $k ? 1_700_000_000 : 0,
+    ];
+    $wrap = fn (array $modes): array => [[
+        'expansion' => ['id' => 503, 'name' => 'TWW'],
+        'instances' => [['instance' => ['id' => 1296, 'name' => 'Manaforge Omega'], 'modes' => $modes]],
+    ]];
+    $hMode = fn (array $encs): array => [
+        'difficulty' => ['type' => 'HEROIC', 'name' => 'Heroic'],
+        'progress' => ['completed_count' => count(array_filter($encs, fn ($e) => $e['completed_count'])), 'total_count' => count($encs), 'encounters' => $encs],
+    ];
+    $mMode = fn (array $encs): array => [
+        'difficulty' => ['type' => 'MYTHIC', 'name' => 'Mythic'],
+        'progress' => ['completed_count' => count(array_filter($encs, fn ($e) => $e['completed_count'])), 'total_count' => count($encs), 'encounters' => $encs],
+    ];
+
+    $all8  = array_map(fn ($i) => $enc($i, true),    range(1, 8));
+    $m3of8 = array_map(fn ($i) => $enc($i, $i <= 3), range(1, 8));
+    $m6of8 = array_map(fn ($i) => $enc($i, $i <= 6), range(1, 8));
+
+    MemberRaidSnapshot::query()->create(['snapshot_id' => $raidSnap->id, 'member_id' => $h1->id, 'expansions' => $wrap([$hMode($all8), $mMode($m3of8)])]);
+    MemberRaidSnapshot::query()->create(['snapshot_id' => $raidSnap->id, 'member_id' => $h2->id, 'expansions' => $wrap([$hMode($all8)])]);
+    MemberRaidSnapshot::query()->create(['snapshot_id' => $raidSnap->id, 'member_id' => $m1->id, 'expansions' => $wrap([$hMode($all8), $mMode($m6of8)])]);
 
     $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
-
     $resp = $this->actingAs($user)->get('/dashboard');
+
     $resp->assertOk();
     $resp->assertSee('Team progression');
-    $resp->assertSee('Heroic');
-    $resp->assertSee('Mythic');
-    // Heroic rollup capped: best is 8/8 H, mythic kills ignored.
-    $resp->assertSee('8/8 H');
-    // Mythic rollup: 6 mythic kills wins.
-    $resp->assertSee('6/8 M');
+    $resp->assertSee('Heroic Team');
+    $resp->assertSee('Mythic Team');
+    // Heroic team matrix summary: H8/8 only (mythic difficulty capped/excluded).
+    $resp->assertSee('H8/8');
+    // Mythic team matrix summary: M6/8.
+    $resp->assertSee('M6/8');
+    // h1's 3/8 mythic kills must NOT appear as M3/8 on the heroic team row.
+    $resp->assertDontSee('M3/8');
 });
 
 it('caps the Heroic team rollup at heroic difficulty even when one member has mythic kills', function () {
-    // The bug we hit on production: a Heroic-team member who joined
-    // the Mythic raid for a few bosses pulled the team's headline
-    // progression to "4/9 M". The cap should drop those kills.
-    $hero = makeTeamMember('Hero-Silvermoon', TeamMapping::TEAM_HEROIC);
+    // Regression test: a Heroic-team member who joined the Mythic raid
+    // for a few bosses should NOT pull the team's matrix summary to M4/9.
+    $hero      = makeTeamMember('Hero-Silvermoon',      TeamMapping::TEAM_HEROIC);
     $crossover = makeTeamMember('Crossover-Silvermoon', TeamMapping::TEAM_HEROIC);
 
-    $snapshot = Snapshot::query()->create([
-        'guild_key' => 'Regenesis-Silvermoon',
-        'captured_at' => now(),
-        'source' => Snapshot::SOURCE_RAIDERIO,
-        'payload_hash' => 'cap-test',
+    $rio = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon', 'captured_at' => now(),
+        'source' => Snapshot::SOURCE_RAIDERIO, 'payload_hash' => 'cap-rio',
     ]);
-    MemberSnapshot::query()->create([
-        'snapshot_id' => $snapshot->id,
-        'member_id' => $hero->id,
-        'ilvl' => 285,
-        'raid_progression_json' => [
-            'tier-mn-1' => [
-                'summary' => '6/9 H',
-                'total_bosses' => 9,
-                'heroic_bosses_killed' => 6,
-                'mythic_bosses_killed' => 0,
-            ],
-        ],
+    foreach ([$hero->id, $crossover->id] as $mid) {
+        MemberSnapshot::query()->create(['snapshot_id' => $rio->id, 'member_id' => $mid, 'ilvl' => 285]);
+    }
+
+    // hero:      6/9 heroic only.
+    // crossover: 8/9 heroic + 4/9 mythic (the crossover case being tested).
+    $raidSnap = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon', 'captured_at' => now(),
+        'source' => Snapshot::SOURCE_BLIZZARD_RAIDS, 'payload_hash' => 'cap-bliz',
     ]);
-    MemberSnapshot::query()->create([
-        'snapshot_id' => $snapshot->id,
-        'member_id' => $crossover->id,
-        'ilvl' => 287,
-        'raid_progression_json' => [
-            'tier-mn-1' => [
-                'summary' => '8/9 H 4/9 M',
-                'total_bosses' => 9,
-                'heroic_bosses_killed' => 8,
-                'mythic_bosses_killed' => 4,
-            ],
-        ],
-    ]);
+    $enc  = fn (int $id, bool $k): array => [
+        'encounter' => ['id' => $id, 'name' => "Boss{$id}"],
+        'completed_count' => $k ? 1 : 0, 'last_kill_timestamp' => $k ? 1_700_000_000 : 0,
+    ];
+    $wrap = fn (array $modes): array => [[
+        'expansion' => ['id' => 510, 'name' => 'Midnight'],
+        'instances' => [['instance' => ['id' => 1400, 'name' => 'Nerub-ar Palace'], 'modes' => $modes]],
+    ]];
+    $hMode = fn (array $encs): array => [
+        'difficulty' => ['type' => 'HEROIC', 'name' => 'Heroic'],
+        'progress' => ['completed_count' => count(array_filter($encs, fn ($e) => $e['completed_count'])), 'total_count' => count($encs), 'encounters' => $encs],
+    ];
+    $mMode = fn (array $encs): array => [
+        'difficulty' => ['type' => 'MYTHIC', 'name' => 'Mythic'],
+        'progress' => ['completed_count' => count(array_filter($encs, fn ($e) => $e['completed_count'])), 'total_count' => count($encs), 'encounters' => $encs],
+    ];
+
+    MemberRaidSnapshot::query()->create(['snapshot_id' => $raidSnap->id, 'member_id' => $hero->id,      'expansions' => $wrap([$hMode(array_map(fn ($i) => $enc($i, $i <= 6), range(1, 9)))])]);
+    MemberRaidSnapshot::query()->create(['snapshot_id' => $raidSnap->id, 'member_id' => $crossover->id, 'expansions' => $wrap([$hMode(array_map(fn ($i) => $enc($i, $i <= 8), range(1, 9))), $mMode(array_map(fn ($i) => $enc($i, $i <= 4), range(1, 9)))])]);
 
     $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
     $resp = $this->actingAs($user)->get('/dashboard');
 
     $resp->assertOk();
-    // Best heroic kills among the team is 8/9 (from crossover), with
-    // mythic kills ignored. Should NOT display "4/9 M".
-    $resp->assertSee('8/9 H');
-    $resp->assertDontSee('4/9 M');
+    // Heroic team: best heroic across the team is H8/9 (crossover).
+    $resp->assertSee('H8/9');
+    // Crossover's 4/9 mythic kills must NOT appear in the heroic team row.
+    $resp->assertDontSee('M4/9');
 });
 
 it('renders the boss-by-boss breakdown for each team from blizzard raid snapshots', function () {
@@ -315,16 +323,15 @@ it('renders the comparison table with one column per team and an insights footer
     $resp->assertSee('Members');
     $resp->assertSee('Avg ilvl');
     $resp->assertSee('Top RIO');
-    $resp->assertSee('Top weekly key');
-    $resp->assertSee('Best raid');
+    $resp->assertSee('Top key');
 
     // Summary chips: 2 teams represented, 3 raiders total (m1, h1, h2).
     $resp->assertSee('raiders');
 
     // Insights footer surfaces the ilvl gap + AOTC clear.
     $resp->assertSee('Insights');
-    $resp->assertSee('Mythic team avg ilvl 660 vs Heroic 642 (+18).');
-    $resp->assertSee('Heroic team has cleared every Heroic boss in Mirrorhall (AOTC).');
+    $resp->assertSee('Mythic Team avg ilvl 660 vs Heroic Team 642 (+18).');
+    $resp->assertSee('Heroic Team has cleared every Heroic boss in Mirrorhall (AOTC).');
 });
 
 it('hides older-expansion raids in the breakdown so only the current tier shows', function () {

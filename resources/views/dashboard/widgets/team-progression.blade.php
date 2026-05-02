@@ -624,6 +624,7 @@
                 {{-- Insights (both modes) --}}
                 @if (! empty($teamProgression['insights']))
                     <aside class="px-4 py-3 border-t border-line/40 bg-panel/20">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-muted/70 mb-1.5">Insights</p>
                         <ul class="text-xs text-muted space-y-0.5 list-disc pl-4 m-0">
                             @foreach ($teamProgression['insights'] as $line)
                                 <li>{{ $line }}</li>
