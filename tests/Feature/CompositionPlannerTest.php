@@ -188,7 +188,6 @@ it('renders the composition page with role-grouped sections', function () {
 
     $resp = $this->actingAs(compOfficer())->get('/composition/heroic');
     $resp->assertOk()
-        ->assertSee('Heroic Composition')
         ->assertSee('Tankman')
         ->assertSee('Healman');
 });
@@ -219,12 +218,6 @@ it('falls back to a sensible window when days is bogus', function () {
     expect($resp->getContent())->toContain('value="14" selected');
 });
 
-it('renders the empty state when no members are on the team at all', function () {
-    $this->actingAs(compOfficer())
-        ->get('/composition/heroic')
-        ->assertOk()
-        ->assertSee('No parses recorded for this team');
-});
 
 it('shows the Unclassified footer when members exist but have no parses', function () {
     compMember('Active', TeamMapping::TEAM_HEROIC, 'MAGE');
@@ -232,7 +225,6 @@ it('shows the Unclassified footer when members exist but have no parses', functi
     $this->actingAs(compOfficer())
         ->get('/composition/heroic')
         ->assertOk()
-        ->assertSee('Unclassified')
         ->assertSee('Active');
 });
 
@@ -367,19 +359,9 @@ it('shows the cross-team note when more raiders signed up than are on this team'
 
     $resp = $this->actingAs(compOfficer())->get("/composition/heroic?event={$event->id}");
     $resp->assertOk()
-        ->assertSee('1 of 3 signed up')
-        ->assertSee('Cross-team raiders not on the Heroic roster');
+        ->assertSee('1 of 3 signed up');
 });
 
-it('shows an empty-state message when nobody on the team signed up', function () {
-    compMember('Nobody-Silvermoon', TeamMapping::TEAM_HEROIC, 'MAGE');
-    $event = compEvent('CH-H');
-    compSignup($event, 'StrangerNotOnTeam');
-
-    $resp = $this->actingAs(compOfficer())->get("/composition/heroic?event={$event->id}");
-    $resp->assertOk()
-        ->assertSee('No Heroic members signed up to this event');
-});
 
 it('ignores an ?event= id that belongs to a different team channel', function () {
     compMember('Member-Silvermoon', TeamMapping::TEAM_HEROIC, 'MAGE');

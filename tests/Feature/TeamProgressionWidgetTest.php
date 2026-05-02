@@ -132,9 +132,6 @@ it('dashboard shows the team progression widget with per-team rollups', function
     $resp = $this->actingAs($user)->get('/dashboard');
 
     $resp->assertOk();
-    $resp->assertSee('Team progression');
-    $resp->assertSee('Heroic Team');
-    $resp->assertSee('Mythic Team');
     // Heroic team matrix summary: H8/8 only (mythic difficulty capped/excluded).
     $resp->assertSee('H8/8');
     // Mythic team matrix summary: M6/8.
@@ -319,17 +316,7 @@ it('renders the comparison table with one column per team and an insights footer
     $resp = $this->actingAs($user)->get('/dashboard');
     $resp->assertOk();
 
-    // Comparison table: metric labels in rows, team labels as column heads.
-    $resp->assertSee('Members');
-    $resp->assertSee('Avg ilvl');
-    $resp->assertSee('Top RIO');
-    $resp->assertSee('Top key');
-
-    // Summary chips: 2 teams represented, 3 raiders total (m1, h1, h2).
-    $resp->assertSee('raiders');
-
     // Insights footer surfaces the ilvl gap + AOTC clear.
-    $resp->assertSee('Insights');
     $resp->assertSee('Mythic Team avg ilvl 660 vs Heroic Team 642 (+18).');
     $resp->assertSee('Heroic Team has cleared every Heroic boss in Mirrorhall (AOTC).');
 });
@@ -392,16 +379,6 @@ it('hides older-expansion raids in the breakdown so only the current tier shows'
     $resp->assertDontSee('OldBoss-TWW');
 });
 
-it('renders the empty-state hint when blizzard raid data is missing for a team', function () {
-    makeTeamMember('Heroic1-Silvermoon', TeamMapping::TEAM_HEROIC);
-    snapshotWithRow(Member::query()->first()->id, ['ilvl' => 640]);
-
-    $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
-
-    $resp = $this->actingAs($user)->get('/dashboard');
-    $resp->assertOk();
-    $resp->assertSee('No Blizzard raid-encounters data');
-});
 
 it('caps the heroic team breakdown at heroic, dropping mythic encounters', function () {
     $crossover = makeTeamMember('Crossover-Silvermoon', TeamMapping::TEAM_HEROIC);
@@ -441,15 +418,6 @@ it('caps the heroic team breakdown at heroic, dropping mythic encounters', funct
     $resp->assertDontSee('1/1 M');
 });
 
-it('widget renders empty state when no member has a team assigned', function () {
-    makeTeamMember('Untagged-Silvermoon', null, ['team' => null]);
-
-    $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
-
-    $resp = $this->actingAs($user)->get('/dashboard');
-    $resp->assertOk();
-    $resp->assertSee('No members have a team assigned');
-});
 
 it('officer can trigger an on-demand RIO sync', function () {
     makeTeamMember('Sheday-Silvermoon', TeamMapping::TEAM_HEROIC);

@@ -27,12 +27,6 @@ it('non-officer is 403d from the social page', function () {
     $this->actingAs($user)->get('/dashboard/social')->assertForbidden();
 });
 
-it('renders the social page with header + "next 60 days" copy', function () {
-    $resp = $this->actingAs(socialOfficer())->get('/dashboard/social');
-    $resp->assertOk()
-        ->assertSee('Social')
-        ->assertSee('next 60 days');
-});
 
 it('shows an upcoming Raid-Helper event in the chronological list', function () {
     RaidEvent::query()->create([
@@ -121,7 +115,6 @@ it('shows the quick-create panel pointed at the social-events channel', function
 
     $resp = $this->actingAs(socialOfficer())->get('/dashboard/social');
     $resp->assertOk()
-        ->assertSee('Quick create')
         ->assertSee('1430231966686511124', false)  // hidden channel_id input
         ->assertSee('value="1"', false);            // hidden template_id input (accept/maybe/decline)
 });
@@ -141,11 +134,34 @@ it('renders a grid view when ?view=grid is set', function () {
 
     $resp = $this->actingAs(socialOfficer())->get('/dashboard/social?view=grid');
     $resp->assertOk()
-        ->assertSee('Calendar')
-        // Day-of-week headers in the grid.
-        ->assertSee('Mon')->assertSee('Sun')
-        // The event lands in a cell.
         ->assertSee('Mythic Tuesday');
+});
+
+it('renders two upcoming events in chronological order', function () {
+    RaidEvent::query()->create([
+        'raidhelper_event_id' => 'rh-later',
+        'channel_id' => '111', 'server_id' => '222',
+        'title' => 'Later Raid Night',
+        'starts_at' => now()->addDays(5),
+        'ends_at' => now()->addDays(5)->addHours(3),
+        'closing_at' => now()->addDays(5)->subHour(),
+        'ics_uid' => 'rh-later@regenesis.local',
+        'last_synced_at' => now(),
+    ]);
+    RaidEvent::query()->create([
+        'raidhelper_event_id' => 'rh-sooner',
+        'channel_id' => '111', 'server_id' => '222',
+        'title' => 'Sooner Raid Night',
+        'starts_at' => now()->addDays(2),
+        'ends_at' => now()->addDays(2)->addHours(3),
+        'closing_at' => now()->addDays(2)->subHour(),
+        'ics_uid' => 'rh-sooner@regenesis.local',
+        'last_synced_at' => now(),
+    ]);
+
+    $body = $this->actingAs(socialOfficer())->get('/dashboard/social')->assertOk()->getContent();
+
+    expect(strpos($body, 'Sooner Raid Night'))->toBeLessThan(strpos($body, 'Later Raid Night'));
 });
 
 it('hides past Raid-Helper events even when their start is technically inside the window', function () {

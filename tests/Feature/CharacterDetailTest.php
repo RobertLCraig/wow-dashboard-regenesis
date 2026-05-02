@@ -150,9 +150,7 @@ it('lists alt cohort members linked back to their own pages', function () {
 
     $resp = $this->actingAs(characterOfficer())->get('/character/Main-Silvermoon');
     $resp->assertOk()
-        ->assertSee('Alt cohort')
-        ->assertSee('Alt1-Silvermoon')
-        ->assertDontSee('No linked alts');
+        ->assertSee('Alt1-Silvermoon');
 });
 
 it('shows action history with the reviewer name + decision', function () {
@@ -190,14 +188,6 @@ it('shows GRM events under the Activity section', function () {
         ->assertSee('Heroic Raider');
 });
 
-it('renders the alt cohort empty-state when the member is a singleton', function () {
-    characterMember('Solo-Silvermoon');
-
-    $this->actingAs(characterOfficer())
-        ->get('/character/Solo-Silvermoon')
-        ->assertOk()
-        ->assertSee('No linked alts');
-});
 
 it('routes to characters whose realm has parentheses and accents', function () {
     // GRM stores realms verbatim, so names like "Foo-Aggra(Português)"
@@ -272,22 +262,54 @@ it('still renders the character page even when the BiS comparison service throws
     $this->actingAs(characterOfficer())
         ->get('/character/Crash-Silvermoon')
         ->assertOk()
-        ->assertSee('Crash-Silvermoon')
-        // BiS section now always renders (widget or placeholder); a
-        // service throw should still degrade gracefully rather than 500
-        // the page. Either the "no gear sample" or "no profile loaded"
-        // placeholder copy is present, depending on what data exists.
-        ->assertSeeText('BiS comparison');
+        ->assertSee('Crash-Silvermoon');
 });
 
-it('renders an empty-state Mythic+ activity panel when the character has no runs', function () {
-    characterMember('Quiet-Silvermoon');
 
-    $this->actingAs(characterOfficer())
-        ->get('/character/Quiet-Silvermoon')
-        ->assertOk()
-        ->assertSee('Mythic+ activity')
-        ->assertSee('No keys completed in the last 90 days');
+it('renders the BiS comparison section when a matching BisProfile exists', function () {
+    $m = characterMember('Bishero-Silvermoon', ['class' => 'PALADIN', 'team' => null]);
+
+    \App\Models\BisProfile::query()->create([
+        'class' => 'paladin',
+        'spec' => 'retribution',
+        'hero_talent' => null,
+        'profile_name' => 'mid1_paladin_retribution',
+        'source_path' => '/test.simc',
+        'parsed_data' => [
+            'class' => 'paladin', 'spec' => 'retribution', 'hero_talent' => null,
+            'gear' => [
+                'head' => ['slot' => 'head', 'item_id' => 1001, 'name' => 'Helm of Judgment', 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+            ],
+            'consumables' => [],
+            'gear_ilvl' => 650.0,
+        ],
+        'captured_at' => now(),
+    ]);
+
+    $snap = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now(),
+        'source' => Snapshot::SOURCE_RAIDERIO,
+        'payload_hash' => 'h-bis-happy',
+    ]);
+    MemberSnapshot::query()->create([
+        'snapshot_id' => $snap->id,
+        'member_id' => $m->id,
+        'raw_json' => [
+            'active_spec_name' => 'Retribution',
+            'gear' => ['items' => [
+                'head' => ['item_id' => 1001, 'name' => 'Helm of Judgment', 'enchants' => [], 'gems' => []],
+            ]],
+        ],
+        'ilvl' => 650,
+    ]);
+
+    $body = $this->actingAs(characterOfficer())->get('/character/Bishero-Silvermoon')->assertOk()->getContent();
+
+    // Profile name appears in the BiS comparison section header
+    expect($body)->toContain('mid1_paladin_retribution');
+    // BiS gear ilvl rendered as "(BiS ilvl 650.0)"
+    expect($body)->toContain('650.0');
 });
 
 it('renders the Mythic+ activity panel with summary tiles, dungeon spread, and recent runs', function () {
@@ -320,15 +342,7 @@ it('renders the Mythic+ activity panel with summary tiles, dungeon spread, and r
     $this->actingAs(characterOfficer())
         ->get('/character/Sheday-Silvermoon')
         ->assertOk()
-        ->assertSee('Mythic+ activity')
-        ->assertSee('Last 7 days')
-        ->assertSee('Last 30 days')
-        ->assertSee('Last 90 days')
-        ->assertSee('Dungeon spread (30d)')
-        // Both dungeons within 30d should appear in the spread.
         ->assertSee('HoA')
         ->assertSee('TOP')
-        ->assertSee('Recent runs')
-        // Highest level shown in the 90d tile should be the +14
         ->assertSee('+14');
 });

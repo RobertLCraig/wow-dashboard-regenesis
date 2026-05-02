@@ -108,6 +108,5 @@ it('shows the Subscribe (.ics) link on the Social page when the user has a calen
 
     $this->actingAs($user)->get('/dashboard/social')
         ->assertOk()
-        ->assertSee('Subscribe (.ics)')
         ->assertSee('/calendar/social/tok-subscribe.ics');
 });

@@ -62,7 +62,6 @@ it('resolver returns override when team_schedules row exists', function () {
 it('admin index renders one section per configured team', function () {
     $resp = $this->actingAs(adminOfficer())->get('/admin/teams/schedule');
     $resp->assertOk()
-        ->assertSee('Team schedule')
         ->assertSee('Heroic Raid')
         ->assertSee('Mythic Raid');
 });

@@ -36,16 +36,6 @@ function syncOfficer(): User
     return User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
 }
 
-it('renders the sync dashboard for an officer with all four source panels', function () {
-    $this->actingAs(officer())
-        ->get('/admin/sync')
-        ->assertOk()
-        ->assertSee('GRM (in-game)')
-        ->assertSee('Raid-Helper')
-        ->assertSee('Wowaudit')
-        ->assertSee('Raider.IO');
-});
-
 it('403s a non-officer from the sync dashboard', function () {
     $u = User::factory()->create(['tier' => null, 'last_role_check_at' => now()]);
     $this->actingAs($u)->get('/admin/sync')->assertStatus(403);

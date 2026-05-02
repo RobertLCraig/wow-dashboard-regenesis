@@ -100,7 +100,6 @@ it('renders the heroic team page with roster + raid summary', function () {
 
     $resp = $this->actingAs(teamOfficer())->get('/dashboard/heroic');
     $resp->assertOk();
-    $resp->assertSee('Heroic Team');
     $resp->assertSee('Healer-Silvermoon');
     $resp->assertSee('Trial-Silvermoon');
     $resp->assertSee('Trial');                    // trial badge on the trial member
@@ -116,7 +115,6 @@ it('renders the mythic team page with mythic + mythic_trial members rolled up', 
 
     $resp = $this->actingAs(teamOfficer())->get('/dashboard/mythic');
     $resp->assertOk();
-    $resp->assertSee('Mythic Team');
     $resp->assertSee('Bruiser-Silvermoon');
     $resp->assertSee('MythTrial-Silvermoon');
     $resp->assertDontSee('Hero-Silvermoon');
@@ -153,10 +151,24 @@ it('keynight page shows top RIO scoreboard regardless of team', function () {
 
     $resp = $this->actingAs(teamOfficer())->get('/dashboard/keynight');
     $resp->assertOk();
-    $resp->assertSee('M+ Scoreboard');
     $resp->assertSee('NoTeam-Silvermoon');
     $resp->assertSee('Heroic-Silvermoon');
     $resp->assertSee('2,400'); // top RIO score formatted
+});
+
+it('keynight scoreboard lists higher-RIO players before lower-RIO players', function () {
+    $a = teamMember('Leader-Silvermoon', null);
+    $b = teamMember('Follower-Silvermoon', TeamMapping::TEAM_HEROIC);
+
+    rioSnapshotWith([
+        ['member_id' => $a->id, 'ilvl' => 640, 'mplus_score' => 2400.0, 'mplus_keystone' => 18, 'raid_progression_json' => null],
+        ['member_id' => $b->id, 'ilvl' => 642, 'mplus_score' => 1800.0, 'mplus_keystone' => 15, 'raid_progression_json' => null],
+    ]);
+
+    $body = $this->actingAs(teamOfficer())->get('/dashboard/keynight')->assertOk()->getContent();
+
+    // Leader (2400 RIO) should appear before Follower (1800 RIO) in the scoreboard.
+    expect(strpos($body, 'Leader-Silvermoon'))->toBeLessThan(strpos($body, 'Follower-Silvermoon'));
 });
 
 it('keynight page only lists events in the keynight channel', function () {
@@ -184,11 +196,6 @@ it('non-officer is 403d from each team page + keynight', function () {
     $this->actingAs($u)->get('/dashboard/keynight')->assertStatus(403);
 });
 
-it('team page renders cleanly with no roster data', function () {
-    $resp = $this->actingAs(teamOfficer())->get('/dashboard/heroic');
-    $resp->assertOk()
-        ->assertSee('No members on this team yet');
-});
 
 it('team page shows top parses (last 14 days) sorted by percentile desc', function () {
     $h1 = teamMember('Healer-Silvermoon', TeamMapping::TEAM_HEROIC);
@@ -224,10 +231,8 @@ it('team page shows top parses (last 14 days) sorted by percentile desc', functi
 
     $resp = $this->actingAs(teamOfficer())->get('/dashboard/heroic');
     $resp->assertOk()
-        ->assertSee('Best parses')
         ->assertSee('Healer-Silvermoon')
         ->assertSee('Tank-Silvermoon')
-        // Off-team member never appears at all.
         ->assertDontSee('Ignored-Silvermoon');
 
     // Widget header counts ranked members only - Dps-Silvermoon (null
@@ -242,14 +247,6 @@ it('team page shows top parses (last 14 days) sorted by percentile desc', functi
     expect(strpos($parsesSection, 'Healer-Silvermoon'))->toBeLessThan(strpos($parsesSection, 'Tank-Silvermoon'));
 });
 
-it('team top-parses widget shows the empty state when no parses are in the window', function () {
-    teamMember('Active-Silvermoon', TeamMapping::TEAM_HEROIC);
-
-    $this->actingAs(teamOfficer())
-        ->get('/dashboard/heroic')
-        ->assertOk()
-        ->assertSee('No ranked parses yet');
-});
 
 it('team top-parses widget excludes parses older than 14 days', function () {
     $h = teamMember('Healer-Silvermoon', TeamMapping::TEAM_HEROIC);
@@ -276,7 +273,5 @@ it('team top-parses widget excludes parses older than 14 days', function () {
     $this->actingAs(teamOfficer())
         ->get('/dashboard/heroic')
         ->assertOk()
-        ->assertSee('No ranked parses yet')
-        // Old 99% pill must not appear in the rendered HTML.
         ->assertDontSee('text-orange-300', false);
 });

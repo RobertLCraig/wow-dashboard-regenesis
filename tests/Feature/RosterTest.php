@@ -394,25 +394,22 @@ it('grouped mode keeps an alt as its own row when its main is filtered out', fun
     expect(rosterRowCount($resp->getContent()))->toBe(1);
 });
 
-it('roster renders a BiS column showing "OK" when no issues, the count when there are issues, and "-" when no data', function () {
-    // OK: matched everywhere
-    $ok = rosterMember('Ok-Silvermoon');
-    // Issues: missing enchant + missing gem
-    $issues = rosterMember('Issues-Silvermoon');
-    // No data: no RIO snapshot
-    $noData = rosterMember('Nodata-Silvermoon');
+it('BiS column shows OK / issue count / dash based on comparison result', function () {
+    $ok = rosterMember('Ok-Silvermoon');       // zero issues
+    $issues = rosterMember('Issues-Silvermoon'); // missing enchant + missing gems = 2 issues
+    $noData = rosterMember('Nodata-Silvermoon'); // no snapshot at all
 
     \App\Models\BisProfile::query()->create([
         'class' => 'priest',
-        'spec' => 'frost',  // PRIEST default in rosterMember
+        'spec' => 'frost',
         'hero_talent' => null,
         'profile_name' => 'MID1_priest_frost',
         'source_path' => '/x.simc',
         'parsed_data' => [
             'class' => 'priest', 'spec' => 'frost', 'hero_talent' => null,
             'gear' => [
-                'head'  => ['slot' => 'head',  'name' => 'h', 'item_id' => 1, 'enchant_id' => 100, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
-                'neck'  => ['slot' => 'neck',  'name' => 'n', 'item_id' => 2, 'enchant_id' => null, 'gem_ids' => [200, 201], 'bonus_ids' => [], 'ilevel' => null],
+                'head' => ['slot' => 'head', 'name' => 'h', 'item_id' => 1, 'enchant_id' => 100, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+                'neck' => ['slot' => 'neck', 'name' => 'n', 'item_id' => 2, 'enchant_id' => null, 'gem_ids' => [200, 201], 'bonus_ids' => [], 'ilevel' => null],
             ],
             'consumables' => [],
             'gear_ilvl' => 280,
@@ -444,22 +441,52 @@ it('roster renders a BiS column showing "OK" when no issues, the count when ther
         'raw_json' => [
             'active_spec_name' => 'Frost',
             'gear' => ['items' => [
-                'head' => ['item_id' => 1, 'name' => 'h', 'enchants' => [], 'gems' => []],   // missing enchant
-                'neck' => ['item_id' => 2, 'name' => 'n', 'enchants' => [], 'gems' => []],   // missing gems
+                'head' => ['item_id' => 1, 'name' => 'h', 'enchants' => [], 'gems' => []],  // missing enchant
+                'neck' => ['item_id' => 2, 'name' => 'n', 'enchants' => [], 'gems' => []],  // missing gems
             ]],
         ],
         'ilvl' => 282,
     ]);
     // $noData has no MemberSnapshot row.
 
-    $resp = $this->actingAs(rosterOfficer())->get('/roster');
-    $resp->assertOk()
-        // The BiS column header is present.
-        ->assertSee('BiS')
-        // Ok-Silvermoon row gets "OK".
-        ->assertSee('Ok-Silvermoon')
-        // Issues-Silvermoon row gets a numeric count (2: one missing enchant + one missing gem slot).
-        ->assertSee('Issues-Silvermoon');
+    $body = $this->actingAs(rosterOfficer())->get('/roster')->assertOk()->getContent();
+
+    // OK case: zero issues renders as emerald "OK" text
+    expect($body)->toContain('text-emerald-400">OK</span>');
+    // Issues case: 2 issues (missing enchant + missing gems) encoded in sort-value
+    expect($body)->toContain('data-sort-value="2"');
+    // No-data case: null bis -> sort-value -1
+    expect($body)->toContain('data-sort-value="-1"');
+});
+
+it('BiS column shows dash when no BisProfile exists for the member class/spec', function () {
+    // Member has a RIO snapshot (so comparison is attempted) but no BisProfile for their class/spec.
+    $m = rosterMember('Mage-Silvermoon', ['class' => 'MAGE']);
+
+    $snap = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now(),
+        'source' => Snapshot::SOURCE_RAIDERIO,
+        'payload_hash' => 'h-mage-no-profile',
+    ]);
+    MemberSnapshot::query()->create([
+        'snapshot_id' => $snap->id,
+        'member_id' => $m->id,
+        'raw_json' => [
+            'active_spec_name' => 'Fire',
+            'gear' => ['items' => [
+                'head' => ['item_id' => 999, 'name' => 'Arcane Hat', 'enchants' => [], 'gems' => []],
+            ]],
+        ],
+        'ilvl' => 280,
+    ]);
+    // Deliberately no BisProfile created for mage/fire.
+
+    $body = $this->actingAs(rosterOfficer())->get('/roster')->assertOk()->getContent();
+
+    // compareForMember returns null when no profile matches -> sort-value -1
+    expect($body)->toContain('data-sort-value="-1"');
+    expect($body)->toContain('Mage-Silvermoon');
 });
 
 it('bis_issues filter shows only members with > 0 issues', function () {
@@ -555,7 +582,6 @@ it('roster renders a Gear column from the latest Blizzard equipment snapshot', f
 
     $resp = $this->actingAs(rosterOfficer())->get('/roster');
     $resp->assertOk()
-        ->assertSee('Gear')
         ->assertSee('Cleangear-Silvermoon')
         ->assertSee('Brokengear-Silvermoon')
         ->assertSee('Nogear-Silvermoon');

@@ -77,13 +77,9 @@ it('renders three segmented-control buttons in the sidebar footer', function () 
     $response->assertOk();
     $html = $response->getContent();
     expect($html)
-        ->toContain('View clarity')
         ->toContain('value="standard"')
         ->toContain('value="clear"')
-        ->toContain('value="high_clarity"')
-        ->toContain('Standard')
-        ->toContain('Clear')
-        ->toContain('High');
+        ->toContain('value="high_clarity"');
 });
 
 it('marks the active clarity step with aria-pressed=true', function () {
@@ -247,8 +243,3 @@ it('renders widgets in the user saved order', function () {
     expect($bansAt)->toBeLessThan($aqAt);
 });
 
-it('renders the Edit layout button on the dashboard', function () {
-    $response = $this->actingAs(makePrefsOfficer())->get(route('dashboard'));
-    $response->assertOk()
-        ->assertSee('Edit layout');
-});

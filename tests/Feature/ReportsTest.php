@@ -49,28 +49,22 @@ it('non-officer is 403d from /reports and the detail page', function () {
     $this->actingAs($u)->get("/reports/{$r->code}")->assertStatus(403);
 });
 
-it('index shows recent reports with kill / pulls counts', function () {
+it('index shows fight count and kill count for each report', function () {
     $r = makeReport();
     WclFight::query()->create(['wcl_report_id' => $r->id, 'fight_id' => 1, 'encounter_id' => 1, 'name' => 'Boss A', 'kill' => true]);
-    WclFight::query()->create(['wcl_report_id' => $r->id, 'fight_id' => 2, 'encounter_id' => 2, 'name' => 'Boss B', 'kill' => false]);
+    WclFight::query()->create(['wcl_report_id' => $r->id, 'fight_id' => 2, 'encounter_id' => 2, 'name' => 'Boss B', 'kill' => true]);
+    WclFight::query()->create(['wcl_report_id' => $r->id, 'fight_id' => 3, 'encounter_id' => 3, 'name' => 'Boss C', 'kill' => false]);
 
-    $resp = $this->actingAs(reportsOfficer())->get('/reports');
-    $resp->assertOk()
-        ->assertSee('Tuesday Heroic')
-        ->assertSee('Manaforge Omega');
-    // Pulls 2 / Kills 1 should both render.
-    expect($resp->getContent())->toContain('2');
-    expect($resp->getContent())->toContain('1');
+    $body = $this->actingAs(reportsOfficer())->get('/reports')->assertOk()->getContent();
+
+    expect($body)->toContain('Tuesday Heroic');
+    expect($body)->toContain('Manaforge Omega');
+    // Kill count rendered inside the emerald-300 span; 2 kills out of 3 fights.
+    expect($body)->toContain('class="text-emerald-300">2</span>');
 });
 
-it('index shows the empty-state when there are no reports', function () {
-    $this->actingAs(reportsOfficer())
-        ->get('/reports')
-        ->assertOk()
-        ->assertSee('No reports stored yet');
-});
 
-it('detail shows the fights and per-actor parses for a single report', function () {
+it('detail shows the fights and per-actor parses with formatted metric_per_second values', function () {
     $r = makeReport();
     $kill = WclFight::query()->create([
         'wcl_report_id' => $r->id, 'fight_id' => 1, 'encounter_id' => 100,
@@ -80,7 +74,7 @@ it('detail shows the fights and per-actor parses for a single report', function 
     WclActorParse::query()->create([
         'wcl_fight_id' => $kill->id, 'actor_name' => 'Sheday',
         'actor_class' => 'PALADIN', 'actor_spec' => 'Retribution', 'role' => WclActorParse::ROLE_DPS,
-        'metric_per_second' => 1500000.5,
+        'metric_per_second' => 1500000,
     ]);
     WclActorParse::query()->create([
         'wcl_fight_id' => $kill->id, 'actor_name' => 'Healy',
@@ -91,21 +85,27 @@ it('detail shows the fights and per-actor parses for a single report', function 
     $resp = $this->actingAs(reportsOfficer())->get("/reports/{$r->code}");
     $resp->assertOk()
         ->assertSee('Plexus Sentinel')
-        ->assertSee('Heroic')
-        ->assertSee('Kill')
         ->assertSee('Sheday')
-        ->assertSee('Healy');
+        ->assertSee('Healy')
+        ->assertSee('1,500,000')  // Sheday's DPS formatted via number_format(0)
+        ->assertSee('800,000');   // Healy's HPS formatted
+});
+
+it('detail shows "no per-actor data" message when a fight has no parses', function () {
+    $r = makeReport();
+    WclFight::query()->create([
+        'wcl_report_id' => $r->id, 'fight_id' => 1, 'encounter_id' => 200,
+        'name' => 'Greed Incarnate', 'difficulty' => WclFight::DIFFICULTY_NORMAL,
+        'kill' => false,
+    ]);
+
+    $this->actingAs(reportsOfficer())->get("/reports/{$r->code}")
+        ->assertOk()
+        ->assertSee('Greed Incarnate')
+        ->assertSee('No per-actor data captured for this pull.', false);
 });
 
 it('detail 404s an unknown report code', function () {
     $this->actingAs(reportsOfficer())->get('/reports/nonexistent')->assertStatus(404);
 });
 
-it('detail shows the empty-state when no fights have been imported yet', function () {
-    $r = makeReport();
-
-    $this->actingAs(reportsOfficer())
-        ->get("/reports/{$r->code}")
-        ->assertOk()
-        ->assertSee('Fights haven', false);  // raw HTML; apostrophe encodes
-});

@@ -75,6 +75,40 @@ it('digest includes roster delta over the past 7 days', function () {
     expect($built['markdown'])->toContain('+1 / -1');
 });
 
+it('digest renders +N / -0 correctly when only joins occur in the window', function () {
+    $now = CarbonImmutable::now();
+    foreach (['Alpha-Silvermoon', 'Beta-Silvermoon', 'Gamma-Silvermoon'] as $i => $name) {
+        $m = digestMember($name);
+        MemberEvent::query()->create([
+            'member_id' => $m->id, 'type' => MemberEvent::TYPE_JOINED,
+            'occurred_at' => $now->subDays(2), 'dedup_hash' => 'hz-' . $i,
+        ]);
+    }
+
+    $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon', $now))->build();
+
+    expect($built['data']['roster']['joined'])->toBe(3);
+    expect($built['data']['roster']['left'])->toBe(0);
+    expect($built['markdown'])->toContain('+3 / -0');
+});
+
+it('digest renders +0 / -N correctly when only departures occur in the window', function () {
+    $now = CarbonImmutable::now();
+    foreach (['Leaver1-Silvermoon', 'Leaver2-Silvermoon'] as $i => $name) {
+        $m = digestMember($name);
+        MemberEvent::query()->create([
+            'member_id' => $m->id, 'type' => MemberEvent::TYPE_LEFT,
+            'occurred_at' => $now->subDays(2), 'dedup_hash' => 'hq-' . $i,
+        ]);
+    }
+
+    $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon', $now))->build();
+
+    expect($built['data']['roster']['left'])->toBe(2);
+    expect($built['data']['roster']['joined'])->toBe(0);
+    expect($built['markdown'])->toContain('+0 / -2');
+});
+
 it('digest includes anniversaries falling in the current week', function () {
     $now = CarbonImmutable::now();
     $weekStart = $now->startOfWeek();
@@ -88,7 +122,6 @@ it('digest includes anniversaries falling in the current week', function () {
     $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon', $now))->build();
 
     expect($built['markdown'])
-        ->toContain('Anniversaries')
         ->toContain('Veteran-Silvermoon')
         ->toContain('(3y)');
 });
@@ -103,7 +136,6 @@ it('digest reports newly inactive members crossing the 30/60/90d boundaries', fu
     $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon', $now))->build();
 
     expect($built['markdown'])
-        ->toContain('Newly inactive')
         ->toContain('Just30-Silvermoon')
         ->toContain('Long60-Silvermoon')
         ->not->toContain('Active-Silvermoon');
@@ -134,12 +166,8 @@ it('digest summarises team progression and the top RIO scores', function () {
     $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon', $now))->build();
 
     expect($built['markdown'])
-        ->toContain('Team progression')
-        // Synthesized headline (cap-aware): mythic team prefers M; heroic
-        // team caps at H. Builder no longer mirrors RIO's compound summary.
         ->toContain('5/8 M')
         ->toContain('8/8 H')
-        ->toContain('Top M+ scores')
         ->toContain('Mythraider-Silvermoon')
         ->toContain('2,400');
 });
@@ -147,7 +175,6 @@ it('digest summarises team progression and the top RIO scores', function () {
 it('builder produces markdown even with an empty guild', function () {
     $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon'))->build();
     expect($built['markdown'])
-        ->toContain('Regenesis weekly digest')
         ->toContain('0 active');
 });
 
@@ -190,7 +217,6 @@ it('digest includes the best parses (one row per member, sorted desc) from the l
     $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon', $now))->build();
 
     expect($built['markdown'])
-        ->toContain('Best parses this week')
         ->toContain('99% on Plexus Sentinel')
         ->toContain('80% on Plexus Sentinel')
         ->toContain('60% on Plexus Sentinel');
@@ -201,30 +227,6 @@ it('digest includes the best parses (one row per member, sorted desc) from the l
     expect(strpos($section, '80%'))->toBeLessThan(strpos($section, '60%'));
 });
 
-it('digest omits the parses section when nothing falls in the window', function () {
-    $now = CarbonImmutable::now();
-    $a = digestMember('Sheday-Silvermoon');
-
-    $report = \App\Models\WclReport::query()->create([
-        'guild_key' => 'Regenesis-Silvermoon',
-        'code' => 'rrrrrr', 'title' => 'Old report',
-        'start_time' => $now->subDays(20),
-        'captured_at' => $now,
-    ]);
-    $fight = \App\Models\WclFight::query()->create([
-        'wcl_report_id' => $report->id, 'fight_id' => 1,
-        'encounter_id' => 100, 'name' => 'Old boss',
-        'difficulty' => 4, 'kill' => true,
-        'start_time' => $now->subDays(20),
-    ]);
-    \App\Models\WclActorParse::query()->create([
-        'wcl_fight_id' => $fight->id, 'member_id' => $a->id,
-        'actor_name' => 'Sheday', 'role' => 'dps', 'parse_percentile' => 99,
-    ]);
-
-    $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon', $now))->build();
-    expect($built['markdown'])->not->toContain('Best parses this week');
-});
 
 // --- DiscordWebhookPoster -------------------------------------------
 

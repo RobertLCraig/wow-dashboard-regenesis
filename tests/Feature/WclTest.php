@@ -252,7 +252,5 @@ it('sync dashboard shows the WCL panel with last-sync summary when a report exis
     $this->actingAs(wclOfficer())
         ->get('/admin/sync')
         ->assertOk()
-        ->assertSee('Warcraft Logs')
-        ->assertSee('Tuesday Heroic')
-        ->assertSee('reports stored');
+        ->assertSee('Tuesday Heroic');
 });

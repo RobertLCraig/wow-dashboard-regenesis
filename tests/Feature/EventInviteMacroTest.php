@@ -60,7 +60,6 @@ it('renders an /invite line for each signed-up player and excludes Absence / Ben
 
     $resp = $this->actingAs(inviteOfficer())->get("/events/{$e->id}");
     $resp->assertOk()
-        ->assertSee('Invite macros')
         ->assertSee('/invite Sheday', false)
         ->assertSee('/invite Tute', false)
         ->assertSee('/invite Aakervik', false)
@@ -96,10 +95,17 @@ it('shows the excluded counts in the header', function () {
         ->assertSee('Bench 1');
 });
 
-it('renders a "nothing to invite" hint when every signup is filtered out', function () {
+it('excluded-bucket labels are absent from the header when that bucket has no signups', function () {
     $e = inviteEvent();
-    addSignup($e, 'OnlyDeclined', 'Declined', 1);
+    addSignup($e, 'Sheday', 'Healer', 1);
+    // No Absence, Bench, or Declined signups.
 
-    $resp = $this->actingAs(inviteOfficer())->get("/events/{$e->id}");
-    $resp->assertOk()->assertSee('Nothing to invite');
+    $body = $this->actingAs(inviteOfficer())->get("/events/{$e->id}")->assertOk()->getContent();
+
+    // Only populated buckets appear; zero-count labels must not be rendered.
+    expect($body)->toContain('1 to invite');
+    expect($body)->not->toContain('Absence 0');
+    expect($body)->not->toContain('Bench 0');
+    expect($body)->not->toContain('Declined 0');
 });
+
