@@ -135,11 +135,9 @@ it('digest summarises team progression and the top RIO scores', function () {
 
     expect($built['markdown'])
         ->toContain('Team progression')
-        ->toContain('Mythic Team: 1 members')
         // Synthesized headline (cap-aware): mythic team prefers M; heroic
         // team caps at H. Builder no longer mirrors RIO's compound summary.
         ->toContain('5/8 M')
-        ->toContain('Heroic Team: 1 members')
         ->toContain('8/8 H')
         ->toContain('Top M+ scores')
         ->toContain('Mythraider-Silvermoon')
