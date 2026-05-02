@@ -396,6 +396,24 @@
 
                 {{-- ═══ Matrix view ═══ --}}
                 <div x-show="mode === 'matrix'">
+                    @php
+                        // Pre-compute all raid matrices and derive the global diff set so
+                        // boss-rows mode can use a single shared table header across raids.
+                        $allMatrices  = [];
+                        $globalDiffs  = [];
+                        $diffPriority = ['MYTHIC' => 0, 'HEROIC' => 1, 'NORMAL' => 2];
+                        foreach ($teamProgression['raids'] as $i => $raid) {
+                            $m = $pivotMatrix($raid['difficulties']);
+                            $allMatrices[$i] = $m;
+                            foreach ($m['diffs'] as $d) {
+                                $globalDiffs[$d] = true;
+                            }
+                        }
+                        uksort($globalDiffs, fn ($a, $b) => $diffPriority[$a] <=> $diffPriority[$b]);
+                        $globalDiffs = array_keys($globalDiffs);
+                        $globalTeams = array_keys($teamColumns);
+                        $totalCols   = 1 + count($globalTeams) * count($globalDiffs);
+                    @endphp
 
                     {{-- Axis toggle --}}
                     <div class="px-4 py-2 border-b border-line/40 flex items-center gap-3">
@@ -416,209 +434,231 @@
                         </div>
                     </div>
 
-                    @foreach ($teamProgression['raids'] as $raid)
-                        @php $matrix = $pivotMatrix($raid['difficulties']); @endphp
-
-                        <div class="border-b border-line last:border-0">
-
-                            {{-- Raid name + per-team difficulty summary --}}
-                            <div class="px-4 py-2 flex items-baseline gap-4 flex-wrap bg-panel/60">
-                                <span class="text-xs font-semibold text-muted uppercase tracking-wider shrink-0">
-                                    {{ $raid['name'] }}
-                                </span>
-                                @foreach ($matrix['teams'] as $team)
-                                    <div class="flex items-baseline gap-1.5">
-                                        <span class="{{ $teamTone($team) }} text-xs font-semibold shrink-0">
+                    {{-- ── Mode A: bosses as rows – single unified table, raids as tbody sections ── --}}
+                    <div x-show="orient === 'boss-rows'" class="overflow-x-auto">
+                        <table class="text-xs border-separate border-spacing-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-left px-4 py-1.5 font-normal text-muted border-b border-line/30 min-w-[10rem]"></th>
+                                    @foreach ($globalTeams as $team)
+                                        <th colspan="{{ count($globalDiffs) }}"
+                                            class="text-center py-1.5 border border-line/30 text-xs font-semibold uppercase tracking-wider {{ $teamTone($team) }} {{ $teamBg($team) }}">
                                             {{ $teamColumns[$team]['label'] }}
-                                        </span>
-                                        @foreach ($matrix['diffs'] as $diff)
-                                            @if (isset($matrix['summary'][$team][$diff]))
-                                                @php $s = $matrix['summary'][$team][$diff]; @endphp
-                                                <span class="{{ $diffKillColor($diff) }} text-xs font-mono">
-                                                    {{ strtoupper(substr($diff, 0, 1)) }}{{ $s['killed'] }}/{{ $s['total'] }}
+                                        </th>
+                                    @endforeach
+                                </tr>
+                                <tr>
+                                    <th class="px-4 py-1 text-left text-muted font-normal border-b border-line/30 text-xs">Boss</th>
+                                    @foreach ($globalTeams as $team)
+                                        @foreach ($globalDiffs as $diff)
+                                            <th class="text-center w-10 py-1 border-b border-line/30 {{ $teamBg($team) }} {{ $loop->first ? 'border-l border-line/20' : '' }} {{ $loop->last ? 'border-r border-line/20' : '' }}">
+                                                <span class="text-xs font-semibold {{ $diffKillColor($diff) }}">
+                                                    {{ strtoupper(substr($diff, 0, 1)) }}
                                                 </span>
-                                            @endif
+                                            </th>
                                         @endforeach
-                                    </div>
-                                @endforeach
-                            </div>
-
-                            {{-- ── Mode A: bosses as rows, [team × diff] as columns ── --}}
-                            <div x-show="orient === 'boss-rows'" class="overflow-x-auto">
-                                <table class="text-xs border-separate border-spacing-0">
-                                    <thead>
-                                        {{-- Team group headers --}}
-                                        <tr>
-                                            <th class="text-left px-4 py-1.5 font-normal text-muted border-b border-line/30 min-w-[10rem]"></th>
-                                            @foreach ($matrix['teams'] as $team)
-                                                <th colspan="{{ count($matrix['diffs']) }}"
-                                                    class="text-center py-1.5 border border-line/30 text-xs font-semibold uppercase tracking-wider {{ $teamTone($team) }} {{ $teamBg($team) }}">
-                                                    {{ $teamColumns[$team]['label'] }}
-                                                </th>
-                                            @endforeach
-                                        </tr>
-                                        {{-- Difficulty labels --}}
-                                        <tr>
-                                            <th class="px-4 py-1 text-left text-muted font-normal border-b border-line/30 text-xs">Boss</th>
-                                            @foreach ($matrix['teams'] as $team)
-                                                @foreach ($matrix['diffs'] as $diff)
-                                                    <th class="text-center w-10 py-1 border-b border-line/30 {{ $teamBg($team) }} {{ $loop->first ? 'border-l border-line/20' : '' }} {{ $loop->last ? 'border-r border-line/20' : '' }}">
-                                                        <span class="text-xs font-semibold {{ $diffKillColor($diff) }}">
-                                                            {{ strtoupper(substr($diff, 0, 1)) }}
-                                                        </span>
-                                                    </th>
-                                                @endforeach
-                                            @endforeach
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($matrix['bosses'] as $boss)
-                                            @php
-                                                $totalCols = 1 + count($matrix['teams']) * count($matrix['diffs']);
-                                            @endphp
-                                            <tr @click="expanded[{{ $boss['id'] }}] = !expanded[{{ $boss['id'] }}]"
-                                                class="cursor-pointer hover:bg-panel/50 border-b border-line/20 last:border-0">
-                                                <td class="px-4 py-2 text-ink whitespace-nowrap">
-                                                    <span class="inline-flex items-center gap-1.5">
-                                                        <span x-show="!expanded[{{ $boss['id'] }}]" class="text-xs text-muted/50 leading-none select-none">&#9654;</span>
-                                                        <span x-show="expanded[{{ $boss['id'] }}]"  class="text-xs text-muted/50 leading-none select-none">&#9660;</span>
-                                                        {{ $boss['name'] }}
-                                                    </span>
-                                                </td>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($teamProgression['raids'] as $i => $raid)
+                                    @php $matrix = $allMatrices[$i]; @endphp
+                                    {{-- Raid section header --}}
+                                    <tr class="bg-panel/60">
+                                        <td colspan="{{ $totalCols }}" class="px-4 py-2">
+                                            <div class="flex items-baseline gap-4 flex-wrap">
+                                                <span class="text-xs font-semibold text-muted uppercase tracking-wider shrink-0">
+                                                    {{ $raid['name'] }}
+                                                </span>
                                                 @foreach ($matrix['teams'] as $team)
-                                                    @foreach ($matrix['diffs'] as $diff)
-                                                        @php
-                                                            $cell        = $boss['cells'][$team][$diff] ?? null;
-                                                            $participates = isset($matrix['summary'][$team][$diff]);
-                                                            if (! $participates) {
-                                                                $tip = $boss['name'] . ' - ' . $teamColumns[$team]['label'] . ' does not raid ' . strtolower($diff);
-                                                            } elseif ($cell && $cell['killed']) {
-                                                                $ago = $cell['last_kill_ms']
-                                                                    ? \Carbon\CarbonImmutable::createFromTimestampMs($cell['last_kill_ms'])->diffForHumans()
-                                                                    : '?';
-                                                                $tip = $boss['name'] . ' - ' . $cell['killers'] . ' ' . \Illuminate\Support\Str::plural('raider', $cell['killers']) . ', last ' . $ago;
-                                                            } else {
-                                                                $tip = $boss['name'] . ' - not killed on ' . strtolower($diff) . ' by ' . $teamColumns[$team]['label'];
-                                                            }
-                                                        @endphp
-                                                        <td class="text-center w-10 py-2 {{ $teamBg($team) }} {{ $loop->first ? 'border-l border-line/20' : '' }} {{ $loop->last ? 'border-r border-line/20' : '' }}" title="{{ $tip }}">
-                                                            @if (! $participates)
-                                                                <span class="inline-block w-4 h-4 rounded-sm bg-line/15"></span>
-                                                            @elseif ($cell && $cell['killed'])
-                                                                <span class="inline-block w-4 h-4 rounded-sm {{ $diffSquareFill($diff) }}"></span>
-                                                            @else
-                                                                <span class="inline-block w-4 h-4 rounded-sm {{ $diffSquareEmpty($diff) }}"></span>
+                                                    <div class="flex items-baseline gap-1.5">
+                                                        <span class="{{ $teamTone($team) }} text-xs font-semibold shrink-0">
+                                                            {{ $teamColumns[$team]['label'] }}
+                                                        </span>
+                                                        @foreach ($matrix['diffs'] as $diff)
+                                                            @if (isset($matrix['summary'][$team][$diff]))
+                                                                @php $s = $matrix['summary'][$team][$diff]; @endphp
+                                                                <span class="{{ $diffKillColor($diff) }} text-xs font-mono">
+                                                                    {{ strtoupper(substr($diff, 0, 1)) }}{{ $s['killed'] }}/{{ $s['total'] }}
+                                                                </span>
                                                             @endif
-                                                        </td>
-                                                    @endforeach
+                                                        @endforeach
+                                                    </div>
                                                 @endforeach
-                                            </tr>
-                                            {{-- Expanded kill detail --}}
-                                            <tr x-show="expanded[{{ $boss['id'] }}]" class="bg-panel/30">
-                                                <td colspan="{{ $totalCols }}" class="px-8 py-2">
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {{-- Boss rows --}}
+                                    @foreach ($matrix['bosses'] as $boss)
+                                        <tr @click="expanded[{{ $boss['id'] }}] = !expanded[{{ $boss['id'] }}]"
+                                            class="cursor-pointer hover:bg-panel/50 border-b border-line/20 last:border-0">
+                                            <td class="px-4 py-2 text-ink whitespace-nowrap">
+                                                <span class="inline-flex items-center gap-1.5">
+                                                    <span x-show="!expanded[{{ $boss['id'] }}]" class="text-xs text-muted/50 leading-none select-none">&#9654;</span>
+                                                    <span x-show="expanded[{{ $boss['id'] }}]"  class="text-xs text-muted/50 leading-none select-none">&#9660;</span>
+                                                    {{ $boss['name'] }}
+                                                </span>
+                                            </td>
+                                            @foreach ($globalTeams as $team)
+                                                @foreach ($globalDiffs as $diff)
                                                     @php
-                                                        $expandParts = [];
-                                                        foreach ($matrix['teams'] as $t) {
-                                                            $kills = [];
-                                                            foreach ($matrix['diffs'] as $d) {
-                                                                $c = $boss['cells'][$t][$d] ?? null;
-                                                                if ($c && $c['killed']) {
-                                                                    $short = strtoupper(substr($d, 0, 1));
-                                                                    $ago   = $c['last_kill_ms']
-                                                                        ? \Carbon\CarbonImmutable::createFromTimestampMs($c['last_kill_ms'])->diffForHumans()
-                                                                        : '?';
-                                                                    $kills[] = "{$short}: {$c['killers']} raiders, last {$ago}";
-                                                                }
-                                                            }
-                                                            if ($kills) {
-                                                                $expandParts[] = [
-                                                                    'team'  => $t,
-                                                                    'label' => $teamColumns[$t]['label'],
-                                                                    'kills' => $kills,
-                                                                ];
-                                                            }
+                                                        $cell         = $boss['cells'][$team][$diff] ?? null;
+                                                        $participates = isset($matrix['summary'][$team][$diff]);
+                                                        if (! $participates) {
+                                                            $tip = $boss['name'] . ' - ' . $teamColumns[$team]['label'] . ' does not raid ' . strtolower($diff);
+                                                        } elseif ($cell && $cell['killed']) {
+                                                            $ago = $cell['last_kill_ms']
+                                                                ? \Carbon\CarbonImmutable::createFromTimestampMs($cell['last_kill_ms'])->diffForHumans()
+                                                                : '?';
+                                                            $tip = $boss['name'] . ' - ' . $cell['killers'] . ' ' . \Illuminate\Support\Str::plural('raider', $cell['killers']) . ', last ' . $ago;
+                                                        } else {
+                                                            $tip = $boss['name'] . ' - not killed on ' . strtolower($diff) . ' by ' . $teamColumns[$team]['label'];
                                                         }
                                                     @endphp
-                                                    @if (empty($expandParts))
-                                                        <span class="text-xs text-muted italic">No kills recorded.</span>
-                                                    @else
-                                                        <div class="flex flex-wrap gap-x-5 gap-y-0.5 text-xs">
-                                                            @foreach ($expandParts as $part)
-                                                                <span>
-                                                                    <span class="{{ $teamTone($part['team']) }} font-medium">{{ $part['label'] }}:</span>
-                                                                    <span class="text-muted">{{ implode(' | ', $part['kills']) }}</span>
-                                                                </span>
-                                                            @endforeach
-                                                        </div>
-                                                    @endif
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {{-- ── Mode B: bosses as columns, [team × diff] as rows ── --}}
-                            <div x-show="orient === 'boss-cols'" class="overflow-x-auto">
-                                <table class="text-xs border-separate border-spacing-0">
-                                    <thead>
-                                        <tr>
-                                            <th class="text-left px-4 py-1.5 font-normal text-muted border-b border-line/30 whitespace-nowrap">Team / Diff</th>
-                                            @foreach ($matrix['bosses'] as $boss)
-                                                <th class="text-center px-3 py-1.5 border-b border-line/30 text-muted font-medium whitespace-nowrap">
-                                                    {{ $boss['name'] }}
-                                                </th>
+                                                    <td class="text-center w-10 py-2 {{ $teamBg($team) }} {{ $loop->first ? 'border-l border-line/20' : '' }} {{ $loop->last ? 'border-r border-line/20' : '' }}" title="{{ $tip }}">
+                                                        @if (! $participates)
+                                                            <span class="inline-block w-4 h-4 rounded-sm bg-line/15"></span>
+                                                        @elseif ($cell && $cell['killed'])
+                                                            <span class="inline-block w-4 h-4 rounded-sm {{ $diffSquareFill($diff) }}"></span>
+                                                        @else
+                                                            <span class="inline-block w-4 h-4 rounded-sm {{ $diffSquareEmpty($diff) }}"></span>
+                                                        @endif
+                                                    </td>
+                                                @endforeach
                                             @endforeach
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($matrix['teams'] as $team)
-                                            @foreach ($matrix['diffs'] as $diff)
+                                        {{-- Expanded kill detail --}}
+                                        <tr x-show="expanded[{{ $boss['id'] }}]" class="bg-panel/30">
+                                            <td colspan="{{ $totalCols }}" class="px-8 py-2">
                                                 @php
-                                                    $isFirstDiff    = $loop->first;
-                                                    $isFirstTeam    = $loop->parent->first;
-                                                    $labelPadClass  = $isFirstDiff && ! $isFirstTeam ? 'pt-3 pb-1.5' : 'py-1.5';
-                                                    $cellPadClass   = $isFirstDiff && ! $isFirstTeam ? 'pt-3 pb-1.5' : 'py-1.5';
-                                                @endphp
-                                                <tr class="border-b border-line/20 last:border-0 hover:bg-panel/30">
-                                                    <td class="px-4 {{ $labelPadClass }} whitespace-nowrap {{ $teamStripe($team) }} {{ $teamBg($team) }}">
-                                                        <span class="{{ $teamTone($team) }} font-medium">{{ $teamColumns[$team]['label'] }}</span>
-                                                        <span class="{{ $diffKillColor($diff) }} ml-1 font-mono">{{ strtoupper(substr($diff, 0, 1)) }}</span>
-                                                    </td>
-                                                    @foreach ($matrix['bosses'] as $boss)
-                                                        @php
-                                                            $cell        = $boss['cells'][$team][$diff] ?? null;
-                                                            $participates = isset($matrix['summary'][$team][$diff]);
-                                                            if (! $participates) {
-                                                                $tip = $boss['name'] . ' - ' . $teamColumns[$team]['label'] . ' does not raid ' . strtolower($diff);
-                                                            } elseif ($cell && $cell['killed']) {
-                                                                $ago = $cell['last_kill_ms']
-                                                                    ? \Carbon\CarbonImmutable::createFromTimestampMs($cell['last_kill_ms'])->diffForHumans()
+                                                    $expandParts = [];
+                                                    foreach ($globalTeams as $t) {
+                                                        $kills = [];
+                                                        foreach ($globalDiffs as $d) {
+                                                            $c = $boss['cells'][$t][$d] ?? null;
+                                                            if ($c && $c['killed']) {
+                                                                $short = strtoupper(substr($d, 0, 1));
+                                                                $ago   = $c['last_kill_ms']
+                                                                    ? \Carbon\CarbonImmutable::createFromTimestampMs($c['last_kill_ms'])->diffForHumans()
                                                                     : '?';
-                                                                $tip = $boss['name'] . ' - ' . $cell['killers'] . ' ' . \Illuminate\Support\Str::plural('raider', $cell['killers']) . ', last ' . $ago;
-                                                            } else {
-                                                                $tip = $boss['name'] . ' - not killed on ' . strtolower($diff);
+                                                                $kills[] = "{$short}: {$c['killers']} raiders, last {$ago}";
                                                             }
-                                                        @endphp
-                                                        <td class="text-center px-3 {{ $cellPadClass }} {{ $teamBg($team) }}" title="{{ $tip }}">
-                                                            @if (! $participates)
-                                                                <span class="inline-block w-4 h-4 rounded-sm bg-line/15"></span>
-                                                            @elseif ($cell && $cell['killed'])
-                                                                <span class="inline-block w-4 h-4 rounded-sm {{ $diffSquareFill($diff) }}"></span>
-                                                            @else
-                                                                <span class="inline-block w-4 h-4 rounded-sm {{ $diffSquareEmpty($diff) }}"></span>
-                                                            @endif
-                                                        </td>
-                                                    @endforeach
-                                                </tr>
-                                            @endforeach
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
+                                                        }
+                                                        if ($kills) {
+                                                            $expandParts[] = [
+                                                                'team'  => $t,
+                                                                'label' => $teamColumns[$t]['label'],
+                                                                'kills' => $kills,
+                                                            ];
+                                                        }
+                                                    }
+                                                @endphp
+                                                @if (empty($expandParts))
+                                                    <span class="text-xs text-muted italic">No kills recorded.</span>
+                                                @else
+                                                    <div class="flex flex-wrap gap-x-5 gap-y-0.5 text-xs">
+                                                        @foreach ($expandParts as $part)
+                                                            <span>
+                                                                <span class="{{ $teamTone($part['team']) }} font-medium">{{ $part['label'] }}:</span>
+                                                                <span class="text-muted">{{ implode(' | ', $part['kills']) }}</span>
+                                                            </span>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
 
-                        </div>
-                    @endforeach
+                    {{-- ── Mode B: bosses as columns, [team × diff] as rows – per-raid tables ── --}}
+                    <div x-show="orient === 'boss-cols'">
+                        @foreach ($teamProgression['raids'] as $i => $raid)
+                            @php $matrix = $allMatrices[$i]; @endphp
+                            <div class="border-b border-line last:border-0">
+                                <div class="px-4 py-2 flex items-baseline gap-4 flex-wrap bg-panel/60">
+                                    <span class="text-xs font-semibold text-muted uppercase tracking-wider shrink-0">
+                                        {{ $raid['name'] }}
+                                    </span>
+                                    @foreach ($matrix['teams'] as $team)
+                                        <div class="flex items-baseline gap-1.5">
+                                            <span class="{{ $teamTone($team) }} text-xs font-semibold shrink-0">
+                                                {{ $teamColumns[$team]['label'] }}
+                                            </span>
+                                            @foreach ($matrix['diffs'] as $diff)
+                                                @if (isset($matrix['summary'][$team][$diff]))
+                                                    @php $s = $matrix['summary'][$team][$diff]; @endphp
+                                                    <span class="{{ $diffKillColor($diff) }} text-xs font-mono">
+                                                        {{ strtoupper(substr($diff, 0, 1)) }}{{ $s['killed'] }}/{{ $s['total'] }}
+                                                    </span>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                    @endforeach
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="text-xs border-separate border-spacing-0">
+                                        <thead>
+                                            <tr>
+                                                <th class="text-left px-4 py-1.5 font-normal text-muted border-b border-line/30 whitespace-nowrap">Team / Diff</th>
+                                                @foreach ($matrix['bosses'] as $boss)
+                                                    <th class="text-center px-3 py-1.5 border-b border-line/30 text-muted font-medium whitespace-nowrap">
+                                                        {{ $boss['name'] }}
+                                                    </th>
+                                                @endforeach
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($matrix['teams'] as $team)
+                                                @foreach ($matrix['diffs'] as $diff)
+                                                    @php
+                                                        $isFirstDiff   = $loop->first;
+                                                        $isFirstTeam   = $loop->parent->first;
+                                                        $labelPadClass = $isFirstDiff && ! $isFirstTeam ? 'pt-3 pb-1.5' : 'py-1.5';
+                                                        $cellPadClass  = $isFirstDiff && ! $isFirstTeam ? 'pt-3 pb-1.5' : 'py-1.5';
+                                                    @endphp
+                                                    <tr class="border-b border-line/20 last:border-0 hover:bg-panel/30">
+                                                        <td class="px-4 {{ $labelPadClass }} whitespace-nowrap {{ $teamStripe($team) }} {{ $teamBg($team) }}">
+                                                            <span class="{{ $teamTone($team) }} font-medium">{{ $teamColumns[$team]['label'] }}</span>
+                                                            <span class="{{ $diffKillColor($diff) }} ml-1 font-mono">{{ strtoupper(substr($diff, 0, 1)) }}</span>
+                                                        </td>
+                                                        @foreach ($matrix['bosses'] as $boss)
+                                                            @php
+                                                                $cell         = $boss['cells'][$team][$diff] ?? null;
+                                                                $participates = isset($matrix['summary'][$team][$diff]);
+                                                                if (! $participates) {
+                                                                    $tip = $boss['name'] . ' - ' . $teamColumns[$team]['label'] . ' does not raid ' . strtolower($diff);
+                                                                } elseif ($cell && $cell['killed']) {
+                                                                    $ago = $cell['last_kill_ms']
+                                                                        ? \Carbon\CarbonImmutable::createFromTimestampMs($cell['last_kill_ms'])->diffForHumans()
+                                                                        : '?';
+                                                                    $tip = $boss['name'] . ' - ' . $cell['killers'] . ' ' . \Illuminate\Support\Str::plural('raider', $cell['killers']) . ', last ' . $ago;
+                                                                } else {
+                                                                    $tip = $boss['name'] . ' - not killed on ' . strtolower($diff);
+                                                                }
+                                                            @endphp
+                                                            <td class="text-center px-3 {{ $cellPadClass }} {{ $teamBg($team) }}" title="{{ $tip }}">
+                                                                @if (! $participates)
+                                                                    <span class="inline-block w-4 h-4 rounded-sm bg-line/15"></span>
+                                                                @elseif ($cell && $cell['killed'])
+                                                                    <span class="inline-block w-4 h-4 rounded-sm {{ $diffSquareFill($diff) }}"></span>
+                                                                @else
+                                                                    <span class="inline-block w-4 h-4 rounded-sm {{ $diffSquareEmpty($diff) }}"></span>
+                                                                @endif
+                                                            </td>
+                                                        @endforeach
+                                                    </tr>
+                                                @endforeach
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
                 </div>
 
                 {{-- Insights (both modes) --}}
