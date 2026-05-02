@@ -51,10 +51,10 @@ class TeamMapping extends Model
     public static function teamLabel(?string $team): string
     {
         return match ($team) {
-            self::TEAM_MYTHIC => 'Mythic',
-            self::TEAM_MYTHIC_TRIAL => 'Mythic Trial',
-            self::TEAM_HEROIC => 'Heroic',
-            self::TEAM_HEROIC_TRIAL => 'Heroic Trial',
+            self::TEAM_MYTHIC       => 'Mythic Team',
+            self::TEAM_MYTHIC_TRIAL => 'Mythic Trial Team',
+            self::TEAM_HEROIC       => 'Heroic Team',
+            self::TEAM_HEROIC_TRIAL => 'Heroic Trial Team',
             default => 'Unassigned',
         };
     }
