@@ -50,7 +50,7 @@ it('shows last snapshot timestamp for sources that have one', function () {
         'member_count' => 776,
     ]);
 
-    $this->actingAs(officer())
+    $this->actingAs(syncOfficer())
         ->get('/admin/sync')
         ->assertOk()
         ->assertSee('776 members');
@@ -66,7 +66,7 @@ it('clicking RIO sync dispatches the job afterResponse and writes queued state',
         'first_seen_at' => now(), 'last_seen_at' => now(),
     ]);
 
-    $this->actingAs(officer())
+    $this->actingAs(syncOfficer())
         ->post('/admin/raiderio/sync')
         ->assertRedirect('/admin/sync');
 
@@ -86,14 +86,14 @@ it('the page meta-refreshes while a sync is queued or running', function () {
         'error' => null,
     ]);
 
-    $this->actingAs(officer())
+    $this->actingAs(syncOfficer())
         ->get('/admin/sync')
         ->assertOk()
         ->assertSee('http-equiv="refresh"', false);
 });
 
 it('does not meta-refresh when no source is mid-sync', function () {
-    $this->actingAs(officer())
+    $this->actingAs(syncOfficer())
         ->get('/admin/sync')
         ->assertOk()
         ->assertDontSee('http-equiv="refresh"', false);
@@ -109,7 +109,7 @@ it('renders done summary with member counts when the last sync completed', funct
         'error' => null,
     ]);
 
-    $this->actingAs(officer())
+    $this->actingAs(syncOfficer())
         ->get('/admin/sync')
         ->assertOk()
         ->assertSee('matched: 47')
@@ -126,7 +126,7 @@ it('renders failed state with the error message', function () {
         'error' => 'connection refused: raider.io',
     ]);
 
-    $this->actingAs(officer())
+    $this->actingAs(syncOfficer())
         ->get('/admin/sync')
         ->assertOk()
         ->assertSee('connection refused');
@@ -152,7 +152,7 @@ LUA;
 
     $file = UploadedFile::fake()->createWithContent('GRM.lua', $lua);
 
-    $this->actingAs(officer())
+    $this->actingAs(syncOfficer())
         ->post('/admin/sync/grm', ['grm_file' => $file])
         ->assertRedirect('/admin/sync');
 
@@ -168,7 +168,7 @@ it('GRM upload rejects a malformed .lua file with a clean error', function () {
 
     $file = UploadedFile::fake()->createWithContent('broken.lua', 'this is not lua at all');
 
-    $this->actingAs(officer())
+    $this->actingAs(syncOfficer())
         ->post('/admin/sync/grm', ['grm_file' => $file])
         ->assertRedirect('/admin/sync')
         ->assertSessionHasErrors('grm_upload');
@@ -234,7 +234,7 @@ it('GRM upload deduplicates a second upload of the same file', function () {
     $lua = "GRM_GuildMemberHistory_Save = { [\"Regenesis-Silvermoon\"] = {} };";
     $file = UploadedFile::fake()->createWithContent('GRM.lua', $lua);
 
-    $u = officer();
+    $u = syncOfficer();
     $this->actingAs($u)->post('/admin/sync/grm', ['grm_file' => $file])->assertRedirect();
 
     $file2 = UploadedFile::fake()->createWithContent('GRM.lua', $lua);
