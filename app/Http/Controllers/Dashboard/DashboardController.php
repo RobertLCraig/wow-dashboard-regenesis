@@ -381,7 +381,7 @@ class DashboardController extends Controller
             $delta = $mythic['avg_ilvl'] - $heroic['avg_ilvl'];
             if ($delta !== 0) {
                 $sign = $delta > 0 ? '+' : '';
-                $out[] = "Mythic team avg ilvl {$mythic['avg_ilvl']} vs Heroic {$heroic['avg_ilvl']} ({$sign}{$delta}).";
+                $out[] = "Mythic Team avg ilvl {$mythic['avg_ilvl']} vs Heroic Team {$heroic['avg_ilvl']} ({$sign}{$delta}).";
             }
         }
 
@@ -396,11 +396,11 @@ class DashboardController extends Controller
                         continue;
                     }
                     if ($diff['type'] === 'HEROIC' && $row['killed'] === $row['total']) {
-                        $out[] = "{$row['team_label']} team has cleared every Heroic boss in {$activeRaid['name']} (AOTC).";
+                        $out[] = "{$row['team_label']} has cleared every Heroic boss in {$activeRaid['name']} (AOTC).";
                     }
                     if ($diff['type'] === 'MYTHIC' && $row['killed'] > 0 && $row['killed'] < $row['total']) {
                         $remaining = $row['total'] - $row['killed'];
-                        $out[] = "{$row['team_label']} team has {$remaining}/{$row['total']} Mythic boss"
+                        $out[] = "{$row['team_label']} has {$remaining}/{$row['total']} Mythic boss"
                             . ($remaining === 1 ? '' : 'es') . " left to Cutting Edge in {$activeRaid['name']}.";
                     }
                 }
