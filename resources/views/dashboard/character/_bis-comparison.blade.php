@@ -75,10 +75,13 @@
     };
 @endphp
 
-<section class="bg-panel border border-line rounded-lg overflow-hidden mb-6">
+<section class="bg-panel border border-line rounded-lg overflow-hidden mb-6" x-data="{ explain: false }">
     <header class="px-4 py-3 border-b border-line flex items-center justify-between flex-wrap gap-2">
         <div>
-            <h2 class="text-sm font-semibold uppercase tracking-wider">BiS comparison</h2>
+            <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                <span>BiS comparison</span>
+                <x-explainer-toggle />
+            </h2>
             <p class="text-xs text-muted mt-0.5">
                 {{ ucwords(str_replace('_', ' ', $comparison['spec'])) }}
                 {{ ucwords(str_replace('_', ' ', $comparison['class'])) }}
@@ -94,6 +97,28 @@
             {{ $comparison['source_captured_at']?->diffForHumans() ?? '' }}
         </span>
     </header>
+    <x-explainer-panel title="BiS comparison">
+        Compares this character's equipped gear against the SimulationCraft "Best in Slot" profile
+        for their spec (and hero talent variant where SimC ships one). Each row shows the item they
+        have equipped, the BiS item when they differ, and the enchant and gem status.
+        <br><br>
+        <span class="font-semibold text-ink">Gear source:</span>
+        Blizzard character equipment API (primary), falling back to Raider.IO snapshot then the
+        most recent WCL parse if Blizzard data is absent. The whole roster cycles through the
+        Blizzard pull every ~4 hours, so a character who just regemmed may still show old data
+        until the next batch picks them up.
+        <br><br>
+        <span class="font-semibold text-ink">BiS profiles:</span>
+        Pulled weekly from the SimulationCraft GitHub repository. SimC only ships profiles for
+        DPS and tank specs. Healers see a stub panel with consumables but no per-slot BiS,
+        because healer gearing is too situational for a single static list.
+        <br><br>
+        <span class="font-semibold text-ink">Limitations:</span>
+        Item matching is by item ID, so heroic and mythic versions of the same piece count as
+        different unless they share an ID. Enchant and gem matching is exact (a lower-tier
+        enchant on the right slot shows as "wrong"). The profile represents SimC's
+        theorycrafted optimum and may recommend gear from content the team hasn't reached yet.
+    </x-explainer-panel>
 
     @php $freshness = $dict->freshness(); @endphp
     @if ($freshness['missing_names'] > 0 || ($freshness['updated_at'] && $freshness['updated_at']->diffInDays() > 60))

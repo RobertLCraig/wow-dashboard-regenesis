@@ -177,18 +177,30 @@
     @if ($bisComparison)
         @include('dashboard.character._bis-comparison', ['comparison' => $bisComparison])
     @else
-        <section class="bg-panel border border-line rounded-lg p-4 mb-6">
-            <h2 class="text-sm font-semibold uppercase tracking-wider mb-2">BiS comparison</h2>
-            <p class="text-xs text-muted">
+        <section class="bg-panel border border-line rounded-lg overflow-hidden mb-6" x-data="{ explain: false }">
+            <header class="px-4 py-3 border-b border-line flex items-center gap-2">
+                <h2 class="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                    <span>BiS comparison</span>
+                    <x-explainer-toggle />
+                </h2>
+            </header>
+            <x-explainer-panel title="BiS comparison">
+                Compares equipped gear against the SimulationCraft "Best in Slot" profile for the
+                character's spec. Gear is sourced from Blizzard (primary, ~4-hour roster cycle),
+                then Raider.IO, then WCL. BiS profiles are pulled weekly from the SimulationCraft
+                GitHub repository; DPS and tank specs only. Healers and specs with no profile row
+                show this placeholder.
+            </x-explainer-panel>
+            <div class="px-4 py-3 text-xs text-muted">
                 @if ($bisGearSampleMissing)
-                    No gear sample for this character yet. Blizzard, Raider.IO, and WCL all returned
-                    empty. The character will appear here after the next sync that picks them up.
+                    No gear sample for this character yet. Blizzard, Raider.IO, and WCL all
+                    returned empty. The character will appear here after the next sync picks them up.
                 @else
-                    Gear sample available, but no SimulationCraft BiS profile is loaded for this
-                    spec. SimC profiles only cover DPS and tank specs; healers need a manually
-                    curated profile in <span class="font-mono">bis_profiles</span>.
+                    No SimulationCraft BiS profile loaded for this spec. SimC only covers DPS and
+                    tank specs; healers need a manually curated profile in
+                    <span class="font-mono">bis_profiles</span>.
                 @endif
-            </p>
+            </div>
         </section>
     @endif
 
