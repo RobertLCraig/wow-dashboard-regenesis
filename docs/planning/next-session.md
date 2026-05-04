@@ -1,5 +1,47 @@
 # Next planning session: queued ideas
 
+## 0. Status (as of 2026-05-04)
+
+Everything in Tier 1 has shipped. WCL ingest (Tier 2 #8) has shipped. Battle.net sync (Tier 2 #9) also shipped — it landed in the 2026-04-27 session alongside BiS and Social, ahead of what the §3 plan predicted. No Tier 1 or WCL work is open.
+
+### Tier 1
+
+- [done] #1 Roster view consolidation — `/roster` with filter chips, `?group=1` alt-grouping toggle, CSV export at `/roster.csv` (§6.1)
+- [done] #2 Quick external links — `<x-character-links>` component (§6.7)
+- [done] #3 Kick-macro generator — `KickMacroBuilder`, preview/confirm modal, `MemberAction::TYPE_KICK_MACRO` (§6.2)
+- [done] #4 High-clarity / accessibility mode — shipped as a **three-step clarity dial** (`standard` → `clear` → `high_clarity`) rather than the binary toggle spec'd; `users.display_mode`, body classes `mode-clear` / `mode-high-clarity`, `<x-clarity-table>` component, `docs/accessibility-guide.md` (§6.4)
+- [done] #5 Dashboard UX / responsiveness pass — `max-w-screen-2xl` on `<main>`, single responsive `grid-cols-1 md:grid-cols-2 xl:grid-cols-3` grid, `col_span` hints in `config/dashboard.php`; drag-and-drop widget reorder editor (SortableJS) also shipped, which went beyond the original spec that explicitly ruled it out (§6.3)
+- [done] #6 Brand asset integration — `public/img/brand/` and `public/img/icons/` populated, `<x-icon>` Blade component (§6.5)
+- [done] #7 Guilds of WoW feature audit — completed; results in §5 of this doc
+
+### Tier 2
+
+- [done] #8 WCL ingest — `app/Services/Wcl/*`, `config/wcl.php`, routes `/reports` and `/composition/{team}`
+- [done] #9 Battle.net sync — shipped 2026-04-27 (see §0 below); `app/Services/Blizzard/BlizzardClient.php`, queued sync, dashboard card, on-demand button. The §3 plan listed this as future work; it landed early.
+
+### Tier 3
+
+- [not started] #10 Officer notes / flags / trial tracking
+- [not started] #11 Custom addon
+
+### Open follow-ups (§1a)
+
+- [not started] Permission rework (member tier so Social is accessible to non-officers)
+- [not started] Multi-day event spans on Social calendar grid
+- [not started] Discord attachments storage
+- [not started] Hero-talent matching via talent-string decode
+- [not started] Healer BiS profiles for `bis_profiles`
+- [not started] Year-aware holiday lookup (Noblegarden, Lunar Festival, Pilgrim's Bounty)
+
+### Divergences from original spec
+
+- **§6.4 clarity mode**: spec said binary toggle (`standard` / `high_clarity`); shipped as three-step dial (`standard` → `clear` → `high_clarity`).
+- **§6.3 drag-and-drop**: spec explicitly said "no drag-to-reorder"; SortableJS-based reorder editor shipped anyway.
+- **#9 Battle.net**: §3 listed this as Tier 2 future work; it shipped in the 2026-04-27 session with BiS and Social.
+- **Old widgets** (`alt-groups`, `recently-inactive`): removed from `config/dashboard.php` per the §6.1 deprecation plan; Blade files still exist on disk but are unreferenced.
+
+---
+
 Captured 2026-04-26. Drop-in agenda for the next sit-down planning pass.
 
 ## 0. Shipped 2026-04-27 (one big session)
@@ -122,7 +164,7 @@ We're already at rough feature parity for everything that matters to a private d
 
 ## 6. Tier 1 specs (concrete enough to argue about)
 
-### 6.1 Roster page
+### 6.1 Roster page (shipped)
 
 **Route**: `GET /roster` (officer-gated, like the rest of the dashboard).
 
@@ -167,7 +209,7 @@ Add the `roster.view` ability to `AppServiceProvider` (currently flat: every off
 
 **Deprecation**: once Roster ships, remove the `alt-groups` and `recently-inactive` widgets from the General dashboard and link to Roster's pre-filtered URL instead. The widgets become dead code.
 
-### 6.2 Kick-macro generator
+### 6.2 Kick-macro generator (shipped)
 
 **Problem**: officers regularly kick a player + all their alts. Today that's a manual sweep through the guild UI, character by character. Easy to miss an alt and easy to slip and kick the wrong rank.
 
@@ -232,7 +274,7 @@ JSON endpoint, called from the modal via fetch. CSRF-protected, gated by `roster
 - Battle.net character lookups by account. The relationship comes from GRM alt-grouping, which is good enough.
 - Reason / ban tracking. If banning rather than kicking, that's a separate flow that writes to `reason_banned` + `banned_at` and is worth its own spec later.
 
-### 6.3 Dashboard UX / responsiveness pass
+### 6.3 Dashboard UX / responsiveness pass (shipped)
 
 **Current state**:
 
@@ -299,7 +341,7 @@ Phase C — density preference (only if the next session decides it's worth it).
 
 **Apply to all dashboards**: General, Heroic, Mythic, Keynight team pages all use the same widgets. The grid pattern should be shared (a Blade component or partial would be appropriate; current pages would just slot in their controller-provided widget set).
 
-### 6.4 High-clarity / accessibility mode
+### 6.4 High-clarity / accessibility mode (shipped)
 
 **Why this exists**
 
@@ -425,7 +467,7 @@ She can use the dashboard usefully after Phase A+B alone. C and D are polish.
 
 Before committing the design, share Phase A+B with her on a real raid night and watch her use it. Watch where her eyes go, where she squints, where she moves her head. The spec above is a starting point; her feedback over a real session is the ground truth.
 
-### 6.5 Brand asset integration
+### 6.5 Brand asset integration (shipped)
 
 **Inventory** (as delivered into `docs/`):
 
@@ -614,7 +656,7 @@ The sidebar footer in [layouts/dashboard.blade.php:202-210](resources/views/layo
 
 Do the file move + filename normalisation + `<x-icon>` component as a single first commit. After that lands, every feature that's already speced (Roster, kick macros, high-clarity, external links) can grow icon usage incrementally without further infrastructure work.
 
-### 6.6 Optional phoenix-red colour theme
+### 6.6 Optional phoenix-red colour theme (shipped)
 
 **Why this is a separate axis from high-clarity mode**
 
@@ -694,7 +736,7 @@ Lives wherever the high-clarity toggle ends up (likely sidebar footer or a dedic
 
 This shape doesn't preclude adding more themes later (a "high-contrast" pure black/white theme would be a third option). Keep the column type as `varchar(32)` rather than an enum so we can extend without a schema change.
 
-### 6.7 Character external-links component
+### 6.7 Character external-links component (shipped)
 
 **Component**: `<x-character-links :member="$m" />` at `resources/views/components/character-links.blade.php`.
 
