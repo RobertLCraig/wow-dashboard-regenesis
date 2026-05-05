@@ -40,10 +40,12 @@ class EventController extends Controller
             'defaultChannel' => config('raidhelper.default_channel_id'),
             'leaderId' => auth()->user()?->discord_id,
             'defaultAnnouncements' => config('raidhelper.default_announcements', []),
-            // {channel_id: [role names]} so the live "Will ping" hint
-            // and the /quickcreate paste preview update without a
-            // server round-trip when the officer changes channel.
+            // {channel_id: [role names]} so the mentions pre-fill and
+            // the /quickcreate paste preview update without a server
+            // round-trip when the officer changes channel.
             'mentionsByChannel' => DiscordRoleMentionResolver::namesByChannelId(),
+            // All pingable roles for the datalist on the mentions input.
+            'allPingableRoleNames' => DiscordRoleMentionResolver::allPingableNames(),
         ]);
     }
 
@@ -90,6 +92,10 @@ class EventController extends Controller
             'announcements.*.minutes' => ['required', 'integer', 'min:1', 'max:43200'],
             'announcements.*.message' => ['required', 'string', 'max:500'],
             'announcements.*.channel' => ['required', 'string', 'max:100', 'regex:/^[\w\-]+$/'],
+            // Explicit role names to ping (comma-separated). When present
+            // this overrides the channel-based auto-resolve below. An
+            // empty string means "no mentions"; omitted means "auto".
+            'mentions' => ['nullable', 'string', 'max:500'],
         ], [
             'channel_id.regex' => 'Channel ID must be the numeric Discord snowflake (15-25 digits).',
             'ends_at.after' => 'End time must be after the start time.',
@@ -114,25 +120,31 @@ class EventController extends Controller
             $advancedSettings['duration'] = (string) $durationMinutes;
         }
 
-        // Auto-mention the team's pingable roles. Team is identified by
-        // destination channel: posting to heroic-raid-signup pings
-        // @Social Raider + @Heroic Raider, etc. Allocations are edited
-        // via /admin/discord-roles. Channels not in any team preset
-        // (e.g. dj-stuff testing) ping nobody, which is intentional.
+        // Mention-building: explicit form value takes priority; auto-resolve
+        // from the channel-to-team mapping is the fallback.
         //
-        // The mentions field lives inside `advancedSettings`, takes a
-        // comma-separated string of role *names* (NOT snowflakes), and
-        // requires `mention_mode: true` on create to actually post the
-        // @role prefix message. Slash-command-created events end up with
-        // mention_mode: false in storage but still ping (presumably the
-        // slash flow runs the ping logic regardless), so the GET response
-        // is misleading. Verified by API probe in dj-stuff testing channel.
-        $teamSlug = $this->teamSlugForChannel($validated['channel_id']);
-        if ($teamSlug !== null) {
-            $names = DiscordRoleMentionResolver::namesForTeam($teamSlug);
-            if (! empty($names)) {
-                $advancedSettings['mentions'] = implode(', ', $names);
-                $advancedSettings['mention_mode'] = true;
+        // The field takes a comma-separated string of role *names* (NOT
+        // snowflakes) and requires mention_mode: true on create to actually
+        // post the @role prefix message. Slash-command-created events end up
+        // with mention_mode: false in storage but still ping (presumably the
+        // slash flow runs the ping logic regardless), so the GET response is
+        // misleading. Verified by API probe in dj-stuff testing channel.
+        $explicitMentions = trim($validated['mentions'] ?? '');
+        if ($explicitMentions !== '') {
+            $advancedSettings['mentions'] = $explicitMentions;
+            $advancedSettings['mention_mode'] = true;
+        } else {
+            // Auto-resolve: posting to heroic-raid-signup pings
+            // @Social Raider + @Heroic Raider, etc. Channels not in any
+            // team preset (e.g. dj-stuff testing) ping nobody, which is
+            // intentional. Allocations edited via /admin/discord-roles.
+            $teamSlug = $this->teamSlugForChannel($validated['channel_id']);
+            if ($teamSlug !== null) {
+                $names = DiscordRoleMentionResolver::namesForTeam($teamSlug);
+                if (! empty($names)) {
+                    $advancedSettings['mentions'] = implode(', ', $names);
+                    $advancedSettings['mention_mode'] = true;
+                }
             }
         }
 

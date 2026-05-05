@@ -174,6 +174,22 @@
                       class="mt-2 w-full bg-bg border border-line rounded px-3 py-2 text-sm focus:outline-none focus:border-accent">{{ old('description') }}</textarea>
         </details>
 
+        <details class="text-xs" @if(old('mentions') !== null) open @endif>
+            <summary class="text-muted hover:text-ink cursor-pointer">
+                Mentions
+                @if (! empty($mentionNames))
+                    <span class="text-muted/70 ml-1">({{ collect($mentionNames)->map(fn ($n) => "@{$n}")->implode(', ') }})</span>
+                @else
+                    <span class="text-muted/70 ml-1">(none configured)</span>
+                @endif
+            </summary>
+            <input type="text" name="mentions"
+                   value="{{ old('mentions', implode(', ', $mentionNames)) }}"
+                   placeholder="Role Name One, Role Name Two"
+                   class="mt-2 w-full bg-bg border border-line rounded px-3 py-2 text-sm focus:outline-none focus:border-accent">
+            <p class="text-xs text-muted mt-1">Comma-separated role names. Pre-filled from team config. Clear to send no pings.</p>
+        </details>
+
         <button type="submit" class="w-full px-4 py-2 rounded bg-accent text-white text-sm font-medium hover:bg-accent/80">
             Create event
         </button>
@@ -184,11 +200,6 @@
                 using template <code class="text-ink">{{ $defaultTemplateId }}</code>
             @endif
             with the standard reminder pings.
-            @if (! empty($mentionNames))
-                Pings
-                @foreach ($mentionNames as $i => $name)<span class="text-accent">{{ '@' . $name }}</span>@if ($i < count($mentionNames) - 1), @endif @endforeach
-                on post.
-            @endif
         </p>
     </form>
 </section>

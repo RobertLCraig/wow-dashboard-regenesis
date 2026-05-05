@@ -46,10 +46,16 @@
         ], $defaultAnnouncements);
 
     // {channel_id: [role names]}, supplied by the controller from
-    // DiscordRoleMentionResolver. Drives the live "Will ping" hint and
-    // the /quickcreate paste-fallback preview. Channels not in the map
+    // DiscordRoleMentionResolver. Drives the mentions pre-fill and the
+    // /quickcreate paste-fallback preview. Channels not in the map
     // (other-... custom IDs, dj-stuff) ping nobody.
     $mentionsByChannel = $mentionsByChannel ?? [];
+
+    // Pre-fill for the mentions text input: use old() on re-render after
+    // validation failure, otherwise seed from the default channel's roles.
+    $initialMentions = old('mentions', implode(', ', $mentionsByChannel[$oldChannelId] ?? []));
+
+    $allPingableRoleNames = $allPingableRoleNames ?? [];
 @endphp
 <div class="max-w-2xl mx-auto">
     <h1 class="text-xl font-semibold mb-6">New event</h1>
@@ -81,6 +87,8 @@
               templateId: @json(old("template_id", "6")),
               leaderId: @json(old("leader_id", $leaderId)),
               announcements: @json($initialAnnouncements),
+              mentions: @json($initialMentions),
+              mentionsDirty: false,
               init() {
                   // Keep announcement rows pointed at the signup channel.
                   // The x-data attribute is wrapped in single quotes, so
@@ -88,6 +96,13 @@
                   this.$watch("effectiveChannelName", (next) => {
                       if (!next) return;
                       this.announcements = this.announcements.map(a => ({ ...a, channel: next }));
+                  });
+                  // Auto-update mentions when the channel changes, unless
+                  // the officer has manually edited the field.
+                  this.$watch("effectiveMentionNames", (next) => {
+                      if (!this.mentionsDirty) {
+                          this.mentions = next.join(", ");
+                      }
                   });
               },
               addAnnouncement() { this.announcements.push({ minutes: 60, message: "Event starting in 1 hour!", channel: this.effectiveChannelName || "" }); },
@@ -121,9 +136,8 @@
                   if (this.durationMode === "duration" && this.durationMinutes) {
                       parts.push(`[advanced: <duration: ${this.durationMinutes}>]`);
                   }
-                  const mentions = this.effectiveMentionNames;
-                  if (mentions.length) {
-                      parts.push(`[mentions: ${mentions.join(", ")}]`);
+                  if (this.mentions && this.mentions.trim()) {
+                      parts.push(`[mentions: ${this.mentions.trim()}]`);
                   }
                   for (const a of this.announcements) {
                       if (a && a.message && a.minutes && a.channel) {
@@ -266,13 +280,22 @@
             <p class="text-xs text-muted mt-1">
                 Right-click a channel in Discord with Developer Mode on to copy its ID.
             </p>
-            <p class="text-xs text-muted mt-1" x-show="effectiveMentionNames.length" x-cloak>
-                Will ping:
-                <template x-for="(name, i) in effectiveMentionNames" :key="i">
-                    <span>
-                        <span class="text-accent" x-text="`@${name}`"></span><span x-show="i < effectiveMentionNames.length - 1">, </span>
-                    </span>
-                </template>
+        </div>
+
+        <div>
+            <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="mentions">Mentions</label>
+            <input id="mentions" name="mentions" type="text" list="pingable-roles"
+                   x-model="mentions"
+                   @input="mentionsDirty = true"
+                   placeholder="Role Name One, Role Name Two"
+                   class="w-full bg-bg border border-line rounded px-3 py-2 text-sm focus:outline-none focus:border-accent">
+            <datalist id="pingable-roles">
+                @foreach ($allPingableRoleNames as $roleName)
+                    <option value="{{ $roleName }}">
+                @endforeach
+            </datalist>
+            <p class="text-xs text-muted mt-1">
+                Comma-separated role names to ping when the event posts. Auto-fills from channel; edit to override. Clear to send no pings.
             </p>
         </div>
 

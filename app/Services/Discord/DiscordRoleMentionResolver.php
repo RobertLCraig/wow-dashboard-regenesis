@@ -38,17 +38,40 @@ class DiscordRoleMentionResolver
     }
 
     /**
-     * Display names of every role attached to the team (in order).
+     * Display names of every pingable role attached to the team (in order).
+     * "Pingable" means the role has a discord_id snowflake configured.
      * Used by the EventController to build the API `mentions` value
      * (Raid-Helper expects `advancedSettings.mentions` as a
      * comma-separated role-name string), and by the create form
      * previews to render the "Will ping" hint.
+     *
+     * Roles with no snowflake are kept in the DB (admin UI shows them as
+     * "not yet linked") but intentionally excluded here so they don't
+     * end up in the API payload or pre-fill an invalid mentions string.
      *
      * @return list<string>
      */
     public static function namesForTeam(string $slug): array
     {
         return self::forTeam($slug)
+            ->filter(fn ($r) => ! empty($r->discord_id))
+            ->pluck('name')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Names of all pingable roles in the system, regardless of team.
+     * Passed to the full event-creation form as a datalist so the
+     * officer gets autocomplete on the free-text mentions input.
+     *
+     * @return list<string>
+     */
+    public static function allPingableNames(): array
+    {
+        return DiscordRole::query()
+            ->pingable()
+            ->orderBy('name')
             ->pluck('name')
             ->all();
     }
