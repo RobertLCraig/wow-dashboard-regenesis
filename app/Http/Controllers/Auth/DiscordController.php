@@ -30,25 +30,10 @@ class DiscordController extends Controller
 
     public function callback(): RedirectResponse
     {
-        Log::info('Discord OAuth callback received', [
-            'has_code' => request()->has('code'),
-            'has_state' => request()->has('state'),
-            'request_state' => request()->input('state'),
-            'session_state' => request()->session()->get('state'),
-            'session_id' => request()->session()->getId(),
-            'exception_class' => null,
-        ]);
-
         try {
             $discordUser = Socialite::driver('discord')->user();
         } catch (\Throwable $e) {
-            Log::warning('Discord OAuth callback failed', [
-                'class' => get_class($e),
-                'message' => $e->getMessage(),
-                'request_state' => request()->input('state'),
-                'session_state' => request()->session()->get('state'),
-                'session_id' => request()->session()->getId(),
-            ]);
+            Log::warning('Discord OAuth callback failed', ['message' => $e->getMessage()]);
             return redirect()->route('auth.discord.failed');
         }
 
