@@ -68,6 +68,11 @@ class DiscordController extends Controller
         return redirect()->intended(route('dashboard'));
     }
 
+    public function botInstalled(): RedirectResponse
+    {
+        return redirect()->intended(route('dashboard'));
+    }
+
     public function logout(): RedirectResponse
     {
         Auth::logout();

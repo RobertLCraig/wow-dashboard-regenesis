@@ -12,6 +12,7 @@ Route::view('/auth/discord/failed', 'auth.failed')->name('auth.discord.failed');
 
 Route::get('/auth/discord', [DiscordController::class, 'start'])->name('auth.discord.start');
 Route::get('/auth/discord/callback', [DiscordController::class, 'callback'])->name('auth.discord.callback');
+Route::get('/auth/discord/bot-installed', [DiscordController::class, 'botInstalled'])->name('auth.discord.bot-installed');
 Route::post('/logout', [DiscordController::class, 'logout'])->middleware('auth')->name('logout');
 
 // Officer-only application surface. Every dashboard route lives behind
