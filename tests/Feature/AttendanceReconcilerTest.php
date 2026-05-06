@@ -68,6 +68,7 @@ function arWclWithActors(int $hoursAgo, array $actorNames): WclReport
         'title' => 'WCL test',
         'start_time' => now()->subHours($hoursAgo),
         'captured_at' => now(),
+        'fights_imported_at' => now(),
     ]);
     $fight = WclFight::query()->create([
         'wcl_report_id' => $report->id,
