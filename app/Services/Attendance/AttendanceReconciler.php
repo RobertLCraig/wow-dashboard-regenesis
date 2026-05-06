@@ -168,6 +168,7 @@ class AttendanceReconciler
         $candidates = WclReport::query()
             ->where('guild_key', $guildKey)
             ->whereBetween('start_time', [$windowStart, $windowEnd])
+            ->whereNotNull('fights_imported_at')
             ->get();
 
         if ($candidates->isEmpty()) {
