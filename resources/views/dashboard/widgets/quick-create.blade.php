@@ -61,6 +61,7 @@
         ->values()
         ->all();
     $showTemplatePicker = count($templateOptions) > 1;
+    $socialEventTypes   = $preset['social_event_types'] ?? [];
 
     // Roles auto-pinged when this team's events post. Display only -
     // the EventController re-resolves to role IDs for the actual API
@@ -89,7 +90,21 @@
           x-data='{
               startsAt: @json(old("starts_at", $defaultStartsAt)),
               durationMinutes: @json((int) old("duration_minutes", 180)),
+              titleValue: @json(old("title", "")),
+              templateId: @json(old("template_id", $defaultTemplateId)),
+              socialType: null,
               setStart(v) { this.startsAt = v; },
+              selectType(slug, titleHint, templateId) {
+                  if (this.socialType === slug) {
+                      this.socialType = null;
+                      this.titleValue = "";
+                      this.templateId = @json($defaultTemplateId);
+                  } else {
+                      this.socialType = slug;
+                      this.titleValue = titleHint;
+                      this.templateId = templateId;
+                  }
+              },
           }'
           class="p-4 space-y-3">
         @csrf
@@ -99,7 +114,7 @@
         <input type="hidden" name="channel_id" value="{{ $preset['channel_id'] ?? '' }}">
         <input type="hidden" name="_channel_mode" value="preset">
         @unless ($showTemplatePicker)
-            <input type="hidden" name="template_id" value="{{ $defaultTemplateId }}">
+            <input type="hidden" name="template_id" :value="templateId">
         @endunless
         <input type="hidden" name="leader_id" value="{{ auth()->user()->discord_id }}">
         <input type="hidden" name="duration_mode" value="duration">
@@ -119,9 +134,25 @@
             </div>
         @endif
 
+        @if (!empty($socialEventTypes))
+            <div>
+                <label class="block text-xs uppercase tracking-wider text-muted mb-1">Event type</label>
+                <div class="flex flex-wrap gap-1.5">
+                    @foreach ($socialEventTypes as $type)
+                        <button type="button"
+                                @click="selectType(@js($type['slug']), @js($type['title_hint']), @js($type['template_id']))"
+                                :class="socialType === @js($type['slug']) ? 'border-accent text-ink bg-accent/10' : 'border-line text-muted hover:text-ink'"
+                                class="text-xs px-2.5 py-1 rounded border transition">
+                            {{ $type['label'] }}
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <div>
             <label class="block text-xs uppercase tracking-wider text-muted mb-1">Title</label>
-            <input type="text" name="title" required value="{{ old('title') }}"
+            <input type="text" name="title" required x-model="titleValue"
                    placeholder="e.g. Manaforge Omega"
                    class="w-full bg-bg border border-line rounded px-3 py-2 text-sm focus:outline-none focus:border-accent">
         </div>
@@ -129,12 +160,10 @@
         @if ($showTemplatePicker)
             <div>
                 <label class="block text-xs uppercase tracking-wider text-muted mb-1" for="qc_template_id">Template</label>
-                <select id="qc_template_id" name="template_id" required
+                <select id="qc_template_id" name="template_id" required x-model="templateId"
                         class="w-full bg-bg border border-line rounded px-3 py-2 text-sm focus:outline-none focus:border-accent">
                     @foreach ($templateOptions as $tpl)
-                        <option value="{{ $tpl['id'] }}" @selected(old('template_id', $defaultTemplateId) === $tpl['id'])>
-                            {{ $tpl['label'] }}
-                        </option>
+                        <option value="{{ $tpl['id'] }}">{{ $tpl['label'] }}</option>
                     @endforeach
                 </select>
             </div>

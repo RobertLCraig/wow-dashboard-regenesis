@@ -110,6 +110,17 @@ return [
             // and has more than one entry; other teams omit it and stay
             // pinned to template_id above.
             'template_choices' => ['1', '6'],
+            // Preset event types shown as pill selectors in the quick-create
+            // widget. Selecting one pre-fills the title and switches to the
+            // appropriate Raid-Helper template. template_id must be present
+            // in template_choices above.
+            'social_event_types' => [
+                ['slug' => 'quiz',        'label' => 'Quiz Night',       'template_id' => '1', 'title_hint' => 'Quiz Night'],
+                ['slug' => 'housing',     'label' => 'Housing Contest',  'template_id' => '1', 'title_hint' => 'Housing Contest'],
+                ['slug' => 'social-raid', 'label' => 'Social Raid',      'template_id' => '6', 'title_hint' => 'Social Raid'],
+                ['slug' => 'pictionary',  'label' => 'Pictionary',       'template_id' => '1', 'title_hint' => 'Pictionary Night'],
+                ['slug' => 'decor-duel',  'label' => 'Group Decor Duel', 'template_id' => '1', 'title_hint' => 'Group Decor Duel'],
+            ],
         ],
     ],
 
