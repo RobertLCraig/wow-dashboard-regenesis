@@ -179,6 +179,23 @@ Schedule::command('mplus:prune-runs')
     ->onOneServer()
     ->withoutOverlapping();
 
+// Daily snapshot-table retention sweep. The per-member snapshot tables
+// (member_snapshots, member_equipment_snapshots, member_raid_snapshots,
+// member_social_snapshots, member_mplus_snapshots) are append-only:
+// every source pull writes a fresh fat JSON row per member. Left
+// unbounded they grew past Hostinger's 3 GB per-database cap on
+// 2026-07-08, which auto-revoked INSERT/UPDATE and 500'd every request
+// (denied session writes). This keeps each member's latest row per
+// source - so the roster/character/BiS current-state views are never
+// touched - and drops superseded history older than
+// config('snapshots.retention_days'). Runs at a quiet hour when no
+// source pull is writing; short-circuits when retention is 0.
+Schedule::command('snapshots:prune')
+    ->dailyAt('03:50') // quiet slot, clear of the :00/:30 profile + :15/:45 equipment pulls
+    ->timezone(config('raidhelper.timezone', 'Europe/London'))
+    ->onOneServer()
+    ->withoutOverlapping();
+
 // Daily reconciliation walk for the shared Google Calendar push.
 // Compares dashboard events to the calendar's contents in the same
 // rolling 7d-back/90d-forward window the ICS feed uses, dispatches
