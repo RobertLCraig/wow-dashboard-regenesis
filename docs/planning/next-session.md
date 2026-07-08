@@ -1,6 +1,6 @@
 # Next planning session: queued ideas
 
-Captured 2026-04-26. Drop-in agenda for the next sit-down planning pass.
+Captured 2026-04-26. Updated 2026-07-08. Drop-in agenda for the next sit-down planning pass.
 
 ## 0. Shipped 2026-04-27 (one big session)
 
@@ -8,19 +8,71 @@ Captured 2026-04-26. Drop-in agenda for the next sit-down planning pass.
 - **Battle.net (Blizzard) integration** - OAuth client, snapshot importer, schedule, dashboard card, on-demand sync button; multi-source roster ilvl resolver (Blizzard > Wowaudit > RIO) with per-cell `via {source}` tooltip.
 - **BiS feature end-to-end** - SimC profile parser + GitHub fetcher + weekly schedule, character-page comparison section with per-slot OK / MISSING / wrong / partial badges and consumable recommendations, roster BiS-issues column with sortable count + filter chip, hero-talent-aware profile matching by gear overlap (no decoder needed), Wowhead-linked items with inline tooltips.
 - **Social events hub** - read-only chronological feed mixing Raid-Helper events with computed world events (Darkmoon Faire, Trading Post resets, Love is in the Air, Children's Week, Midsummer, Brewfest, Hallow's End, Day of the Dead, Winter Veil); list view + month-grid view toggle; "Latest from Discord" announcements feed (bot-authenticated hourly poll); per-user social ICS feed (raid + world combined); public world-events ICS feed (no auth, year-ahead window).
+- **WCL ingest** - parse + bracket percentiles via rankings query; "Best parses (last 14 days)" widget on Heroic/Mythic dashboards; digest includes best WCL parses; weekly schedule.
+- **Character drilldown page** - `/character/{name}` aggregating every data source (GRM, Blizzard, RIO, WCL, BiS).
+- **Roster page** - single `/roster` route replacing the old alt-groups + recently-inactive widgets; alt-grouping toggle; filter chips; search + sortable columns.
+- **Kick-macro generator** - "Kick + alts" action producing `/gremove` macros ready to paste in-game; 255-char split for long alt groups.
+- **Dashboard UX** - single responsive grid replacing hand-paired rows; max-width lifted from `max-w-6xl` to `max-w-screen-2xl`; per-widget span hints.
+- **High-clarity / accessibility mode** - three-step clarity dial (standard / clear / high); `<x-clarity-table>` component swaps dense tables to stacked cards; body-class-driven with no extra JS; persisted per user.
+- **Brand assets** - phoenix mark in sidebar + favicon + OG tags; class icons alongside every character name; guild-role badges in sidebar footer; `<x-icon>` Blade component with WebP siblings.
+- **Phoenix-red theme** - opt-in accent swap (Discord blurple -> Regenesis red) persisted per user; orthogonal to the clarity dial.
+- **Composition planner** - per-team comp view from WCL parse data; scopeable by Raid-Helper event signups.
+- **Drag-and-drop layout editor** - config-driven widget catalogue + per-user layout resolver; drag reorder with live save.
+- **Pre-raid reminder pings** - webhook-based reminder sent before each Raid-Helper event.
+- **No-show widget** - reconciles Raid-Helper signups against WCL zone-in parses to surface who signed but didn't attend.
+- **Recent Activity** - sortable, searchable, filterable log.
+
+## 0a. Shipped 2026-04-28 to 2026-05-02
+
+- **M+ per-run tracking** - Raider.IO run importer stores individual key runs in `member_mplus_runs`; roster activity column shows this-week / last-week run counts; character page shows monthly heatmap; retention sweep prunes stale rows.
+- **GRM macro suite** - roster row actions generate ready-to-paste in-game macros for: `/run GRM.SetMain`, `/run GRM.RemovePlayerFromAltGroup`, `/run GRM.AddAlt` (with target autocomplete), `/run GRM_API.EditCustomNote`, `/gpromote` / `/gdemote`; Discord linkage field officer-managed from the roster row.
+- **Per-member team override** - officers can pin a member to a specific team and grant multi-team membership.
+- **Roster quality-of-life** - diacritic-twin name disambiguation; inline class column; `main?` flag surfacing stale alt-group main designations.
+- **BiS enchant / gem dictionary** - human-readable WoW enchant and gem names in the BiS comparison view.
+- **AOTC gap widget** - shows which roster members are missing AOTC from the current tier per Blizzard raid data; rolled up by alt cohort so the count reflects the real person, not alts separately.
+- **Farm-event planner** - dedicated page for scheduling and tracking farm-content runs.
+- **Healer BiS shells** - `bis:seed-healers` seeded stub profiles for resto druid/shaman, holy/disc priest, holy paladin, mistweaver, preservation evoker; character page renders the consumables section and an explainer badge rather than a blank widget for healer specs.
+- **Gear resolver from Blizzard/RIO/WCL** - BiS comparison now resolves equipped gear through Blizzard `/character/equipment` -> Raider.IO -> most-recent WCL parse so the widget renders for all members regardless of which source was last synced.
+- **WCL deaths + top-causes widget** - imports deaths per fight from WCL; surfaces a "top death causes" breakdown widget on team dashboards.
+- **Boss-by-boss kill matrix** - team progression widget redesigned as a GitHub-style matrix (bosses as rows, weeks as columns); scoped to the current tier; single aligned table replacing the previous stacked layout.
+- **Google Calendar push** - one-way sync of raid events from Raid-Helper to a shared officer Google Calendar; stable ICS etag for 304 polling.
+- **BiS explainer** - tooltip on the character page explains what the BiS comparison source is and how the gear was resolved.
+
+## 0b. Production incident + DB retention (2026-07-08)
+
+Site was 500ing on every route (even the static landing page). Root cause:
+the database hit Hostinger's **3 GB per-database cap**, which auto-revoked
+`INSERT`/`UPDATE`; with sessions on the `database` driver, every request's
+session write was denied → blanket 500. The bloat was **unpruned append-only
+snapshot tables** (`member_equipment_snapshots` 1.38 GB, `member_snapshots`
+1.28 GB — a fresh fat JSON row per member per source pull, never swept).
+
+Fixed: (1) moved sessions + cache to the `file` driver so a DB-write outage
+can't take the whole site down again; (2) truncated `member_equipment_snapshots`
+to drop back under the cap (3072 → 1695 MB; gear history is not read by any
+widget, repopulates on the next Blizzard equipment sweep); (3) shipped
+`snapshots:prune` (daily) which bounds every snapshot table while always
+keeping each member's latest row per source. Full write-up, recovery runbook,
+and the remaining optimisation follow-ups (equipment dedup-on-write, drop
+`member_snapshots.raw_json` ballast, one-off `OPTIMIZE TABLE` to reclaim InnoDB
+pages, DB-size alert in the digest) are in [`docs/ops-runbook.md`](../ops-runbook.md).
+
+> Post-recovery watch item: confirm Hostinger restored `INSERT`/`UPDATE` on
+> `u408983312_regenesis_wow` once it saw the DB back under 3 GB. Until then,
+> logins and all sync jobs stay blocked even though public pages serve fine.
 
 ## 1. Raw queue (verbatim)
 
-- Review features on Guilds of WoW.
+- ~~Review features on Guilds of WoW.~~ (done, see §5)
 - ~~Pull in data from Warcraft Logs.~~ (shipped)
 - ~~Add a sync with Battle.net option (pull data directly from Blizzard's WoW API).~~ (shipped 2026-04-27)
 - Consider building our own data-collection addon.
 - ~~Provide quick links to external data (Warcraft Logs, WoW Analyzer, RaiderIO, WoW Armory, etc).~~ (shipped, x-character-links component)
-- ~~Pull alt groups and "recently inactive" into a new "Roster" view that is richer and more searchable, with those things as pre-made filters.~~ (shipped)
-- ~~Build "kick" macros: officers click a player and get a copy-paste WoW macro that kicks them and all their alts in one go.~~ (shipped)
-- Dashboard UX review: make the UI more responsive and use available screen space better. Consider letting the user pick 1-col / 2-col / 3-col / fluid responsive.
-- Accessibility / high-clarity mode: GM has horizontal + vertical diplopia plus rotational tilt; build a per-user preset that strips visual noise, enforces single-column flow, increases spacing, raises contrast, and disables animation. Toggle accessible to everyone, not gated to one account. (Mode plumbing landed earlier; tightening / new-page coverage is the open work.)
-- ~~Brand asset integration: phoenix logo + class / role / profession / guild-role icons~~ (largely done - components in place, icons published, theme switcher live).
+- ~~Pull alt groups and "recently inactive" into a new "Roster" view that is richer and more searchable, with those things as pre-made filters.~~ (shipped 2026-04-27)
+- ~~Build "kick" macros: officers click a player and get a copy-paste WoW macro that kicks them and all their alts in one go.~~ (shipped 2026-04-27)
+- ~~Dashboard UX review: make the UI more responsive and use available screen space better.~~ (shipped 2026-04-27, responsive grid + lifted max-width; column toggle rejected in favour of per-widget span hints)
+- ~~Accessibility / high-clarity mode.~~ (shipped 2026-04-27, three-step clarity dial + `<x-clarity-table>`)
+- ~~Brand asset integration: phoenix logo + class / role / profession / guild-role icons~~ (shipped 2026-04-27, `<x-icon>` component + WebP siblings + phoenix theme toggle)
 - ~~Social page (events hub): not a team / cohort like Mythic / Heroic, but a guild-wide events calendar.~~ (shipped 2026-04-27)
 - ~~Enchant / gem checker on the roster.~~ (shipped 2026-04-27 as the BiS issues column)
 - ~~BiS gear / enchant / consumables reference~~ (shipped 2026-04-27)
@@ -32,7 +84,7 @@ Captured 2026-04-26. Drop-in agenda for the next sit-down planning pass.
 - **Discord attachments storage.** Image-only / sticker-only announcements skip the importer because we don't keep their attachments. JSON column on `discord_announcements` + render with `<img>` thumbnails when present.
 - **Hero-talent matching via talent-string decode.** Voting-by-gear is good enough most of the time, but a real talent-loadout decoder would catch the remaining edge cases. Heavy work and brittle across patches.
 - ~~**Wowaudit fallback for actual gear in BiS comparison.**~~ (shipped 2026-04-30 as a Blizzard-first multi-source resolver) BiS gear now flows from Blizzard `/character/equipment` -> Raider.IO -> most-recent WCL parse, with spec resolved on the same chain (Blizzard `active_spec.name` -> RIO `active_spec_name` -> WCL `actor_spec`). Wowaudit was skipped because its `_best_gear` is "best-owned" not "currently-equipped", so it's not a clean substitute. Healer specs still need manually curated `bis_profiles` rows since SimC's MID1 directory only ships DPS/tank profiles.
-- **Healer BiS profiles for `bis_profiles`.** SimC won't help here. Curate ~7 specs (resto druid/shaman, holy/disc priest, holy paladin, mistweaver, preservation evoker) from Wowhead/Method/Icy Veins, seed via a one-shot artisan command. Until then the character page shows a placeholder for these specs explaining the gap.
+- **Healer BiS profiles for `bis_profiles`.** Stub shells seeded 2026-04-30 (`bis:seed-healers`): character page now renders consumables + an explainer badge instead of a blank widget. Full per-slot item lists still needed for ~7 specs. Source candidates: Wowhead, Method, Icy Veins, QE. Until full profiles land the per-slot comparison column stays empty for healers. See `docs/planning/multi-source-bis-tabs.md` for the multi-source ingest plan once we're ready to fill these in.
 - **Year-aware holiday lookup.** Easter-aligned (Noblegarden), Lunar New Year (Lunar Festival), and US-Thanksgiving (Pilgrim's Bounty) need a year-keyed table. Stable absolute-date holidays already shipped.
 
 ## 2. My read on the Copilot PRD
@@ -89,11 +141,21 @@ Cheap and high-value first.
 
 ## 4. Open questions for the planning session
 
-- Are we OK starting WCL/B.net work on Hostinger's queue worker, or do we need to reconsider hosting before adding sync-heavy features?
-- Should the roster overhaul become *the* main navigation entry (replacing the current widget-on-dashboard layout) or live alongside it?
+Answered questions struck through:
+
+- ~~Are we OK starting WCL/B.net work on Hostinger's queue worker?~~ Yes. Batched importers (Blizzard + RIO chunked to fit 30s) shipped 2026-04-30.
+- ~~Should the roster overhaul become *the* main navigation entry?~~ It lives alongside; alt-groups + recently-inactive widgets dropped from General in favour of links to filtered Roster views.
 - Do we want an explicit "trial pipeline" view (apply -> trial -> raider -> bench -> alumni) or just a flag on the existing roster row?
-- Where does Raid-Helper attendance fit relative to WCL attendance? RH says who signed up, WCL says who actually zoned in. Officer-relevant gap.
-- Does GRM's "recently inactive" signal beat B.net's `last_login_timestamp` in practice? If yes, we can downgrade B.net's role in this plan.
+- ~~Where does Raid-Helper attendance fit relative to WCL attendance?~~ Addressed by the no-show widget (shipped 2026-04-27): RH signups vs WCL zone-ins reconciled in one view.
+- ~~Does GRM's "recently inactive" signal beat B.net's `last_login_timestamp`?~~ Yes. B.net `last_login_timestamp` is unreliable on the public API; GRM data is authoritative for activity. B.net's role narrowed to gear / progression / ilvl.
+
+## 4a. New open questions (2026-05-02)
+
+- **Permission rework timeline.** Social and Roster are officer-only today. When does non-officer access matter enough to do the `member` tier work? (See §1a.)
+- **Healer BiS full profiles.** Shells are seeded; when do we want to hand-curate the per-slot item lists? Trigger: healers starting to use the character page actively.
+- **Weekly digest channel target.** The digest Artisan command ships WCL data. Should this auto-post to a Discord channel on a schedule, or remain officer-triggered only?
+- **Multi-day calendar spans.** Brewfest / Winter Veil span 2+ weeks. CSS-grid `span N` bars would improve the month view. Low priority but visible gap.
+- **Profession icons wiring.** Icons are on disk; character detail page doesn't exist yet. Wait for the character page to mature before wiring these in.
 
 ## 5. Guilds of WoW feature audit (T1 #3)
 
@@ -118,11 +180,13 @@ Done up front so the audit doesn't blocking the planning session. Source: guilds
 
 ### Verdict
 
-We're already at rough feature parity for everything that matters to a private dashboard. The genuine gaps are the weekly digest and the composition planner, both of which can wait. The real value GoW offers as a reference is its filtering UX (hence the Roster overhaul priority).
+We're at or ahead of feature parity for everything that matters to a private dashboard. The composition planner shipped 2026-04-27. The remaining GoW gap is the weekly auto-generated digest; everything else is covered or out of scope.
 
 ## 6. Tier 1 specs (concrete enough to argue about)
 
-### 6.1 Roster page
+All §6 specs below shipped. Kept for reference and retrospective detail; don't re-implement.
+
+### 6.1 Roster page (SHIPPED 2026-04-27)
 
 **Route**: `GET /roster` (officer-gated, like the rest of the dashboard).
 
@@ -167,7 +231,7 @@ Add the `roster.view` ability to `AppServiceProvider` (currently flat: every off
 
 **Deprecation**: once Roster ships, remove the `alt-groups` and `recently-inactive` widgets from the General dashboard and link to Roster's pre-filtered URL instead. The widgets become dead code.
 
-### 6.2 Kick-macro generator
+### 6.2 Kick-macro generator (SHIPPED 2026-04-27)
 
 **Problem**: officers regularly kick a player + all their alts. Today that's a manual sweep through the guild UI, character by character. Easy to miss an alt and easy to slip and kick the wrong rank.
 
@@ -232,7 +296,7 @@ JSON endpoint, called from the modal via fetch. CSRF-protected, gated by `roster
 - Battle.net character lookups by account. The relationship comes from GRM alt-grouping, which is good enough.
 - Reason / ban tracking. If banning rather than kicking, that's a separate flow that writes to `reason_banned` + `banned_at` and is worth its own spec later.
 
-### 6.3 Dashboard UX / responsiveness pass
+### 6.3 Dashboard UX / responsiveness pass (SHIPPED 2026-04-27)
 
 **Current state**:
 
@@ -299,7 +363,7 @@ Phase C — density preference (only if the next session decides it's worth it).
 
 **Apply to all dashboards**: General, Heroic, Mythic, Keynight team pages all use the same widgets. The grid pattern should be shared (a Blade component or partial would be appropriate; current pages would just slot in their controller-provided widget set).
 
-### 6.4 High-clarity / accessibility mode
+### 6.4 High-clarity / accessibility mode (SHIPPED 2026-04-27, three-step dial variant)
 
 **Why this exists**
 
@@ -425,7 +489,7 @@ She can use the dashboard usefully after Phase A+B alone. C and D are polish.
 
 Before committing the design, share Phase A+B with her on a real raid night and watch her use it. Watch where her eyes go, where she squints, where she moves her head. The spec above is a starting point; her feedback over a real session is the ground truth.
 
-### 6.5 Brand asset integration
+### 6.5 Brand asset integration (SHIPPED 2026-04-27)
 
 **Inventory** (as delivered into `docs/`):
 
@@ -614,7 +678,7 @@ The sidebar footer in [layouts/dashboard.blade.php:202-210](resources/views/layo
 
 Do the file move + filename normalisation + `<x-icon>` component as a single first commit. After that lands, every feature that's already speced (Roster, kick macros, high-clarity, external links) can grow icon usage incrementally without further infrastructure work.
 
-### 6.6 Optional phoenix-red colour theme
+### 6.6 Optional phoenix-red colour theme (SHIPPED 2026-04-27)
 
 **Why this is a separate axis from high-clarity mode**
 
@@ -694,7 +758,7 @@ Lives wherever the high-clarity toggle ends up (likely sidebar footer or a dedic
 
 This shape doesn't preclude adding more themes later (a "high-contrast" pure black/white theme would be a third option). Keep the column type as `varchar(32)` rather than an enum so we can extend without a schema change.
 
-### 6.7 Character external-links component
+### 6.7 Character external-links component (SHIPPED 2026-04-27)
 
 **Component**: `<x-character-links :member="$m" />` at `resources/views/components/character-links.blade.php`.
 
