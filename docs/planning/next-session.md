@@ -1,6 +1,20 @@
 # Next planning session: queued ideas
 
-Captured 2026-04-26. Updated 2026-07-08. Drop-in agenda for the next sit-down planning pass.
+Captured 2026-04-26. Updated 2026-08-10. Drop-in agenda for the next sit-down planning pass.
+
+> **The open work has moved to [docs/board/](../board/).** Everything still outstanding in
+> sections 1a, 4a and the runbook follow-ups is now a card: the queue is
+> [board/todo/](../board/todo/) and what waits on a person is
+> [board/human-review/](../board/human-review/), starting with confirming Hostinger restored
+> write grants after the 8 July outage, which has been an unwatched watch item for a month.
+>
+> This document keeps what it is good at and the board is bad at: the shipped log in sections 0
+> to 0b, the read on the Copilot PRD in section 2, and the ranking in section 3. Those are
+> reasoning and history. The struck-through items stay struck rather than being deleted, because
+> the record of what was considered and rejected is the point of the raw queue.
+>
+> The custom data-collection addon is [board/discarded/0012](../board/discarded/), on the
+> reasoning already in section 2 point 4.
 
 ## 0. Shipped 2026-04-27 (one big session)
 
