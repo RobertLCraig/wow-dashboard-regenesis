@@ -1,9 +1,22 @@
 # Filling in the healer BiS profiles
 
 ## What I need from you
-Pick 1, 2 or 3. It decides whether roughly seven specs get hand-curated per-slot item lists, which
-is the largest piece of manual data entry left in the project, and it needs you because the trigger
-is whether the guild's healers actually use the character page.
+
+**Pick 1, 2 or 3 below.** It decides whether roughly seven healer specs get hand-curated per-slot
+item lists, which is the largest piece of manual data entry left in the project.
+
+My recommendation is **2**, with the empty column changed to say why it is empty.
+
+**Pass** is a number in this card. If it is 2, the only work is one line of Blade, and this closes
+the same day.
+
+**Fail** is leaving the column silently empty, which is where it is now. The first healer who looks
+finds nothing and concludes the feature is broken, and that is exactly the impression the stub
+shells were seeded to prevent and only partly do.
+
+**Why it needs you** The trigger is whether the guild's healers actually use the character page.
+Nothing in the repository knows that, and it is the fact that decides whether seven specs of data
+entry is worth anything at all.
 
 ## Why
 SimC's MID1 directory ships DPS and tank profiles only, so `bis_profiles` has no source for healer

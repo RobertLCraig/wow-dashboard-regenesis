@@ -5,7 +5,9 @@ waiting_on: Hostinger, recheck 2026-08-11
 # Confirm Hostinger restored INSERT and UPDATE on the database
 
 ## What I need from you
-Two checks, in order:
+
+**Try logging in to the live site and say whether it works.** That single answer tells us whether
+Hostinger restored the write grants. Two steps, in order:
 
 1. Log in to the dashboard. Pass: you get in. Fail: the login itself 500s or silently bounces you,
    which means the session write is still being denied and the grants have not come back.
@@ -13,7 +15,17 @@ Two checks, in order:
    cap and asking for `INSERT`/`UPDATE` to be restored. The runbook has the wording at
    [docs/ops-runbook.md](../../ops-runbook.md) step 5.
 
-An agent cannot do either: the first needs a real session and the second needs the hosting account.
+**Pass** is reaching the dashboard, plus a scheduled sync writing rows with no permission error in
+the log. Record the date in the runbook, because criterion #3 wants a baseline for the next
+incident.
+
+**Fail** is the login 500ing or silently bouncing you, which means the session write is still being
+denied. That is step 2's ticket, and the runbook has the wording.
+
+**Why it needs you** The first needs a real login session and the second needs the hosting account,
+so neither is reachable from here. Nothing in the app reports whether the grants are back, which is
+why this has sat open since 8 July: it is possible the site has been quietly unable to sync for a
+month.
 
 ## Why
 On 2026-07-08 the database hit Hostinger's 3 GB per-database cap and the host auto-revoked

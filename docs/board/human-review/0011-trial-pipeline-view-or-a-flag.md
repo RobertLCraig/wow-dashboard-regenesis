@@ -1,8 +1,21 @@
 # Trial pipeline: its own view, or a flag on the roster row
 
 ## What I need from you
-Pick 1 or 2. It decides whether the roster grows a second page, and it needs you because the input
-is how many trials the guild actually runs at once and whether anyone other than you would use it.
+
+**Pick 1 or 2 below.** It decides whether the roster grows a second page, or gains a filter chip.
+
+My recommendation is **1**, a flag on the roster row.
+
+**Pass** is a number in this card. If it is 1, the work is small and lands beside the filter chips
+officers already use.
+
+**Fail** is leaving it, which is what has happened since April. It has sat under "Tier 3, defer or
+revisit" precisely because both answers are reasonable, and a question like that expires by being
+ignored rather than answered.
+
+**Why it needs you** The input is how many trials the guild runs at once, and whether anyone other
+than you would open a pipeline view. That is a volume question about people, and nothing in the
+repository can see it.
 
 ## Why
 This has been an open planning question since April, sitting under "Tier 3, defer or revisit". It

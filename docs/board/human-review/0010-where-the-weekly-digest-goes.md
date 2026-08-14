@@ -1,8 +1,21 @@
 # Where the weekly digest goes
 
 ## What I need from you
-Pick 1, 2 or 3. It decides whether the app posts to Discord on a schedule without anyone asking it
-to, which is a call about the guild's channels rather than about the code.
+
+**Pick 1, 2 or 3 below.** It decides whether the app starts posting to Discord on a schedule with
+nobody asking it to, and if so, to which channel.
+
+My recommendation is **1**, the officer channel.
+
+**Pass** is a number in this card, and a channel id if it is 1 or 2.
+
+**Fail** is drifting into 2 rather than choosing it. The digest carries parse rankings, so posting
+it guild-wide is a social decision about whether performance data goes where everyone sees it, and
+that is not a thing to arrive at by changing a config value.
+
+**Why it needs you** It is a call about the guild's channels rather than about the code. The app
+already posts pre-raid reminders, so it can post; what nothing here knows is whether the guild wants
+it posting rankings unattended.
 
 ## Why
 The digest Artisan command produces the weekly summary including WCL parses, and today it only runs
