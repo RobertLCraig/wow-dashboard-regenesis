@@ -46,3 +46,6 @@ option 1 is yes and you expect to do it again next tier, because the ingest pays
 repeats rather than over the first fill.
 
 ## Decided
+
+
+**2026-08-15** 3
