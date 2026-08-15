@@ -53,3 +53,8 @@ chance of a next time; this one is about whether the last time is actually over.
 - [ ] Try a login
 - [ ] Check the log for write-permission errors from the scheduled syncs
 - [ ] Raise the ticket if either fails, and record the outcome here
+
+## Decided
+<!-- The answer, dated. Appended: a reversal is a later line, not an edit. -->
+
+**2026-08-15** Confirmed. logging in is currently blocked. On the session I had that was already logged in, I was able to read most of the site, but was unable to upload a new sync file: Saving the snapshot failed: SQLSTATE[42000]: Syntax error or access violation: 1142 INSERT command denied to user 'u408983312_regen'@'127.0.0.1' for table `u408983312_regenesis_wow`.`snapshots` (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: u408983312_regenesis_wow, SQL: insert into `snapshots` (`guild_key`, `source`, `captured_at`, `payload_hash`, `raw_path`, `grm_version`, `updated_at`, `created_at`) values (Regenesis-Silvermoon, grm, 2026-08-15 12:03:50, bf5d5183c5a9e345cc2e88cf8ca967a8a277fc54a84f112d1deb7330c9be5bf4, snapshots/Regenesis-Silvermoon/01M02MX4Z4ZXCX1P5Y81XE5SMV.json.gz, ?, 2026-08-15 12:03:51, 2026-08-15 12:03:51)) Historically this issue has been 100% because the database was over 3GB (expected operating size is under 1gb) meaning that we are not truncating data properly.
