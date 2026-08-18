@@ -8,9 +8,12 @@ Hostinger shared hosting, account `u408983312`). Deploy mechanics live in
 
 - **MySQL: 3 GB per database.** When a database crosses 3072 MB, Hostinger
   **auto-revokes `INSERT`/`UPDATE`/`CREATE`/`INDEX`** on it (leaving
-  `SELECT`/`DELETE`/`DROP`/`ALTER` so you can clear space). Write access is
-  restored automatically once the DB is back under the cap, though the
-  re-check can lag by up to a few hours — a support ticket expedites it.
+  `SELECT`/`DELETE`/`DROP`/`ALTER` so you can clear space). Hostinger says
+  write access is restored automatically once the DB is back under the cap.
+  **Do not rely on that.** After the 2026-07-08 incident the DB sat under the
+  cap for six weeks (507 MB on 2026-08-19, one sixth of the cap) and the
+  grants never came back — every sync silently failed the whole time. Assume a
+  support ticket is required and raise it the same day.
 - **PHP: 30s wall clock**, no Node/Lua. Syncs run as batched cron jobs.
 - **MySQL: `MAX_STATEMENT_TIME 120s`** on the app DB user.
 
@@ -70,15 +73,19 @@ per member per source pull, never swept:
    ssh -p 65002 u408983312@141.136.33.219 \
      'tail -120 /home/u408983312/domains/regenesis.enhanceify.co.uk/laravel/storage/logs/laravel.log'
    ```
-2. If it's a **`1142 ... command denied`** on writes → the DB is over the 3 GB
-   cap. Confirm size + grants:
+2. If it's a **`1142 ... command denied`** on writes → the write grants are
+   gone. Get the size and the grants (both read creds straight from `.env`, so
+   no password ends up on the command line):
    ```sh
-   # in the laravel dir, creds are in .env (DB_USERNAME / DB_PASSWORD / DB_DATABASE)
-   mysql -u"$DB_USERNAME" -h127.0.0.1 "$DB_DATABASE" -N -e \
-     "SELECT ROUND(SUM(data_length+index_length)/1024/1024,1) FROM information_schema.tables WHERE table_schema=DATABASE();"
-   mysql -u"$DB_USERNAME" -h127.0.0.1 -N -e "SHOW GRANTS FOR CURRENT_USER();"
+   # in the laravel dir
+   php artisan db:show                      # "Total Size" + per-table sizes
+   php artisan tinker --execute='foreach(DB::select("SHOW GRANTS FOR CURRENT_USER()") as $r){ echo implode("|",(array)$r),PHP_EOL; }'
    ```
-   Missing `INSERT`/`UPDATE` in the grants confirms the quota lock.
+   Missing `INSERT`/`UPDATE` in the grants confirms the lock. **Then read the
+   size, because it splits the fix in two:**
+   - **Over ~3072 MB** → the cap tripped it. Go to step 3 and reclaim space.
+   - **Comfortably under** → the cap is not the problem and clearing more data
+     will not help. Hostinger's auto-restore has stuck. Go straight to step 5.
 3. **Reclaim space.** With write grants restored (or via `TRUNCATE`/`DROP`,
    which only need `DROP`): the snapshot child tables are the usual culprit.
    Fastest safe move is truncating `member_equipment_snapshots` (no history is
@@ -91,9 +98,22 @@ per member per source pull, never swept:
    mysqlcheck -o -u"$DB_USERNAME" -h127.0.0.1 "$DB_DATABASE" member_snapshots member_raid_snapshots
    # (OPTIMIZE TABLE rebuilds the .ibd and returns space to the meter)
    ```
-5. If grants haven't auto-restored within a few hours of being under the cap,
-   open a Hostinger ticket: *"database `u408983312_regenesis_wow` is back under
-   the 3 GB limit, please restore write access."*
+5. **Open a Hostinger ticket** as soon as the DB is under the cap and the
+   grants are still missing. Do not wait days for the auto-restore; in 2026 it
+   never fired at all. Quote the measured size and the actual grant list:
+   *"Database `u408983312_regenesis_wow` had `INSERT`/`UPDATE`/`CREATE`/`INDEX`
+   revoked when it went over the 3 GB limit. It is now NNN MB, well under the
+   limit, and `SHOW GRANTS` for `u408983312_regen`@`127.0.0.1` still omits
+   them. Please restore `INSERT`, `UPDATE`, `CREATE` and `INDEX`."*
+
+### Grant restoration log
+
+The date writes were last confirmed working, so the next incident has a
+baseline for how long a restore takes.
+
+| Revoked | Confirmed restored |
+|---|---|
+| 2026-07-08 | **still revoked** — under cap since July, ticket outstanding (board card 0001) |
 
 ---
 
