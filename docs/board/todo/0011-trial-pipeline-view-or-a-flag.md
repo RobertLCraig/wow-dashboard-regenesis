@@ -41,3 +41,6 @@ and officers need to see where each one is without asking. That is a volume ques
 the only one who can answer it.
 
 ## Decided
+
+
+**2026-08-18** Option 2
