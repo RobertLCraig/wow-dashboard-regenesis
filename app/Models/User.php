@@ -5,9 +5,11 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class User extends Authenticatable
@@ -164,5 +166,45 @@ class User extends Authenticatable
         $mine = $rank[$this->tier] ?? 0;
         $needed = $rank[$tier] ?? 0;
         return $mine >= $needed;
+    }
+
+    // ── Temporary: read-only fallback for the Hostinger grant outage ──────
+    // DELETE THIS BLOCK (and the `exists` guard in DiscordController) once
+    // `INSERT`/`UPDATE` are restored. See docs/board card 0001.
+
+    /** MySQL error 1142: the grant for this statement has been revoked. */
+    public static function isWriteDenied(QueryException $e): bool
+    {
+        return (int) ($e->errorInfo[1] ?? 0) === 1142;
+    }
+
+    /**
+     * ponytail: swallow only the revoked-grant error so a logged-out officer
+     * can still get in and read the site while writes are blocked.
+     *
+     * Logging in writes to `users` five times over - the OAuth profile save,
+     * three `RoleVerifier` tier writes, and the remember-token cycle - and
+     * every one of them routes through here, so one guard covers the whole
+     * path where five call-site guards would not. Any other query error is
+     * rethrown untouched, and once the grants return this never fires.
+     * Ceiling: writes are silently dropped rather than queued, which is the
+     * correct trade only while the database is unwritable anyway.
+     */
+    public function save(array $options = []): bool
+    {
+        try {
+            return parent::save($options);
+        } catch (QueryException $e) {
+            if (! self::isWriteDenied($e)) {
+                throw $e;
+            }
+
+            Log::warning('user write denied by revoked grant, continuing read-only', [
+                'user_id' => $this->id,
+                'dirty' => array_keys($this->getDirty()),
+            ]);
+
+            return false;
+        }
     }
 }

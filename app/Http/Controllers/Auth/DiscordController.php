@@ -55,6 +55,17 @@ class DiscordController extends Controller
         $user->discord_refresh_token = $discordUser->refreshToken;
         $user->save();
 
+        // Temporary, paired with User::save()'s revoked-grant guard: creating
+        // a first-time user needs INSERT, so during the outage the row never
+        // lands and `exists` stays false. Bail here rather than logging in a
+        // model with no id. Delete with that guard. See board card 0001.
+        if (! $user->exists) {
+            Log::warning('Discord login blocked: user row could not be created', [
+                'discord_id' => $discordUser->getId(),
+            ]);
+            return redirect()->route('auth.discord.failed');
+        }
+
         // Verify they're an officer NOW so we can fail fast at the OAuth
         // step rather than at the next page load.
         $tier = RoleVerifier::fromConfig()->tierFor($user, force: true);
