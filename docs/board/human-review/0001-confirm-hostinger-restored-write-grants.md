@@ -1,60 +1,62 @@
 ---
-not_for_the_loop: raising the ticket needs the Hostinger hosting account login
+waiting_on: Hostinger to restore the write grants - recheck 2026-08-20
 ---
 
 # Confirm Hostinger restored INSERT and UPDATE on the database
 
 ## What I need from you
 
-**Open a Hostinger support ticket and paste this in.** That is the only step left. Nothing else
-unblocks the site.
+**Two steps, in order.**
 
-> Hello. Database `u408983312_regenesis_wow` had `INSERT`, `UPDATE`, `CREATE` and `INDEX` revoked on
-> 2026-07-08 when it went over the 3 GB limit. It has been under the limit ever since and is
-> **507 MB today**, but the permissions have not come back on their own in six weeks.
-> `SHOW GRANTS` for `u408983312_regen`@`127.0.0.1` still returns only SELECT, DELETE, DROP,
-> REFERENCES, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, CREATE VIEW, SHOW VIEW, CREATE
-> ROUTINE, ALTER ROUTINE, EVENT, TRIGGER, DELETE HISTORY, SHOW CREATE ROUTINE.
-> Please restore `INSERT`, `UPDATE`, `CREATE` and `INDEX`.
+1. **Tomorrow, try logging in.** Pass: you reach the dashboard. That means the grants came back on
+   their own and this card is done. Record the date in the runbook's grant restoration log.
+2. **If it still fails, open a Hostinger ticket** with the text below. Do not wait longer than a
+   day; in July the auto-restore fired within 24 hours, and after that it never fired at all.
 
-**Pass** is both of:
-- you can log in to the dashboard
-- the next morning's cron writes rows with no `1142` error in `storage/logs/laravel.log`
+> Hello. Database `u408983312_regenesis_wow` had `INSERT`, `UPDATE`, `CREATE` and `INDEX` revoked
+> when it went over the 3 GB limit. I have cleared space and it is now **1.4 GB**, well under the
+> limit. `SHOW GRANTS` for `u408983312_regen`@`127.0.0.1` still omits those four. Please restore
+> them.
 
-**Fail** is Hostinger replying that the database is over quota. It is not. The numbers above came off
-the live server today, so send them the numbers again.
+**Fail** is Hostinger replying that the database is still over quota. Ask them which figure they are
+reading, because hPanel showed 3087 MB before the clear-out and should now show about 1400 MB.
 
 **Why it needs you** Raising the ticket needs the hosting account login, which is not reachable from
 here.
 
-## The size theory is wrong, and that changes the ask
+## What was actually wrong, and what was done
 
-You said this is always the 3 GB cap, and that we are not clearing old data properly. Checked on the
-live server on 2026-08-19:
+The database really was over the cap. hPanel and the database's own numbers measure different
+things, and reading the wrong one sent this card the wrong way on 2026-08-19:
 
-- The database is **507 MB**. The cap is 3072 MB. It sits at one sixth of the cap.
-- It was 1695 MB after the July clear-out, so the nightly `snapshots:prune` job has taken another
-  1188 MB off since. The clearing works.
-- Writes are still denied. The cron job failed again at 04:30 on 2026-08-18 with
-  `1142 INSERT command denied` on `attendance_stats`.
+| Measure | Reading | What it is |
+|---|---|---|
+| `information_schema` | 507 MB | the rows still in use |
+| hPanel | 3087 MB | the files on disk, which is what Hostinger meters |
 
-So size is not the cause any more. Hostinger is meant to switch the permissions back on by itself
-once the database drops under the cap. It did not. That is a stuck switch on their side, and only
-they can flip it.
+The nightly `snapshots:prune` job deletes rows with `DELETE`. In MySQL that empties the pages but
+never shrinks the file. So the prune ran for six weeks, the row count fell, and the file Hostinger
+meters never moved. Only `TRUNCATE` gives the space back, and it needs just the `DROP` grant, which
+we still had.
+
+Done on 2026-08-19: truncated `member_equipment_snapshots` and `member_raid_snapshots`. On-disk went
+**3234 MB to 1468 MB**. The gear and raid snapshots refill from the half-hourly sweeps once writes
+return.
+
+**This buys about two days, not a fix.** The syncs write roughly 1 GB a day, which is what refilled
+the tables and re-tripped the cap on 10 July, a day after the last clear-out. Card 0003 is the
+actual fix.
 
 ## Why
-On 2026-07-08 the database hit the 3 GB cap and Hostinger auto-revoked the write permissions.
-Sessions were on the `database` driver, so every request tried to write a session row, every write
-was denied, and the whole site returned 500. Sessions and cache were moved to `file` and the fat
-snapshot tables were cleared, so public pages serve again.
+On 2026-07-08 the database hit the cap and Hostinger auto-revoked the write grants. Sessions were on
+the `database` driver, so every request tried to write a session row, every write was denied, and
+the site returned 500. Sessions and cache moved to `file`, so public pages serve.
 
-**Logins and every sync job stay blocked until the permissions come back**, and nothing in the app
-reports whether they have. That is why this sat open since 8 July: the site has been quietly unable
-to sync for six weeks.
+Logins and every sync job stay blocked until the grants come back. Officers can now at least log in
+and read the site: `User::save()` swallows the revoked-grant error rather than 500ing.
 
 ## Not this card
-The headroom follow-ups in the runbook, cards 0002 to 0004. They lower the chance of a next time.
-This one is about whether the last time is over.
+Stopping the refill. That is card 0003, and it is the one that stops this recurring.
 
 ## Acceptance
 <!-- AC:BEGIN -->
@@ -67,9 +69,14 @@ This one is about whether the last time is over.
 ## Tasks
 - [x] Try a login
 - [x] Check the log for write-permission errors from the scheduled syncs
-- [ ] Raise the ticket, and record the outcome here
+- [x] Get the database back under the cap so the grants can return
+- [ ] Confirm the grants are back, or raise the ticket
 
 ## Decided
 <!-- The answer, dated. Appended: a reversal is a later line, not an edit. -->
 
 **2026-08-15** Confirmed. logging in is currently blocked. On the session I had that was already logged in, I was able to read most of the site, but was unable to upload a new sync file: Saving the snapshot failed: SQLSTATE[42000]: Syntax error or access violation: 1142 INSERT command denied to user 'u408983312_regen'@'127.0.0.1' for table `u408983312_regenesis_wow`.`snapshots` (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: u408983312_regenesis_wow, SQL: insert into `snapshots` (`guild_key`, `source`, `captured_at`, `payload_hash`, `raw_path`, `grm_version`, `updated_at`, `created_at`) values (Regenesis-Silvermoon, grm, 2026-08-15 12:03:50, bf5d5183c5a9e345cc2e88cf8ca967a8a277fc54a84f112d1deb7330c9be5bf4, snapshots/Regenesis-Silvermoon/01M02MX4Z4ZXCX1P5Y81XE5SMV.json.gz, ?, 2026-08-15 12:03:51, 2026-08-15 12:03:51)) Historically this issue has been 100% because the database was over 3GB (expected operating size is under 1gb) meaning that we are not truncating data properly.
+
+**2026-08-19** Confirmed from hPanel: 3087/3072 MB. The database was over the cap the whole time.
+Truncate both the equipment and raid snapshot tables, leave the syncs running, and fix the write
+rate in card 0003.

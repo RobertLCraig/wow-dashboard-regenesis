@@ -8,12 +8,26 @@ Hostinger shared hosting, account `u408983312`). Deploy mechanics live in
 
 - **MySQL: 3 GB per database.** When a database crosses 3072 MB, Hostinger
   **auto-revokes `INSERT`/`UPDATE`/`CREATE`/`INDEX`** on it (leaving
-  `SELECT`/`DELETE`/`DROP`/`ALTER` so you can clear space). Hostinger says
-  write access is restored automatically once the DB is back under the cap.
-  **Do not rely on that.** After the 2026-07-08 incident the DB sat under the
-  cap for six weeks (507 MB on 2026-08-19, one sixth of the cap) and the
-  grants never came back — every sync silently failed the whole time. Assume a
-  support ticket is required and raise it the same day.
+  `SELECT`/`DELETE`/`DROP`/`ALTER` so you can clear space). Write access is
+  restored automatically once the DB is genuinely back under the cap; that
+  fired within a day on 2026-07-09. If it hasn't fired, you are almost
+  certainly still over — see the two-meters trap below — so re-measure before
+  raising a ticket.
+- **Hostinger meters the files on disk, not the rows.** These are different
+  numbers and the gap can be gigabytes:
+
+  | Measure | How | What it reads |
+  |---|---|---|
+  | rows in use | `php artisan db:show` (`data_length + index_length`) | **not** what Hostinger meters |
+  | files on disk | hPanel's database list, or add `data_free` (below) | what Hostinger meters |
+
+  `DELETE` empties InnoDB pages but never shrinks the `.ibd` file, so pruning
+  drops the first number and leaves the second untouched. On 2026-08-19 the
+  same database read 507 MB by rows and 3087 MB in hPanel, and six weeks of
+  nightly pruning had moved the meter by nothing. **Always read hPanel, or:**
+  ```sh
+  php artisan tinker --execute='echo DB::select("SELECT ROUND(SUM(data_length+index_length+data_free)/1048576,1) AS mb FROM information_schema.tables WHERE table_schema=DATABASE()")[0]->mb;'
+  ```
 - **PHP: 30s wall clock**, no Node/Lua. Syncs run as batched cron jobs.
 - **MySQL: `MAX_STATEMENT_TIME 120s`** on the app DB user.
 
@@ -98,22 +112,23 @@ per member per source pull, never swept:
    mysqlcheck -o -u"$DB_USERNAME" -h127.0.0.1 "$DB_DATABASE" member_snapshots member_raid_snapshots
    # (OPTIMIZE TABLE rebuilds the .ibd and returns space to the meter)
    ```
-5. **Open a Hostinger ticket** as soon as the DB is under the cap and the
-   grants are still missing. Do not wait days for the auto-restore; in 2026 it
-   never fired at all. Quote the measured size and the actual grant list:
+5. **Open a Hostinger ticket** only if a day has passed with the *on-disk*
+   figure genuinely under the cap and the grants are still missing. Quote the
+   hPanel figure, not the row figure:
    *"Database `u408983312_regenesis_wow` had `INSERT`/`UPDATE`/`CREATE`/`INDEX`
-   revoked when it went over the 3 GB limit. It is now NNN MB, well under the
-   limit, and `SHOW GRANTS` for `u408983312_regen`@`127.0.0.1` still omits
-   them. Please restore `INSERT`, `UPDATE`, `CREATE` and `INDEX`."*
+   revoked when it went over the 3 GB limit. It is now NNN MB in hPanel, well
+   under the limit, and `SHOW GRANTS` for `u408983312_regen`@`127.0.0.1` still
+   omits them. Please restore `INSERT`, `UPDATE`, `CREATE` and `INDEX`."*
 
 ### Grant restoration log
 
 The date writes were last confirmed working, so the next incident has a
 baseline for how long a restore takes.
 
-| Revoked | Confirmed restored |
-|---|---|
-| 2026-07-08 | **still revoked** — under cap since July, ticket outstanding (board card 0001) |
+| Revoked | Confirmed restored | Note |
+|---|---|---|
+| 2026-07-08 | 2026-07-09 | auto-restored within a day of the truncate |
+| ~2026-07-10 | **pending** | syncs refilled the tables and re-tripped the cap within a day; truncated again 2026-08-19, 3234 → 1468 MB (board card 0001) |
 
 ---
 
@@ -123,8 +138,10 @@ baseline for how long a restore takes.
   env `SNAPSHOT_RETENTION_DAYS`, default 30). Deletes snapshot rows older than
   the window but **always keeps each member's latest row per source**, so the
   current-state UI is never affected (churn/anniversary history lives in the
-  separate, tiny `member_events` table). Bounds the snapshot tables to
-  ~1.3 GB steady-state.
+  separate, tiny `member_events` table). **It bounds the row count, not the
+  file size** — it deletes, and `DELETE` never returns pages to Hostinger's
+  meter. Treat it as protection against unbounded *growth*, not as a way back
+  under the cap. Only `TRUNCATE` does that.
 - **Sessions + cache on `file`**, not `database` — a DB-write outage no longer
   takes the whole site down; public pages stay served.
 
