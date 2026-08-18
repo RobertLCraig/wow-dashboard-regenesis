@@ -42,3 +42,6 @@ social decision, not a feature flag, and the pre-raid reminder pings already est
 app can post without that being a precedent for posting performance data.
 
 ## Decided
+
+
+**2026-08-18** Auto-post to an officer channel on a schedule Maybe we can post to a thread on the officer-text channel
