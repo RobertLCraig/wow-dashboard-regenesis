@@ -52,9 +52,10 @@ class PullBlizzardEquipment extends Command
         }
 
         $this->info(sprintf(
-            '%d members queried: %d matched, %d missing on Blizzard, %d errored. Equipment snapshot #%d.',
+            '%d members queried: %d matched (%d unchanged, no row written), %d missing on Blizzard, %d errored. Equipment snapshot #%d.',
             $result['members_queried'],
             $result['matched'],
+            $result['unchanged'],
             $result['missing'],
             $result['errored'],
             $result['snapshot_id'],

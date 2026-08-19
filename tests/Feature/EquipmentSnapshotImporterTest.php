@@ -164,3 +164,99 @@ it('throws when credentials are missing', function () {
     expect(fn () => makeEqImporter()->pull())
         ->toThrow(\RuntimeException::class, 'not configured');
 });
+
+/*
+ * Dedup-on-write. Each gear blob is tens of KB and gear rarely moves, so
+ * re-writing an identical one every half hour is what filled the 3 GB
+ * database cap twice. A one-member fixture cannot catch the regression that
+ * matters, because the interesting failure is the sweep pinning itself to the
+ * same members forever - so these run a two-member roster at limit 1 and watch
+ * who gets fetched.
+ */
+
+function eqRotatingImporter(): EquipmentSnapshotImporter
+{
+    return new EquipmentSnapshotImporter(
+        client: BlizzardClient::fromConfig(),
+        guildKey: 'Regenesis-Silvermoon',
+        requestDelayMs: 0,
+        minLevel: 70,
+        concurrency: 5,
+        limit: 1,
+    );
+}
+
+function eqFetchCount(string $charSlug): int
+{
+    return collect(Http::recorded())
+        ->filter(fn ($pair) => str_contains($pair[0]->url(), "/character/silvermoon/{$charSlug}/equipment"))
+        ->count();
+}
+
+it('writes no new row when a member is re-fetched with unchanged gear', function () {
+    makeEqMember('Sheday-Silvermoon');
+    makeEqMember('Tute-Silvermoon');
+
+    Http::fake([
+        'oauth.battle.test/token' => Http::response(['access_token' => 'tok', 'expires_in' => 86399], 200),
+        'eu.api.blizzard.test/profile/wow/character/silvermoon/sheday/equipment*' => Http::response(eqPayload(282), 200),
+        'eu.api.blizzard.test/profile/wow/character/silvermoon/tute/equipment*' => Http::response(eqPayload(290), 200),
+    ]);
+
+    eqRotatingImporter()->pull();                       // Sheday
+    $this->travel(1)->minutes();
+    eqRotatingImporter()->pull();                       // Tute
+    $this->travel(1)->minutes();
+    expect(MemberEquipmentSnapshot::query()->count())->toBe(2);
+
+    $third = eqRotatingImporter()->pull();              // Sheday again, unchanged
+
+    expect($third['unchanged'])->toBe(1);
+    expect(MemberEquipmentSnapshot::query()->count())->toBe(2);
+});
+
+it('keeps rotating through the roster when it skips a write', function () {
+    makeEqMember('Sheday-Silvermoon');
+    makeEqMember('Tute-Silvermoon');
+
+    Http::fake([
+        'oauth.battle.test/token' => Http::response(['access_token' => 'tok', 'expires_in' => 86399], 200),
+        'eu.api.blizzard.test/profile/wow/character/silvermoon/sheday/equipment*' => Http::response(eqPayload(282), 200),
+        'eu.api.blizzard.test/profile/wow/character/silvermoon/tute/equipment*' => Http::response(eqPayload(290), 200),
+    ]);
+
+    for ($run = 0; $run < 6; $run++) {
+        eqRotatingImporter()->pull();
+        $this->travel(1)->minutes();
+    }
+
+    // Six runs, two members, one member per run. A skipped write that left the
+    // row on its old snapshot would leave that member permanently the stalest
+    // and every run would fetch them: 6 and 0 instead of 3 and 3.
+    expect(eqFetchCount('sheday'))->toBe(3);
+    expect(eqFetchCount('tute'))->toBe(3);
+});
+
+it('writes a new row when the gear actually changes', function () {
+    $member = makeEqMember('Sheday-Silvermoon');
+
+    // One sequence, not two Http::fake() calls: a second fake() appends to the
+    // stub list rather than replacing it, so the first stub keeps answering
+    // and the "changed" run silently gets the old gear back.
+    Http::fake([
+        'oauth.battle.test/token' => Http::response(['access_token' => 'tok', 'expires_in' => 86399], 200),
+        'eu.api.blizzard.test/profile/wow/character/silvermoon/sheday/equipment*' => Http::sequence()
+            ->push(eqPayload(282), 200)
+            ->push(eqPayload(295), 200),
+    ]);
+
+    eqRotatingImporter()->pull();
+    $this->travel(1)->minutes();
+    $second = eqRotatingImporter()->pull();
+
+    expect($second['unchanged'])->toBe(0);
+
+    $rows = MemberEquipmentSnapshot::query()->where('member_id', $member->id)->orderBy('id')->get();
+    expect($rows)->toHaveCount(2);
+    expect($rows->last()->equipped_ilvl)->toBe(295);
+});

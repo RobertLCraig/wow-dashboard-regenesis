@@ -53,6 +53,7 @@ class EquipmentSnapshotImporter
      *   matched:int,
      *   missing:int,
      *   errored:int,
+     *   unchanged:int,
      * }
      */
     public function pull(): array
@@ -150,7 +151,14 @@ class EquipmentSnapshotImporter
         $payloadHash = hash('sha256', json_encode($perMemberPayloads, JSON_THROW_ON_ERROR));
 
         return DB::transaction(function () use ($perMemberPayloads, $payloadHash, $now, $matched, $missing, $errored, $members) {
-            $snapshot = Snapshot::query()->firstOrCreate(
+            // updateOrCreate, not firstOrCreate: dedup makes repeat batches
+            // return byte-identical payloads, so the hash now recurs routinely
+            // and firstOrCreate would hand back a snapshot still carrying its
+            // original captured_at. Staleness is read off that column, so the
+            // members in a recurring batch would rank oldest forever and the
+            // sweep would stop rotating. Re-observing the same gear now is a
+            // new observation, so the timestamp moves.
+            $snapshot = Snapshot::query()->updateOrCreate(
                 [
                     'guild_key' => $this->guildKey,
                     'source' => Snapshot::SOURCE_BLIZZARD_EQUIPMENT,
@@ -162,9 +170,48 @@ class EquipmentSnapshotImporter
                 ]
             );
 
+            $previousRows = $this->latestRowsFor(array_keys($perMemberPayloads));
+            $unchanged = 0;
+
             foreach ($perMemberPayloads as $memberId => $body) {
                 $member = $members->firstWhere('id', $memberId);
                 if (! $member) {
+                    continue;
+                }
+
+                $equipped = $this->intOrNull($body['equipped_item_level'] ?? null);
+                $average = $this->intOrNull($body['average_item_level'] ?? null);
+                $pieces = is_array($body['equipped_items'] ?? null)
+                    ? $body['equipped_items']
+                    : [];
+
+                $previous = $previousRows->get($member->id);
+
+                // Gear changes rarely, and each blob is tens of KB. Writing an
+                // identical copy per member per half-hour is what filled the
+                // 3 GB database cap twice (2026-07-08 and again on 07-10), so
+                // when nothing moved we carry the member's existing row onto
+                // this snapshot rather than inserting a duplicate of it.
+                //
+                // Moving it - rather than leaving it where it was - is the part
+                // that matters: selectMembersToFetch ranks staleness by the
+                // captured_at of the snapshot a member's latest row hangs off,
+                // so a skipped write that left the row behind would pin those
+                // members at the front of the queue forever and the sweep would
+                // stop rotating while still looking busy.
+                //
+                // Loose == on purpose: the payload round-trips through a JSON
+                // column, which is free to reorder object keys, and === would
+                // read that as a change and defeat the whole dedup.
+                if ($previous
+                    && $previous->equipped_ilvl === $equipped
+                    && $previous->average_ilvl === $average
+                    && $previous->pieces == $pieces
+                ) {
+                    if ($previous->snapshot_id !== $snapshot->id) {
+                        $previous->update(['snapshot_id' => $snapshot->id]);
+                    }
+                    $unchanged++;
                     continue;
                 }
 
@@ -174,11 +221,9 @@ class EquipmentSnapshotImporter
                         'member_id' => $member->id,
                     ],
                     [
-                        'equipped_ilvl' => $this->intOrNull($body['equipped_item_level'] ?? null),
-                        'average_ilvl' => $this->intOrNull($body['average_item_level'] ?? null),
-                        'pieces' => is_array($body['equipped_items'] ?? null)
-                            ? $body['equipped_items']
-                            : [],
+                        'equipped_ilvl' => $equipped,
+                        'average_ilvl' => $average,
+                        'pieces' => $pieces,
                     ]
                 );
             }
@@ -189,8 +234,35 @@ class EquipmentSnapshotImporter
                 'matched' => $matched,
                 'missing' => $missing,
                 'errored' => $errored,
+                'unchanged' => $unchanged,
             ];
         });
+    }
+
+    /**
+     * Each named member's most recent equipment row, keyed by member id.
+     *
+     * Bounded to one row per member by design: a member accumulates a row per
+     * genuine gear change, and loading their whole history to compare against
+     * the newest one would put the pruned-but-still-present back catalogue
+     * back into memory on every sweep.
+     *
+     * @param  list<int>  $memberIds
+     * @return \Illuminate\Support\Collection<int, MemberEquipmentSnapshot>
+     */
+    private function latestRowsFor(array $memberIds): \Illuminate\Support\Collection
+    {
+        if ($memberIds === []) {
+            return collect();
+        }
+
+        return MemberEquipmentSnapshot::query()
+            ->whereIn('id', DB::table('member_equipment_snapshots')
+                ->selectRaw('MAX(id)')
+                ->whereIn('member_id', $memberIds)
+                ->groupBy('member_id'))
+            ->get()
+            ->keyBy('member_id');
     }
 
     /**
