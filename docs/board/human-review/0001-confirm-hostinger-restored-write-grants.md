@@ -14,12 +14,13 @@ waiting_on: Hostinger to restore the write grants - recheck 2026-08-20
    day; in July the auto-restore fired within 24 hours, and after that it never fired at all.
 
 > Hello. Database `u408983312_regenesis_wow` had `INSERT`, `UPDATE`, `CREATE` and `INDEX` revoked
-> when it went over the 3 GB limit. I have cleared space and it is now **1.4 GB**, well under the
-> limit. `SHOW GRANTS` for `u408983312_regen`@`127.0.0.1` still omits those four. Please restore
-> them.
+> when it went over the 3 GB limit. I have cleared space and hPanel now reports it at **1424 MB**,
+> well under the 3072 MB limit. `SHOW GRANTS` for `u408983312_regen`@`127.0.0.1` still omits those
+> four. Please restore them.
 
-**Fail** is Hostinger replying that the database is still over quota. Ask them which figure they are
-reading, because hPanel showed 3087 MB before the clear-out and should now show about 1400 MB.
+**Fail** is Hostinger replying that the database is still over quota. Send them the hPanel figure
+again: it read 3087 MB before the clear-out and 1424 MB after, both confirmed in hPanel on
+2026-08-19.
 
 **Why it needs you** Raising the ticket needs the hosting account login, which is not reachable from
 here.
