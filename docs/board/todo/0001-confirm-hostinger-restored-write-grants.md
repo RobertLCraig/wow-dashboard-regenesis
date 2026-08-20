@@ -81,3 +81,5 @@ Stopping the refill. That is card 0003, and it is the one that stops this recurr
 **2026-08-19** Confirmed from hPanel: 3087/3072 MB. The database was over the cap the whole time.
 Truncate both the equipment and raid snapshot tables, leave the syncs running, and fix the write
 rate in card 0003.
+
+**2026-08-20** Verified that can login to https://regenesis.enhanceify.co.uk/admin/teams/schedule and save a new schedule.
