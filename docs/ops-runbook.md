@@ -144,6 +144,14 @@ baseline for how long a restore takes.
   under the cap. Only `TRUNCATE` does that.
 - **Sessions + cache on `file`**, not `database` — a DB-write outage no longer
   takes the whole site down; public pages stay served.
+- **DB-size line in the weekly digest** (`WeeklyDigestBuilder`, probe in
+  `App\Services\Digest\DatabaseSize`). Every digest carries the total against
+  the cap; past the threshold it carries a warning plus the five largest tables.
+  It measures `data_length + index_length + data_free` — the on-disk figure the
+  host meters, not the row figure. Cap and threshold are config because both
+  belong to the hosting plan: `DIGEST_DB_CAP_MB` (3072) and `DIGEST_DB_WARN_AT`
+  (0.8) in `config/digest.php`. Nothing is printed on sqlite; there is no
+  `information_schema` to read.
 
 ## Follow-ups (not yet done — further headroom, in priority order)
 
@@ -162,5 +170,3 @@ baseline for how long a restore takes.
 3. **One-off `OPTIMIZE TABLE`** on `member_snapshots` (and others) after the
    first prune, once write grants are back, to return the freed InnoDB pages to
    the size meter.
-4. **DB-size alert** in the weekly digest (warn at, say, 2.4 GB / 80% of cap)
-   so the next approach to the ceiling is visible before it bites.

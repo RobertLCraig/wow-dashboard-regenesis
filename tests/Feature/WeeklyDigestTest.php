@@ -5,6 +5,7 @@ use App\Models\MemberEvent;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
+use App\Services\Digest\DatabaseSize;
 use App\Services\Digest\WeeklyDigestBuilder;
 use App\Services\Discord\DiscordWebhookPoster;
 use Carbon\CarbonImmutable;
@@ -227,6 +228,76 @@ it('digest includes the best parses (one row per member, sorted desc) from the l
     expect(strpos($section, '80%'))->toBeLessThan(strpos($section, '60%'));
 });
 
+
+// --- Database size warning ------------------------------------------
+
+/**
+ * The suite runs on sqlite, which has no information_schema, so the real
+ * probe returns null there. Stub it to exercise the threshold + rendering.
+ *
+ * @param  list<array{name: string, mb: float}>  $tables  largest first
+ */
+function fakeDbSize(array $tables): DatabaseSize
+{
+    return new class($tables) extends DatabaseSize {
+        /** @param list<array{name: string, mb: float}> $tables */
+        public function __construct(private readonly array $tables) {}
+
+        public function tableSizes(): ?array
+        {
+            return $this->tables;
+        }
+    };
+}
+
+it('digest reports the total database size against the configured cap', function () {
+    config(['digest.db_cap_mb' => 3072, 'digest.db_warn_at' => 0.8]);
+
+    $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon', null, fakeDbSize([
+        ['name' => 'member_snapshots', 'mb' => 400.0],
+        ['name' => 'member_equipment_snapshots', 'mb' => 100.5],
+    ])))->build();
+
+    expect($built['data']['database']['total_mb'])->toBe(500.5);
+    expect($built['data']['database']['over'])->toBeFalse();
+    expect($built['markdown'])->toContain('**Database**: 500.5 MB of 3,072 MB (16%).');
+});
+
+it('digest warns and names the largest tables once past the threshold', function () {
+    config(['digest.db_cap_mb' => 3072, 'digest.db_warn_at' => 0.8]);
+
+    $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon', null, fakeDbSize([
+        ['name' => 'member_equipment_snapshots', 'mb' => 1400.0],
+        ['name' => 'member_snapshots', 'mb' => 1100.0],
+        ['name' => 'sessions', 'mb' => 0.5],
+    ])))->build();
+
+    expect($built['data']['database']['over'])->toBeTrue();
+    expect($built['markdown'])
+        ->toContain('⚠️ **Database at 2,500.5 MB of 3,072 MB (81%)**')
+        ->toContain('Largest tables: member_equipment_snapshots 1,400.0 MB, member_snapshots 1,100.0 MB');
+});
+
+it('digest reads the cap and the threshold from config, not from literals', function () {
+    // The same 500 MB that is comfortable under a 3 GB cap is a warning under 512 MB.
+    config(['digest.db_cap_mb' => 512, 'digest.db_warn_at' => 0.5]);
+
+    $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon', null, fakeDbSize([
+        ['name' => 'member_snapshots', 'mb' => 500.0],
+    ])))->build();
+
+    expect($built['data']['database']['cap_mb'])->toBe(512);
+    expect($built['data']['database']['over'])->toBeTrue();
+    expect($built['markdown'])->toContain('500.0 MB of 512 MB (98%)');
+});
+
+it('digest omits the database line when the driver has no information_schema', function () {
+    // The real probe against the suite's own sqlite connection.
+    $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon'))->build();
+
+    expect($built['data']['database'])->toBeNull();
+    expect($built['markdown'])->not->toContain('Database');
+});
 
 // --- DiscordWebhookPoster -------------------------------------------
 

@@ -29,6 +29,8 @@ class WeeklyDigestBuilder
         private readonly string $guildKey,
         /** Reference "now" for the week window. Injectable so tests can pin time. */
         private readonly ?CarbonImmutable $now = null,
+        /** Injectable so tests can pin table sizes without a MySQL connection. */
+        private readonly ?DatabaseSize $dbSize = null,
     ) {}
 
     /**
@@ -48,6 +50,7 @@ class WeeklyDigestBuilder
             'team_progression' => $this->teamProgression(),
             'top_rio' => $this->topRio(5),
             'best_parses' => $this->bestParses($weekAgo, 5),
+            'database' => $this->database(),
         ];
 
         return ['markdown' => $this->renderMarkdown($data), 'data' => $data];
@@ -289,6 +292,29 @@ class WeeklyDigestBuilder
         });
     }
 
+    /**
+     * The database measured against the plan's cap. Null when the driver has
+     * no `information_schema` to ask.
+     *
+     * @return null|array{total_mb: float, cap_mb: int, percent: int, over: bool, top_tables: list<array{name: string, mb: float}>}
+     */
+    private function database(): ?array
+    {
+        $tables = ($this->dbSize ?? new DatabaseSize)->tableSizes();
+        if ($tables === null) return null;
+
+        $cap = (int) config('digest.db_cap_mb');
+        $total = round(array_sum(array_column($tables, 'mb')), 1);
+
+        return [
+            'total_mb' => $total,
+            'cap_mb' => $cap,
+            'percent' => $cap > 0 ? (int) round($total / $cap * 100) : 0,
+            'over' => $cap > 0 && $total >= $cap * (float) config('digest.db_warn_at'),
+            'top_tables' => array_slice($tables, 0, 5),
+        ];
+    }
+
     private function latestRaiderio(): ?Snapshot
     {
         return Snapshot::query()
@@ -314,6 +340,22 @@ class WeeklyDigestBuilder
         $aq = $d['action_queue'];
         if ($aq['promote'] || $aq['demote'] || $aq['kick']) {
             $lines[] = "**Action queue**: {$aq['promote']} promote, {$aq['demote']} demote, {$aq['kick']} kick.";
+        }
+
+        if ($db = $d['database']) {
+            $size = number_format($db['total_mb'], 1) . ' MB of ' . number_format($db['cap_mb']) . " MB ({$db['percent']}%)";
+            if ($db['over']) {
+                $lines[] = '';
+                $lines[] = "⚠️ **Database at {$size}** - past the warning threshold. Prune or reclaim before writes are revoked.";
+                $largest = array_map(
+                    fn ($t) => "{$t['name']} " . number_format($t['mb'], 1) . ' MB',
+                    $db['top_tables'],
+                );
+                $lines[] = 'Largest tables: ' . implode(', ', $largest) . '.';
+                $lines[] = '';
+            } else {
+                $lines[] = "**Database**: {$size}.";
+            }
         }
 
         if (! empty($d['team_progression'])) {

@@ -33,4 +33,19 @@ return [
         'day' => (int) env('DIGEST_CADENCE_DAY', 7),       // Sunday
         'time' => env('DIGEST_CADENCE_TIME', '09:00'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Database size cap and warning threshold
+    |--------------------------------------------------------------------------
+    |
+    | The hosting plan's per-database limit in MB, and the fraction of it at
+    | which the digest raises a warning. Hostinger's shared plans cap a MySQL
+    | database at 3072 MB and auto-revoke INSERT/UPDATE above it, which 500s
+    | every route (docs/ops-runbook.md, incident 2026-07-08). The cap belongs
+    | to the plan, not to us, so it moves whenever the plan does - hence env
+    | vars rather than literals in the digest.
+    */
+    'db_cap_mb' => (int) env('DIGEST_DB_CAP_MB', 3072),
+    'db_warn_at' => (float) env('DIGEST_DB_WARN_AT', 0.8),
 ];
