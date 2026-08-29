@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Middleware\OfficerOnly;
 use App\Models\User;
 use App\Services\Discord\RoleVerifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;

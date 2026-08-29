@@ -21,6 +21,21 @@ class User extends Authenticatable
     public const TIER_BIG6 = 'big6';
     public const TIER_OFFICER = 'officer';
     public const TIER_RAID_LEADER = 'raid_leader';
+    public const TIER_MEMBER = 'member';
+
+    /**
+     * The tier ladder, lowest authority first. `member` is an ordinary
+     * guild member: they reach the guild-wide pages (Social, Roster) and
+     * nothing else. A tier absent from this map ranks 0, so a null or
+     * unrecognised tier is below every named one.
+     */
+    public const TIER_RANK = [
+        self::TIER_MEMBER => 1,
+        self::TIER_RAID_LEADER => 2,
+        self::TIER_OFFICER => 3,
+        self::TIER_BIG6 => 4,
+        self::TIER_GM => 5,
+    ];
 
     public const DISPLAY_STANDARD = 'standard';
     public const DISPLAY_CLEAR = 'clear';
@@ -140,10 +155,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Holds any of the four authorised Discord tiers (gm, big6, officer,
-     * raid_leader). Used by the registered Gates in AppServiceProvider;
-     * v1 returns true for any tier, v2 may narrow per-Gate without
-     * touching call sites.
+     * Holds any of the four officer tiers (gm, big6, officer,
+     * raid_leader). Deliberately excludes `member`: that tier is an
+     * ordinary guildie, not an officer. Used by the registered Gates in
+     * AppServiceProvider; v2 may narrow per-Gate without touching call
+     * sites.
      */
     public function isOfficerTier(): bool
     {
@@ -155,17 +171,25 @@ class User extends Authenticatable
         ], true);
     }
 
+    /** Rank of a tier name on the ladder; 0 for null / unrecognised. */
+    public static function rankOf(?string $tier): int
+    {
+        return self::TIER_RANK[$tier] ?? 0;
+    }
+
     public function isAtLeast(string $tier): bool
     {
-        $rank = [
-            self::TIER_RAID_LEADER => 1,
-            self::TIER_OFFICER => 2,
-            self::TIER_BIG6 => 3,
-            self::TIER_GM => 4,
-        ];
-        $mine = $rank[$this->tier] ?? 0;
-        $needed = $rank[$tier] ?? 0;
-        return $mine >= $needed;
+        return self::rankOf($this->tier) >= self::rankOf($tier);
+    }
+
+    /**
+     * The page this user's dashboard starts on. Officers get the General
+     * dashboard; a member has no access to it, so they land on Social -
+     * the guild-wide page the member tier exists for.
+     */
+    public function homeRoute(): string
+    {
+        return $this->isOfficerTier() ? 'dashboard' : 'dashboard.social';
     }
 
     // ── Temporary: read-only fallback for the Hostinger grant outage ──────

@@ -41,12 +41,12 @@
             <img src="{{ asset('img/brand/phoenix-wordmark.png') }}" alt="Regenesis" width="240">
         </picture>
     </div>
-    <h1>Officer Dashboard</h1>
-    <p>Sign in with Discord. Access is limited to members of the Regenesis server with an Officer, Big6, or GuildMaster role.</p>
+    <h1>Guild Dashboard</h1>
+    <p>Sign in with Discord. You need a role in the Regenesis server: guild members reach Social and the Roster, officers reach everything.</p>
     <a class="btn" href="{{ route('auth.discord.start') }}">Sign in with Discord</a>
     <div class="meta">
         @auth
-            Signed in as {{ auth()->user()->discord_username }}. <a href="{{ route('dashboard') }}" style="color:#aaa">Open dashboard</a>.
+            Signed in as {{ auth()->user()->discord_username }}. <a href="{{ route(auth()->user()->homeRoute()) }}" style="color:#aaa">Open dashboard</a>.
         @endauth
     </div>
 </div>

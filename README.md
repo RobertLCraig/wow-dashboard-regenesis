@@ -327,7 +327,7 @@ php artisan tinker
 app/
   Http/
     Controllers/{Auth,Calendar,Dashboard,Events,Ingest,Webhook}/
-    Middleware/{IngestBearerToken,OfficerOnly,RaidHelperWebhookAuth}.php
+    Middleware/{IngestBearerToken,RequireTier,RaidHelperWebhookAuth}.php
   Jobs/IngestSnapshotJob.php
   Models/                                       # 11 Eloquent models
   Services/

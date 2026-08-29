@@ -66,8 +66,8 @@ class DiscordController extends Controller
             return redirect()->route('auth.discord.failed');
         }
 
-        // Verify they're an officer NOW so we can fail fast at the OAuth
-        // step rather than at the next page load.
+        // Verify they hold a known role NOW so we can fail fast at the
+        // OAuth step rather than at the next page load.
         $tier = RoleVerifier::fromConfig()->tierFor($user, force: true);
         if ($tier === null) {
             Auth::logout();
@@ -76,12 +76,14 @@ class DiscordController extends Controller
 
         Auth::login($user, remember: true);
 
-        return redirect()->intended(route('dashboard'));
+        // Members have no General dashboard to land on, so send each
+        // tier to the first page it can actually open.
+        return redirect()->intended(route($user->homeRoute()));
     }
 
     public function botInstalled(): RedirectResponse
     {
-        return redirect()->intended(route('dashboard'));
+        return redirect()->intended(route(request()->user()?->homeRoute() ?? 'dashboard'));
     }
 
     public function logout(): RedirectResponse

@@ -488,7 +488,7 @@
         :class="navOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
     >
         <div class="px-5 py-4 border-b border-line flex items-center justify-between">
-            <a href="{{ route('dashboard') }}" class="font-semibold text-lg flex items-center gap-2">
+            <a href="{{ route(auth()->user()?->homeRoute() ?? 'dashboard') }}" class="font-semibold text-lg flex items-center gap-2">
                 <x-icon kind="brand" name="phoenix-emoji" :size="28" alt="Regenesis" />
                 <span>Regenesis</span>
             </a>

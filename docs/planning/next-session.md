@@ -93,7 +93,7 @@ pages, DB-size alert in the digest) are in [`docs/ops-runbook.md`](../ops-runboo
 
 ## 1a. Open follow-ups from the BiS / Social work
 
-- **Permission rework so non-officer guild members can reach Social.** Currently `OfficerOnly` middleware blocks anyone without a gm/big6/officer Discord role from the entire dashboard, so the Social page is officer-only despite being intended for everyone. Plan: add a `member` tier below `officer`, surface it in `RoleVerifier`, swap `OfficerOnly` for a route-by-route gate where Social + Roster are member-accessible while admin pages stay officer-only.
+- ~~**Permission rework so non-officer guild members can reach Social.**~~ (built 2026-08-29, board card 0005) `OfficerOnly` is now `RequireTier`, which takes a minimum tier and defaults to `officer`. A short group in `routes/web.php` carries `RequireTier:member` and holds `/dashboard/social`, `/roster` and `/roster.csv`; everything else stays officer-only, so the default is still closed. **One manual step left: set `DISCORD_ROLE_MEMBER` in `.env` to the guild member role's snowflake.** Until it is set, no one is a member and access is unchanged.
 - **Multi-day event spans on the Social calendar grid.** Currently a 17-day Brewfest renders the name in 17 separate cells. Polish via CSS-grid `grid-row: span N` bars across week boundaries.
 - **Discord attachments storage.** Image-only / sticker-only announcements skip the importer because we don't keep their attachments. JSON column on `discord_announcements` + render with `<img>` thumbnails when present.
 - **Hero-talent matching via talent-string decode.** Voting-by-gear is good enough most of the time, but a real talent-loadout decoder would catch the remaining edge cases. Heavy work and brittle across patches.

@@ -103,17 +103,29 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Officer-tier permission Gates.
+     * Permission Gates.
      *
-     * v1 every gate returns true if the user has any of the three Discord
-     * roles (gm / big6 / officer) per the user's "flat now, granular
-     * later" preference (see feedback_permissions memory). When narrowing
+     * Flat by tier: an ability is either officer-and-above or
+     * member-and-above, per the user's "flat now, granular later"
+     * preference (see feedback_permissions memory). When narrowing
      * later, swap the closure body for the right tier check; call sites
      * stay the same.
+     *
+     * The member list is deliberately tiny - it mirrors the member route
+     * group in routes/web.php, so the sidebar shows a member exactly the
+     * pages they can open.
      */
     private function registerGates(): void
     {
         $anyOfficerTier = fn ($user) => $user !== null && $user->isOfficerTier();
+        $memberOrAbove = fn ($user) => $user !== null && $user->isAtLeast(\App\Models\User::TIER_MEMBER);
+
+        foreach ([
+            'dashboard.social.view',   // sidebar: Social - the guild-wide events hub
+            'roster.view',             // sidebar: Roster - read-only; roster.kick still gates the macros
+        ] as $ability) {
+            Gate::define($ability, $memberOrAbove);
+        }
 
         foreach ([
             'dashboard.view',
@@ -121,11 +133,9 @@ class AppServiceProvider extends ServiceProvider
             'dashboard.team.heroic.view', // sidebar: Heroic Team (raid leaders later)
             'dashboard.team.mythic.view', // sidebar: Mythic Team (raid leaders later)
             'dashboard.keynight.view',    // sidebar: Keynight (M+ leaders later)
-            'dashboard.social.view',      // sidebar: Social (open to all members later)
             'events.create',
             'events.edit',
             'events.delete',
-            'roster.view',
             'roster.kick',             // build the /gremove + alts macro
             'reports.view',            // /reports - WCL parses + fight history
             'members.edit',

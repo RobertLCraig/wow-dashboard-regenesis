@@ -2,7 +2,8 @@
 
 use App\Http\Controllers\Auth\DiscordController;
 use App\Http\Controllers\Auth\GoogleCalendarController;
-use App\Http\Middleware\OfficerOnly;
+use App\Http\Middleware\RequireTier;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'landing')->name('landing');
@@ -15,10 +16,29 @@ Route::get('/auth/discord/callback', [DiscordController::class, 'callback'])->na
 Route::get('/auth/discord/bot-installed', [DiscordController::class, 'botInstalled'])->name('auth.discord.bot-installed');
 Route::post('/logout', [DiscordController::class, 'logout'])->middleware('auth')->name('logout');
 
-// Officer-only application surface. Every dashboard route lives behind
-// auth + OfficerOnly so a removed Discord role takes effect within the
-// configured cache TTL without requiring a re-login.
-Route::middleware(['auth', OfficerOnly::class])->group(function () {
+// Guild-wide surface. THIS GROUP IS THE WHOLE LIST of pages an ordinary
+// guild member can reach: Social (the guild-wide events hub the member
+// tier exists for) and the read-only Roster views. Everything else is
+// officer-only by default - a page is opened to members by moving it in
+// here on purpose, never by forgetting to gate it below.
+Route::middleware(['auth', RequireTier::class.':'.User::TIER_MEMBER])->group(function () {
+    // Social hub: guild-wide events calendar. Aggregates Raid-Helper
+    // events with computed world events (Darkmoon Faire, holidays).
+    // Read-only - event creation lives on /events for officers.
+    Route::get('/dashboard/social', [\App\Http\Controllers\Dashboard\SocialController::class, 'index'])->name('dashboard.social');
+
+    // Searchable + filterable consolidated roster. Read-only: the kick /
+    // rank / note macro endpoints below stay officer-only, and the page
+    // hides those controls behind the roster.kick gate.
+    Route::get('/roster', [\App\Http\Controllers\Dashboard\RosterController::class, 'index'])->name('roster.index');
+    Route::get('/roster.csv', [\App\Http\Controllers\Dashboard\RosterController::class, 'csv'])->name('roster.csv');
+});
+
+// Officer-only application surface. Every other dashboard route lives
+// behind auth + RequireTier (officer by default) so a removed Discord
+// role takes effect within the configured cache TTL without requiring a
+// re-login.
+Route::middleware(['auth', RequireTier::class])->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\Dashboard\DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/members/{member}/actions', [\App\Http\Controllers\Dashboard\MemberActionController::class, 'store'])->name('dashboard.member.actions.store');
 
@@ -32,22 +52,11 @@ Route::middleware(['auth', OfficerOnly::class])->group(function () {
     // Standalone page so heroic + mythic raiders both find it in one place.
     Route::get('/dashboard/keynight', [\App\Http\Controllers\Dashboard\KeynightController::class, 'index'])->name('dashboard.keynight');
 
-    // Social hub: guild-wide events calendar. Aggregates Raid-Helper
-    // events with computed world events (Darkmoon Faire, holidays).
-    // Read-only - event creation lives on /events for officers.
-    Route::get('/dashboard/social', [\App\Http\Controllers\Dashboard\SocialController::class, 'index'])->name('dashboard.social');
-
     // Composition planner per team. Aggregates the WCL parse data into
     // a role-grouped view (tank / healer / melee / ranged) so a raid
     // lead can see who their strongest at each role over a window.
     Route::get('/composition/{team}', [\App\Http\Controllers\Dashboard\CompositionController::class, 'show'])
         ->where('team', 'heroic|mythic')->name('composition.show');
-
-    // Searchable + filterable consolidated roster. Replaces the
-    // alt-groups + recently-inactive widgets on the General dashboard
-    // (those become deprecated link-throughs once Roster lands).
-    Route::get('/roster', [\App\Http\Controllers\Dashboard\RosterController::class, 'index'])->name('roster.index');
-    Route::get('/roster.csv', [\App\Http\Controllers\Dashboard\RosterController::class, 'csv'])->name('roster.csv');
 
     // Farm-event planner. Pick a mount/pet/toy by Blizzard id and see
     // who already has it. Reads the latest member_social_snapshots

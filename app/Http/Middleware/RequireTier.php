@@ -10,7 +10,12 @@ use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Gate every dashboard route on Discord officer-tier membership.
+ * Gate a dashboard route on a minimum Discord tier.
+ *
+ * The default is `officer`, so a route added to the protected group
+ * without saying otherwise stays officer-only. Only the handful of
+ * guild-wide pages name a lower tier (`RequireTier:member`) - see the
+ * member group in routes/web.php, which is the whole of that list.
  *
  * Trust the cached User#tier column for routine page loads. When that
  * cache is stale (older than the configured TTL), a re-check against
@@ -24,14 +29,14 @@ use Symfony\Component\HttpFoundation\Response;
  * check (otherwise a freshly-promoted user would have to wait for a
  * second page load before getting in).
  *
- * On 'no tier' (left the guild, role removed, never had it) the user
- * gets a 403 with a message telling them why - not a redirect, because
- * the OAuth handshake already succeeded; the issue is authorisation
- * rather than authentication.
+ * On too low a tier (left the guild, role removed, never had it) the
+ * user gets a 403 with a message telling them why - not a redirect,
+ * because the OAuth handshake already succeeded; the issue is
+ * authorisation rather than authentication.
  */
-class OfficerOnly
+class RequireTier
 {
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, string $minTier = User::TIER_OFFICER): Response
     {
         $user = $request->user();
         if (! $user) {
@@ -53,8 +58,14 @@ class OfficerOnly
             }
         }
 
-        if ($tier === null) {
-            abort(403, 'You need a Raid Leader, Officer, Big6, or GuildMaster role in the Regenesis Discord to access this dashboard.');
+        // A misspelt tier in a route definition must lock the route down,
+        // not open it: an unknown name needs a rank nobody can reach.
+        $required = User::TIER_RANK[$minTier] ?? PHP_INT_MAX;
+
+        if (User::rankOf($tier) < $required) {
+            abort(403, $required > User::TIER_RANK[User::TIER_MEMBER]
+                ? 'You need a Raid Leader, Officer, Big6, or GuildMaster role in the Regenesis Discord to access this page.'
+                : 'You need a role in the Regenesis Discord to access this dashboard.');
         }
 
         return $next($request);
