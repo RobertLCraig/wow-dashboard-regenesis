@@ -63,3 +63,46 @@ into this card.
 
 Built in a worktree, so nothing here has been seen in a browser. `/dashboard/social` still wants
 one look after merge to confirm the three render in the list and the month grid.
+
+### 2026-08-29 review (v20260829195123-5398)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 78s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+I tried to break all three criteria. I could not.
+
+**#1 ÔÇö right dates for the year.** `WorldEventsCalendar::movingHolidaysFor()` reads the `MOVING_HOLIDAYS` const in `app/Services/WorldEvents/WorldEventsCalendar.php` and builds real events. `eventsInRange()` calls it once per year in the window, next to `annualHolidaysFor()`. I checked all 18 rows by hand against the rule the card states. Easter Sunday, Lunar New Year and the 4th Thursday of November for 2025ÔÇô2030 all agree with the table, including the Monday-after and Sunday-before offsets and the 15-day Lunar span. No row is wrong.
+
+**#2 ÔÇö omit, do not guess.** `movingHolidaysFor()` ends in `self::MOVING_HOLIDAYS[$year] ?? []`. No fallback, no derivation. 2031 yields nothing.
+
+**#3 ÔÇö feed matches the app.** `IcsController::worldFeed()`, `IcsController::socialSubscription()` and `SocialController::index()` all call the one `eventsInRange()`. `IcsBuilder::addWorldEvent()` renders whatever it gets and drops nothing. I grepped the app tree: the three names appear only in the service, so there is no second date source to drift.
+
+I also checked for double-counting, since `eventsInRange()` starts its year loop at `$from->year - 1`. The overlap filter removes the stale year.
+
+VERDICT: sound
+
+**scope: defect**
+
+Scope, production code: clean. Only `WorldEventsCalendar` grew ÔÇö `MOVING_HOLIDAYS`, `MOVING_HOLIDAY_DESCRIPTIONS`, and `movingHolidaysFor()`, which `eventsInRange()` calls beside `annualHolidaysFor()`. Nothing in the ICS export, the Social page, or the month grid was touched, so the 0006 fence holds. Grepping the three names finds one date source, so #3 truly needed no second edit. The two test files only add tests.
+
+Left half done: `docs/planning/next-session.md`, section "1a. Open follow-ups from the BiS / Social work", bullet "Year-aware holiday lookup", still lists this card as open work. This repo's practice is to strike that line in the same commit as the build: card 0005 and card 0007 both did it (`~~...~~ (built <date>, board card NNNN)` plus a short note). Card 0008 did not. The planning doc now tells the next session to build a thing that is already built.
+
+Done beyond the ask, neither over the fence: three new description blurbs in `MOVING_HOLIDAY_DESCRIPTIONS`, and rows for 2028ÔÇô2030 that the year-ahead window cannot yet reach. Both are cheap and I would leave them.
+
+VERDICT: defect
+
+**breakage: defect**
+
+Three findings, all in the `breakage` lens.
+
+**1. Description desync 500s three endpoints.** `WorldEventsCalendar::movingHolidaysFor` reads `self::MOVING_HOLIDAY_DESCRIPTIONS[$row[0]]` with no fallback. The two constants must agree by hand and nothing checks it. A name typo, or a fourth holiday added to `MOVING_HOLIDAYS`, raises "Undefined array key"; Laravel turns that into an ErrorException, taking down `/dashboard/social`, the per-user social ICS and the public `/calendar/world.ics` together ÔÇö from the exact edit the table's docblock invites. `annualHolidaysFor` cannot fail this way, because `yearly()` carries the description inline. The docblock promises `description:?string`, so the omission is a type mismatch too. No test builds it.
+
+**2. The expiry is silent.** When the window in `IcsController::worldFeed` (`now + 365 days`) reaches 2031, the three events stop appearing: no failing test, no log, no signal. A comment cannot page anyone.
+
+**3. Stale doc.** `docs/planning/next-session.md`, "Open follow-ups", still says the year-aware lookup "needs a year-keyed table". Cards 0005 and 0007 were struck through in that same list the same day; the "Social events hub" bullet's event list is now incomplete too.
+
+VERDICT: defect
+
