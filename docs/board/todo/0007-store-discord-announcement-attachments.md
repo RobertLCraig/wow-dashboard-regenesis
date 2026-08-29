@@ -57,3 +57,22 @@ markup only. Worth one look at /dashboard/social after merge.
 
 727 tests pass. Pint reformats about 180 pre-existing files repo-wide, which is unrelated churn,
 so I reverted all of it and kept only this card's files; `pint --test` passes on those.
+
+### 2026-08-29 review (v20260829191734-5abe)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 70s, run by this job rather than reported by the card.
+
+**acceptance: unclear**
+
+You've hit your session limit ┬À resets 7:40pm (Europe/London)
+
+**scope: unclear**
+
+You've hit your session limit ┬À resets 7:40pm (Europe/London)
+
+**breakage: unclear**
+
+You've hit your session limit ┬À resets 7:40pm (Europe/London)
+
