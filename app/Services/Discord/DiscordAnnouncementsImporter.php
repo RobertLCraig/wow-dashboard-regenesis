@@ -8,12 +8,14 @@ use Carbon\CarbonImmutable;
 /**
  * Pulls the recent message page from the announcements channel and
  * upserts each message onto discord_announcements (keyed on the
- * Discord snowflake so re-runs are idempotent). Empty-content messages
- * - usually image-only embeds with no caption - are skipped because
- * they're not useful on the social feed without their attachments.
+ * Discord snowflake so re-runs are idempotent). A message is only
+ * skipped when it has neither text nor attachments - an image-only
+ * poster or roster screenshot is exactly what the feed wants.
  *
- * Future tier could store attachments + embeds as JSON for richer
- * rendering; v1 keeps it text-first.
+ * Attachment urls are stored as a cache, not an address: Discord signs
+ * CDN links with an expiry, and it is the hourly re-pull that keeps
+ * them fresh. The attachment id and the message id are stored beside
+ * them so a url can always be re-fetched from Discord if needed.
  */
 class DiscordAnnouncementsImporter
 {
@@ -45,15 +47,18 @@ class DiscordAnnouncementsImporter
             $timestamp = $msg['timestamp'] ?? null;
             $channelId = $msg['channel_id'] ?? $this->client->channelId();
 
+            $content = is_string($content) ? $content : '';
+            $attachments = $this->attachments($msg);
+
             if (! is_string($messageId) || $messageId === '') {
                 $skipped++;
+
                 continue;
             }
-            if (! is_string($content) || trim($content) === '') {
-                // Empty messages (image-only, sticker-only, system) are
-                // useless without their attachments; skip until we add
-                // attachment storage.
+            if (trim($content) === '' && $attachments === []) {
+                // Nothing to show: no text and nothing to render.
                 $skipped++;
+
                 continue;
             }
 
@@ -75,6 +80,7 @@ class DiscordAnnouncementsImporter
                     'author_id' => is_array($author) && isset($author['id']) && is_string($author['id'])
                         ? $author['id'] : null,
                     'content' => $content,
+                    'attachments' => $attachments !== [] ? $attachments : null,
                     'posted_at' => $postedAt,
                     'fetched_at' => $now,
                 ]
@@ -87,5 +93,48 @@ class DiscordAnnouncementsImporter
             'skipped' => $skipped,
             'total_seen' => count($messages),
         ];
+    }
+
+    /**
+     * Narrow a Discord message's attachments to the fields the feed
+     * needs. `id` + the message id are what a re-fetch would key on;
+     * `url` / `proxy_url` are signed and expire, so they are refreshed
+     * by every pull rather than trusted forever.
+     *
+     * ponytail: relies on the hourly pull keeping the shown posts' urls
+     * fresh, which holds while the channel stays under the 50-message
+     * pull limit per day. Re-fetch a message by id on render if a busier
+     * channel ever pushes a still-displayed post out of that window.
+     *
+     * @param  array<string,mixed>  $msg
+     * @return list<array<string,mixed>>
+     */
+    private function attachments(array $msg): array
+    {
+        $raw = $msg['attachments'] ?? [];
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        $kept = [];
+        foreach ($raw as $attachment) {
+            if (! is_array($attachment) || ! isset($attachment['url']) || ! is_string($attachment['url'])) {
+                continue;
+            }
+
+            $kept[] = [
+                'id' => isset($attachment['id']) ? (string) $attachment['id'] : null,
+                'filename' => isset($attachment['filename']) ? (string) $attachment['filename'] : null,
+                'content_type' => isset($attachment['content_type']) ? (string) $attachment['content_type'] : null,
+                'size' => isset($attachment['size']) ? (int) $attachment['size'] : null,
+                'width' => isset($attachment['width']) ? (int) $attachment['width'] : null,
+                'height' => isset($attachment['height']) ? (int) $attachment['height'] : null,
+                'url' => $attachment['url'],
+                'proxy_url' => isset($attachment['proxy_url']) && is_string($attachment['proxy_url'])
+                    ? $attachment['proxy_url'] : null,
+            ];
+        }
+
+        return $kept;
     }
 }

@@ -54,7 +54,26 @@
                                         {{ $a->posted_at?->diffForHumans() }} - open in Discord &rarr;
                                     </a>
                                 </div>
-                                <p class="text-sm text-ink/90 mt-1 whitespace-pre-line">{{ \Illuminate\Support\Str::limit($a->content, 400) }}</p>
+                                @if (trim($a->content) !== '')
+                                    <p class="text-sm text-ink/90 mt-1 whitespace-pre-line">{{ \Illuminate\Support\Str::limit($a->content, 400) }}</p>
+                                @endif
+                                {{-- Image attachments as thumbnails: an image-only post
+                                     (raid roster, poster, boss kill) is the whole
+                                     announcement, so it has to be visible here. Click
+                                     opens the full-size original on Discord's CDN. --}}
+                                @if ($a->imageAttachments())
+                                    <div class="mt-2 flex flex-wrap gap-2">
+                                        @foreach ($a->imageAttachments() as $image)
+                                            <a href="{{ $image['url'] }}" target="_blank" rel="noopener"
+                                               class="block rounded border border-line overflow-hidden hover:border-accent transition">
+                                                <img src="{{ $image['proxy_url'] ?? $image['url'] }}"
+                                                     alt="{{ $image['filename'] ?: 'Discord attachment' }}"
+                                                     loading="lazy"
+                                                     class="h-24 w-auto max-w-[16rem] object-cover">
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                @endif
                             </li>
                         @endforeach
                     </ul>

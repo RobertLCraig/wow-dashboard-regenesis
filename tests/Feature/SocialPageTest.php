@@ -84,6 +84,31 @@ it('renders a "Latest from Discord" section when announcements exist', function 
         ->assertSee('Drunken raid night this Saturday');
 });
 
+it('shows image attachments as thumbnails, including on a post with no text', function () {
+    DiscordAnnouncement::query()->create([
+        'discord_message_id' => '3',
+        'guild_id' => 'g',
+        'channel_id' => 'c',
+        'author_username' => 'GuildHerald',
+        'content' => '',
+        'attachments' => [[
+            'id' => 'att-1',
+            'filename' => 'raid-roster.png',
+            'content_type' => 'image/png',
+            'url' => 'https://cdn.discordapp.com/attachments/c/att-1/raid-roster.png',
+            'proxy_url' => 'https://media.discordapp.net/attachments/c/att-1/raid-roster.png',
+        ]],
+        'posted_at' => now()->subHour(),
+        'fetched_at' => now(),
+    ]);
+
+    $resp = $this->actingAs(socialOfficer())->get('/dashboard/social');
+    $resp->assertOk()
+        ->assertSee('Latest from Discord')
+        ->assertSee('media.discordapp.net/attachments/c/att-1/raid-roster.png', escape: false)
+        ->assertSee('alt="raid-roster.png"', escape: false);
+});
+
 it('drops Discord announcements outside the configured window', function () {
     config(['discord.announcements_window_days' => 30]);
 
