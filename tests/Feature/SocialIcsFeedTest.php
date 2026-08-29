@@ -2,6 +2,8 @@
 
 use App\Models\RaidEvent;
 use App\Models\User;
+use App\Services\WorldEvents\WorldEventsCalendar;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -88,6 +90,27 @@ it('serves the public world-events feed without authentication', function () {
     $body = $resp->getContent();
     expect($body)->toContain('Darkmoon Faire');
     expect($body)->toContain('BEGIN:VCALENDAR');
+});
+
+it('carries the same moving-holiday dates in the public feed as the in-app calendar', function () {
+    // Pinned so the year-ahead window is deterministic: 2026-10-01 to
+    // 2027-10-01 covers Pilgrim's Bounty 2026 and both Noblegarden and
+    // the Lunar Festival in 2027.
+    $this->travelTo(CarbonImmutable::parse('2026-10-01 09:00:00'));
+
+    $now = CarbonImmutable::now();
+    $expected = collect((new WorldEventsCalendar())->eventsInRange($now, $now->addDays(365)))
+        ->whereIn('name', ['Noblegarden', 'Lunar Festival', "Pilgrim's Bounty"]);
+    expect($expected)->toHaveCount(3);
+
+    $body = $this->get('/calendar/world.ics')->getContent();
+
+    foreach ($expected as $event) {
+        expect($body)->toContain($event['name']);
+        // DTEND on date-only events is exclusive, hence the extra day.
+        expect($body)->toContain('DTSTART;VALUE=DATE:'.$event['starts_at']->format('Ymd'));
+        expect($body)->toContain('DTEND;VALUE=DATE:'.$event['ends_at']->addDay()->format('Ymd'));
+    }
 });
 
 it('the public world feed honours If-None-Match', function () {

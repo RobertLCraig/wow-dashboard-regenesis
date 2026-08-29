@@ -159,3 +159,63 @@ it('returns Day of the Dead at Nov 1-3', function () {
     expect($dotd['starts_at']->toDateString())->toBe('2026-11-01');
     expect($dotd['ends_at']->toDateString())->toBe('2026-11-03');
 });
+
+// The three moving holidays: Noblegarden tracks Easter, the Lunar
+// Festival tracks Lunar New Year, Pilgrim's Bounty tracks US
+// Thanksgiving. Table-driven, so the test is table-driven too.
+it('places each moving holiday on the right dates for its year', function (int $year, string $name, string $start, string $end) {
+    $events = (new WorldEventsCalendar())->eventsInRange(
+        CarbonImmutable::parse($year.'-01-01'),
+        CarbonImmutable::parse($year.'-12-31'),
+    );
+    $found = array_values(array_filter($events, fn ($e) => $e['name'] === $name));
+    expect($found)->toHaveCount(1);
+    expect($found[0]['starts_at']->toDateString())->toBe($start);
+    expect($found[0]['ends_at']->toDateString())->toBe($end);
+})->with([
+    [2025, 'Noblegarden', '2025-04-21', '2025-04-27'],
+    [2026, 'Noblegarden', '2026-04-06', '2026-04-12'],
+    [2027, 'Noblegarden', '2027-03-29', '2027-04-04'],
+    [2028, 'Noblegarden', '2028-04-17', '2028-04-23'],
+    [2029, 'Noblegarden', '2029-04-02', '2029-04-08'],
+    [2030, 'Noblegarden', '2030-04-22', '2030-04-28'],
+    [2025, 'Lunar Festival', '2025-01-29', '2025-02-12'],
+    [2026, 'Lunar Festival', '2026-02-17', '2026-03-03'],
+    [2027, 'Lunar Festival', '2027-02-06', '2027-02-20'],
+    [2028, 'Lunar Festival', '2028-01-26', '2028-02-09'],
+    [2029, 'Lunar Festival', '2029-02-13', '2029-02-27'],
+    [2030, 'Lunar Festival', '2030-02-03', '2030-02-17'],
+    [2025, "Pilgrim's Bounty", '2025-11-23', '2025-11-29'],
+    [2026, "Pilgrim's Bounty", '2026-11-22', '2026-11-28'],
+    [2027, "Pilgrim's Bounty", '2027-11-21', '2027-11-27'],
+    [2028, "Pilgrim's Bounty", '2028-11-19', '2028-11-25'],
+    [2029, "Pilgrim's Bounty", '2029-11-18', '2029-11-24'],
+    [2030, "Pilgrim's Bounty", '2030-11-24', '2030-11-30'],
+]);
+
+it('omits the moving holidays for a year the lookup does not cover', function () {
+    // 2031 has no row in the table. The fixed-date holidays still land,
+    // which is what proves the year itself was processed and only the
+    // three moving ones dropped out.
+    $events = (new WorldEventsCalendar())->eventsInRange(
+        CarbonImmutable::parse('2031-01-01'),
+        CarbonImmutable::parse('2031-12-31'),
+    );
+    $names = array_column($events, 'name');
+
+    expect($names)->not->toContain('Noblegarden');
+    expect($names)->not->toContain('Lunar Festival');
+    expect($names)->not->toContain("Pilgrim's Bounty");
+    expect($names)->toContain('Brewfest');
+});
+
+it('does not duplicate a moving holiday across a multi-year window', function () {
+    $events = (new WorldEventsCalendar())->eventsInRange(
+        CarbonImmutable::parse('2026-01-01'),
+        CarbonImmutable::parse('2028-12-31'),
+    );
+    foreach (['Noblegarden', 'Lunar Festival', "Pilgrim's Bounty"] as $name) {
+        $found = array_filter($events, fn ($e) => $e['name'] === $name);
+        expect($found)->toHaveCount(3, $name);
+    }
+});
