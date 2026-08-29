@@ -33,6 +33,13 @@ class SocialController extends Controller
 {
     private const WINDOW_DAYS_AHEAD = 60;
 
+    /**
+     * Bars stacked in one week row before the rest collapse into a
+     * "+n more" note. Fixing it keeps a week's height predictable
+     * however many world events happen to overlap.
+     */
+    private const GRID_LANES = 3;
+
     public function index(Request $request, WorldEventsCalendar $calendar): View
     {
         abort_unless(auth()->user()?->can('dashboard.social.view'), 403);
@@ -73,33 +80,9 @@ class SocialController extends Controller
             $byWeek[$key]['week_start'] ??= $event['starts_at']->startOfWeek();
         }
 
-        // Grid-view data: flat list of days from start of this week
-        // through end of the week containing $until. For each day we
-        // collect events that overlap it (multi-day events appear in
-        // every day they cover).
-        $days = [];
-        if ($view === 'grid') {
-            $gridStart = $now->startOfWeek();
-            $gridEnd = $until->endOfWeek();
-            $cursor = $gridStart;
-            while ($cursor->lessThanOrEqualTo($gridEnd)) {
-                $dayStart = $cursor->startOfDay();
-                $dayEnd = $cursor->endOfDay();
-                $dayEvents = array_values(array_filter($events, function (array $e) use ($dayStart, $dayEnd): bool {
-                    $startsAfterDayEnd = $e['starts_at']->greaterThan($dayEnd);
-                    $effectiveEnd = $e['ends_at'] ?? $e['starts_at'];
-                    $endsBeforeDayStart = $effectiveEnd->lessThan($dayStart);
-                    return ! $startsAfterDayEnd && ! $endsBeforeDayStart;
-                }));
-                $days[] = [
-                    'date' => $cursor,
-                    'events' => $dayEvents,
-                    'is_today' => $cursor->isSameDay($now),
-                    'in_window' => $cursor->greaterThanOrEqualTo($now->startOfDay()) && $cursor->lessThanOrEqualTo($until),
-                ];
-                $cursor = $cursor->addDay();
-            }
-        }
+        // Grid-view data: one entry per calendar week from the start of
+        // this week through the week containing $until.
+        $weeks = $view === 'grid' ? $this->gridWeeks($events, $now, $until) : [];
 
         $announcementWindow = (int) config('discord.announcements_window_days', 30);
         $announcements = DiscordAnnouncement::query()
@@ -127,7 +110,7 @@ class SocialController extends Controller
         return view('dashboard.social', [
             'view' => $view,
             'eventsByWeek' => $byWeek,
-            'days' => $days,
+            'weeks' => $weeks,
             'totalEvents' => count($events),
             'windowDays' => self::WINDOW_DAYS_AHEAD,
             'announcements' => $announcements,
@@ -135,5 +118,111 @@ class SocialController extends Controller
             'subscribeUrl' => $subscribeUrl,
             'quickCreatePreset' => $quickCreatePreset,
         ]);
+    }
+
+    /**
+     * Turn the merged event list into week rows the month grid can draw
+     * as continuous bars. An event that covers several days becomes ONE
+     * bar per week it touches - clipped to that week's Monday..Sunday -
+     * instead of a chip repeated in every day cell it overlaps. A bar
+     * that runs off either end of the week is flagged so the view can
+     * square that edge off and mark it as continuing.
+     *
+     * Bars are packed into a fixed number of lanes, longest first, so
+     * two events that overlap in time sit on different rows and a week's
+     * height depends only on how many lanes are occupied. Anything that
+     * will not fit in a lane is counted per day as "+n more" rather than
+     * silently dropped.
+     *
+     * @param  list<array{name:string, starts_at:CarbonImmutable, ends_at:?CarbonImmutable, tone:string}>  $events
+     * @return list<array{days:list<array{date:CarbonImmutable, is_today:bool, in_window:bool, overflow:int}>, bars:list<array{name:string, tone:string, title:string, col:int, span:int, lane:int, continues_before:bool, continues_after:bool}>, lanes:int, has_overflow:bool}>
+     */
+    private function gridWeeks(array $events, CarbonImmutable $now, CarbonImmutable $until): array
+    {
+        $today = $now->startOfDay();
+        $weeks = [];
+
+        for ($weekStart = $today->startOfWeek(); $weekStart->lessThanOrEqualTo($until); $weekStart = $weekStart->addWeek()) {
+            $weekEnd = $weekStart->addDays(6);
+
+            $days = [];
+            for ($i = 0; $i < 7; $i++) {
+                $date = $weekStart->addDays($i);
+                $days[] = [
+                    'date' => $date,
+                    'is_today' => $date->isSameDay($now),
+                    'in_window' => $date->greaterThanOrEqualTo($today) && $date->lessThanOrEqualTo($until),
+                    'overflow' => 0,
+                ];
+            }
+
+            $segments = [];
+            foreach ($events as $event) {
+                $start = $event['starts_at']->startOfDay();
+                $end = ($event['ends_at'] ?? $event['starts_at'])->startOfDay();
+                if ($end->lessThan($weekStart) || $start->greaterThan($weekEnd)) {
+                    continue;
+                }
+
+                $continuesBefore = $start->lessThan($weekStart);
+                $continuesAfter = $end->greaterThan($weekEnd);
+                $firstCol = $continuesBefore ? 1 : (int) $weekStart->diffInDays($start, false) + 1;
+                $lastCol = $continuesAfter ? 7 : (int) $weekStart->diffInDays($end, false) + 1;
+
+                $segments[] = [
+                    'name' => $event['name'],
+                    'tone' => $event['tone'],
+                    'title' => $event['name'].' - '.($start->equalTo($end)
+                        ? $event['starts_at']->format('D j M H:i')
+                        : $start->format('D j M').' to '.$end->format('D j M')),
+                    'col' => $firstCol,
+                    'span' => $lastCol - $firstCol + 1,
+                    'continues_before' => $continuesBefore,
+                    'continues_after' => $continuesAfter,
+                ];
+            }
+
+            // Longest bars claim the top lanes, so a long world event
+            // keeps the same lane from one week row to the next.
+            usort($segments, fn (array $a, array $b) => [$b['span'], $a['col'], $a['name']] <=> [$a['span'], $b['col'], $b['name']]);
+
+            $occupied = [];
+            $bars = [];
+            foreach ($segments as $segment) {
+                $from = $segment['col'];
+                $to = $from + $segment['span'] - 1;
+
+                $lane = null;
+                for ($i = 0; $i < self::GRID_LANES; $i++) {
+                    foreach ($occupied[$i] ?? [] as [$a, $b]) {
+                        if ($from <= $b && $to >= $a) {
+                            continue 2;
+                        }
+                    }
+                    $lane = $i;
+                    break;
+                }
+
+                if ($lane === null) {
+                    for ($c = $from; $c <= $to; $c++) {
+                        $days[$c - 1]['overflow']++;
+                    }
+
+                    continue;
+                }
+
+                $occupied[$lane][] = [$from, $to];
+                $bars[] = $segment + ['lane' => $lane];
+            }
+
+            $weeks[] = [
+                'days' => $days,
+                'bars' => $bars,
+                'lanes' => $occupied === [] ? 0 : max(array_keys($occupied)) + 1,
+                'has_overflow' => array_sum(array_column($days, 'overflow')) > 0,
+            ];
+        }
+
+        return $weeks;
     }
 }

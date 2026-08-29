@@ -76,14 +76,14 @@
                 </header>
 
                 @if ($view === 'grid')
-                    @if (empty($days))
+                    @if (empty($weeks))
                         <div class="p-8 text-center text-muted text-sm">Nothing to show in calendar view.</div>
                     @else
                         @php
                             $eventToneClasses = [
-                                'sky'    => 'bg-sky-900/40 text-sky-200 border-sky-800/60',
-                                'violet' => 'bg-violet-900/40 text-violet-200 border-violet-800/60',
-                                'amber'  => 'bg-amber-900/40 text-amber-200 border-amber-800/60',
+                                'sky'    => 'bg-sky-900/60 text-sky-100 border-sky-700/70',
+                                'violet' => 'bg-violet-900/60 text-violet-100 border-violet-700/70',
+                                'amber'  => 'bg-amber-900/60 text-amber-100 border-amber-700/70',
                             ];
                         @endphp
                         <div class="grid grid-cols-7 text-xs uppercase tracking-wider text-muted border-b border-line bg-bg/30">
@@ -91,32 +91,63 @@
                                 <div class="px-2 py-2 text-center">{{ $dow }}</div>
                             @endforeach
                         </div>
-                        <div class="grid grid-cols-7 gap-px bg-line">
-                            @foreach ($days as $day)
+                        {{-- One CSS grid per week. Row 1 carries the day numbers, then
+                             one row per occupied lane, then a "+n more" row if the week
+                             held more overlapping events than there are lanes. Day cells
+                             are a backdrop spanning every row, so a bar drawn over them
+                             stays unbroken across the days it covers. --}}
+                        <div class="flex flex-col gap-px bg-line">
+                            @foreach ($weeks as $week)
                                 @php
-                                    $cellTone = ! $day['in_window']
-                                        ? 'bg-bg/50 text-muted/60'
-                                        : ($day['is_today'] ? 'bg-accent/10' : 'bg-panel');
-                                    $isMonthStart = $day['date']->day === 1;
+                                    $laneRows = max($week['lanes'], 1);
+                                    $overflowRow = $week['has_overflow'] ? 1 + $laneRows + 1 : null;
+                                    $rowCount = $overflowRow ?? 1 + $laneRows;
                                 @endphp
-                                <div class="{{ $cellTone }} min-h-[88px] p-1.5 flex flex-col gap-1">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-xs {{ $day['is_today'] ? 'font-semibold text-ink' : 'text-muted' }}">
-                                            {{ $day['date']->format('j') }}
-                                        </span>
-                                        @if ($isMonthStart)
-                                            <span class="text-[10px] uppercase text-muted">{{ $day['date']->format('M') }}</span>
-                                        @endif
-                                    </div>
-                                    @foreach (array_slice($day['events'], 0, 3) as $event)
-                                        @php $tone = $eventToneClasses[$event['tone']] ?? 'bg-line/40 text-muted border-line'; @endphp
-                                        <div class="text-[10px] leading-tight px-1.5 py-0.5 rounded border {{ $tone }} truncate"
-                                             title="{{ $event['name'] }} - {{ $event['starts_at']->format('D j M H:i') }}">
-                                            {{ $event['name'] }}
+                                <div class="grid grid-cols-7 gap-px" style="grid-template-rows: repeat({{ $rowCount }}, auto)">
+                                    @foreach ($week['days'] as $i => $day)
+                                        @php
+                                            $cellTone = ! $day['in_window']
+                                                ? 'bg-bg/50'
+                                                : ($day['is_today'] ? 'bg-accent/10' : 'bg-panel');
+                                        @endphp
+                                        <div class="{{ $cellTone }} min-h-[88px]"
+                                             style="grid-column: {{ $i + 1 }}; grid-row: 1 / -1"></div>
+                                    @endforeach
+
+                                    @foreach ($week['days'] as $i => $day)
+                                        <div class="flex items-center justify-between px-1.5 pt-1.5 pb-1 {{ $day['in_window'] ? '' : 'text-muted/60' }}"
+                                             style="grid-column: {{ $i + 1 }}; grid-row: 1">
+                                            <span class="text-xs {{ $day['is_today'] ? 'font-semibold text-ink' : 'text-muted' }}">
+                                                {{ $day['date']->format('j') }}
+                                            </span>
+                                            @if ($day['date']->day === 1)
+                                                <span class="text-[10px] uppercase text-muted">{{ $day['date']->format('M') }}</span>
+                                            @endif
                                         </div>
                                     @endforeach
-                                    @if (count($day['events']) > 3)
-                                        <div class="text-[10px] text-muted">+{{ count($day['events']) - 3 }} more</div>
+
+                                    @foreach ($week['bars'] as $bar)
+                                        @php
+                                            $tone = $eventToneClasses[$bar['tone']] ?? 'bg-line/40 text-muted border-line';
+                                            $edges = ($bar['continues_before'] ? 'border-l-0 ' : 'rounded-l ml-0.5 ')
+                                                . ($bar['continues_after'] ? 'border-r-0' : 'rounded-r mr-0.5');
+                                        @endphp
+                                        <div class="text-[10px] leading-tight px-1.5 py-0.5 mb-0.5 border truncate {{ $tone }} {{ $edges }}"
+                                             style="grid-column: {{ $bar['col'] }} / span {{ $bar['span'] }}; grid-row: {{ $bar['lane'] + 2 }}"
+                                             title="{{ $bar['title'] }}">
+                                            @if ($bar['continues_before'])&larr; @endif{{ $bar['name'] }}@if ($bar['continues_after']) &rarr;@endif
+                                        </div>
+                                    @endforeach
+
+                                    @if ($overflowRow)
+                                        @foreach ($week['days'] as $i => $day)
+                                            @if ($day['overflow'] > 0)
+                                                <div class="text-[10px] text-muted px-1.5 pb-1 truncate"
+                                                     style="grid-column: {{ $i + 1 }}; grid-row: {{ $overflowRow }}">
+                                                    +{{ $day['overflow'] }} more
+                                                </div>
+                                            @endif
+                                        @endforeach
                                     @endif
                                 </div>
                             @endforeach

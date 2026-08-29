@@ -1,7 +1,9 @@
 <?php
 
+use App\Models\DiscordAnnouncement;
 use App\Models\RaidEvent;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -26,7 +28,6 @@ it('non-officer is 403d from the social page', function () {
     $user = User::factory()->create(['tier' => 'pending']);
     $this->actingAs($user)->get('/dashboard/social')->assertForbidden();
 });
-
 
 it('shows an upcoming Raid-Helper event in the chronological list', function () {
     RaidEvent::query()->create([
@@ -66,7 +67,7 @@ it('renders the empty-state when the next 60 days hold no Raid-Helper events but
 });
 
 it('renders a "Latest from Discord" section when announcements exist', function () {
-    \App\Models\DiscordAnnouncement::query()->create([
+    DiscordAnnouncement::query()->create([
         'discord_message_id' => '1',
         'guild_id' => 'g',
         'channel_id' => 'c',
@@ -86,7 +87,7 @@ it('renders a "Latest from Discord" section when announcements exist', function 
 it('drops Discord announcements outside the configured window', function () {
     config(['discord.announcements_window_days' => 30]);
 
-    \App\Models\DiscordAnnouncement::query()->create([
+    DiscordAnnouncement::query()->create([
         'discord_message_id' => '2',
         'guild_id' => 'g',
         'channel_id' => 'c',
@@ -120,7 +121,7 @@ it('shows the quick-create panel pointed at the social-events channel', function
 });
 
 it('renders a grid view when ?view=grid is set', function () {
-    \App\Models\RaidEvent::query()->create([
+    RaidEvent::query()->create([
         'raidhelper_event_id' => 'rh-grid',
         'channel_id' => '111',
         'server_id' => '222',
@@ -135,6 +136,98 @@ it('renders a grid view when ?view=grid is set', function () {
     $resp = $this->actingAs(socialOfficer())->get('/dashboard/social?view=grid');
     $resp->assertOk()
         ->assertSee('Mythic Tuesday');
+});
+
+it('draws a long event as one bar per week instead of a chip in every day cell', function () {
+    // Mid-March is a quiet stretch of the world-events calendar, so the
+    // lanes are free and this bar cannot be pushed into "+n more".
+    $monday = CarbonImmutable::parse('2027-03-15')->startOfWeek()->setTime(9, 0);
+    $this->travelTo($monday);
+
+    $start = $monday->addDays(2)->startOfDay();  // Wednesday of week 1
+
+    RaidEvent::query()->create([
+        'raidhelper_event_id' => 'rh-long',
+        'channel_id' => '111', 'server_id' => '222',
+        'title' => 'Seventeen Day Bender',
+        'starts_at' => $start,
+        'ends_at' => $start->addDays(16),
+        'closing_at' => $start->subHour(),
+        'ics_uid' => 'rh-long@regenesis.local',
+        'last_synced_at' => $monday,
+    ]);
+
+    $body = $this->actingAs(socialOfficer())->get('/dashboard/social?view=grid')->assertOk()->getContent();
+
+    // Wed-Sun, a whole week, then Mon-Fri: three bars, not seventeen chips.
+    expect(substr_count($body, 'title="Seventeen Day Bender'))->toBe(3)
+        ->and($body)->toContain('grid-column: 3 / span 5')   // week 1, Wed to Sun
+        ->and($body)->toContain('grid-column: 1 / span 7')   // week 2, the full week
+        ->and($body)->toContain('grid-column: 1 / span 5');  // week 3, Mon to Fri
+});
+
+it('carries a week-crossing event onto the next week row', function () {
+    $monday = CarbonImmutable::parse('2027-03-15')->startOfWeek()->setTime(9, 0);
+    $this->travelTo($monday);
+
+    $start = $monday->addDays(5)->startOfDay();  // Saturday of week 1
+
+    RaidEvent::query()->create([
+        'raidhelper_event_id' => 'rh-cross',
+        'channel_id' => '111', 'server_id' => '222',
+        'title' => 'Weekend Crossover',
+        'starts_at' => $start,
+        'ends_at' => $start->addDays(3),  // Tuesday of week 2
+        'closing_at' => $start->subHour(),
+        'ics_uid' => 'rh-cross@regenesis.local',
+        'last_synced_at' => $monday,
+    ]);
+
+    $body = $this->actingAs(socialOfficer())->get('/dashboard/social?view=grid')->assertOk()->getContent();
+
+    expect(substr_count($body, 'title="Weekend Crossover'))->toBe(2)
+        ->and($body)->toContain('grid-column: 6 / span 2')   // Sat-Sun, runs off the end
+        ->and($body)->toContain('grid-column: 1 / span 2');  // Mon-Tue, picked up again
+});
+
+it('stacks overlapping events on separate lanes in the same week', function () {
+    $monday = CarbonImmutable::parse('2027-03-15')->startOfWeek()->setTime(9, 0);
+    $this->travelTo($monday);
+
+    foreach ([['a', 'Longer Overlap', 1, 4], ['b', 'Shorter Overlap', 2, 2]] as [$id, $title, $offset, $length]) {
+        RaidEvent::query()->create([
+            'raidhelper_event_id' => "rh-lane-{$id}",
+            'channel_id' => '111', 'server_id' => '222',
+            'title' => $title,
+            'starts_at' => $monday->addDays($offset)->startOfDay(),
+            'ends_at' => $monday->addDays($offset + $length)->startOfDay(),
+            'closing_at' => $monday,
+            'ics_uid' => "rh-lane-{$id}@regenesis.local",
+            'last_synced_at' => $monday,
+        ]);
+    }
+
+    $body = $this->actingAs(socialOfficer())->get('/dashboard/social?view=grid')->assertOk()->getContent();
+
+    // Longest first, so the 5-day bar takes the first lane (row 2) and
+    // the 3-day one it overlaps is pushed to the second (row 3).
+    expect($body)->toContain('grid-column: 2 / span 5; grid-row: 2')
+        ->and($body)->toContain('grid-column: 3 / span 3; grid-row: 3');
+});
+
+it('draws the two longest world events as a handful of bars, not one per day', function () {
+    // Brewfest (17 days) and Winter Veil (18 days, over the year end) are
+    // the longest things the world calendar produces. Both should come out
+    // as one bar per week touched, and neither should be crowded out of
+    // its lane by the events that overlap it.
+    foreach (['2027-09-10' => 'Brewfest', '2027-12-05' => 'Feast of Winter Veil'] as $anchor => $name) {
+        $this->travelTo(CarbonImmutable::parse($anchor)->startOfWeek()->setTime(9, 0));
+
+        $body = $this->actingAs(socialOfficer())->get('/dashboard/social?view=grid')->assertOk()->getContent();
+
+        expect(substr_count($body, 'title="'.$name))->toBe(3, $name)
+            ->and($body)->toContain('&larr;');  // continued from the week above
+    }
 });
 
 it('renders two upcoming events in chronological order', function () {
