@@ -163,10 +163,20 @@ baseline for how long a restore takes.
    never matches. Needs care: `EquipmentSnapshotImporter::selectMembersToFetch`
    orders by `captured_at`, so a skipped write must still record "checked" or
    the member is re-selected every run.
-2. **Stop persisting `member_snapshots.raw_json`** (14 KB/row of debug ballast)
-   or keep it only on each member's latest row. It's read only for the latest
-   RIO row (BiS gear fallback, `BisComparisonService`) and the previous GRM row
-   (diffing, `GrmSnapshotDiffer`) — never on old rows.
+2. **Thin `member_snapshots.raw_json`** (14 KB/row). **Do not drop the column.**
+   A grep on 2026-08-29 (board card 0004) found four live readers, one of them
+   a widget, which is more than the earlier note here claimed:
+
+   | Reader | Reads | Which row |
+   |---|---|---|
+   | `resources/views/components/weekly-key-cell.blade.php:21` | `mythic_plus_weekly_highest_level_runs` — the M+ weekly-key popover on the roster, keynight and character screens | latest RIO |
+   | `App\Services\Bis\BisComparisonService::rawArray` | gear fallback | latest RIO |
+   | `App\Services\Grm\GrmSnapshotDiffer::diffMemberSnapshots` | `note` / `officerNote` / `customNote.3`, to emit note-changed events | previous GRM |
+   | `App\Console\Commands\BackfillMplusRuns` | historical M+ runs | **every** row, by design |
+
+   Only the first three are "latest row" reads. `BackfillMplusRuns` is a
+   recovery command that walks the whole history, so nulling old rows retires
+   it. That is the trade-off to settle before writing any migration.
 3. **One-off `OPTIMIZE TABLE`** on `member_snapshots` (and others) after the
    first prune, once write grants are back, to return the freed InnoDB pages to
    the size meter.
