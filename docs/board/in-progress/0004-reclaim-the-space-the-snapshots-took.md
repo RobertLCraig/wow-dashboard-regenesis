@@ -1,8 +1,47 @@
 ---
 needs: 0001
+not_for_the_loop: the work left is an OPTIMIZE TABLE on the live Hostinger database
 ---
 
 # Reclaim the space the snapshot tables took
+
+## What I need from you
+
+**Two things.**
+
+1. **Reclaim the space on the live database yourself.** Nothing here can reach that host.
+2. **Decide whether the old `raw_json` archive is still worth keeping.** One command below tells you.
+
+---
+
+**On 1.** Follow [docs/ops-runbook.md](../../ops-runbook.md), "site is 500ing", steps 3 and 4. Read
+the hPanel figure before you start and again after, and write both into the runbook. That is the
+whole of criteria #1 and #3.
+
+Pass is both: the hPanel figure is materially under 1695 MB, and both figures are in the runbook,
+dated. Fail is `OPTIMIZE TABLE` erroring on a missing grant, which means the write grants never came
+back; say so here and go back to card `0001`.
+
+**Why it needs you** It runs against the live database, and no `git revert` reaches it.
+
+**On 2.** Criterion #2 says drop `member_snapshots.raw_json`. It cannot be: four things read it,
+listed in the runbook's follow-up 2. The runbook's alternative is to keep the column only on each
+member's newest row and null it on the rest. That suits three of the four readers and retires
+`mplus:backfill-runs`, whose whole job is walking the old rows.
+
+That command is a one-way extractor. It lifts M+ runs out of the old blobs into `member_mplus_runs`,
+and re-running it only bumps `last_seen_at`. So the question is just whether it has already finished.
+On production:
+
+    php artisan mplus:backfill-runs --dry-run
+
+- **"0 runs would persist"** — the archive is already emptied into `member_mplus_runs`, so nulling
+  the old blobs costs nothing. Answer: null them.
+- **Any number above zero** — the archive still holds runs nothing has recovered. Run it for real
+  first, then answer.
+
+**Why it needs you** The cost is yours: nulling the old blobs gives up any *future* field we might
+one day want back out of them, and only you know whether that matters.
 
 ## Why
 Truncating `member_equipment_snapshots` brought the database from 3072 MB back to 1695 MB, but
@@ -84,3 +123,19 @@ runbook. `.\vendor\bin\pest.bat` is green: 705 passed, 2176 assertions. `.\vendo
 touched, none of them mine, all pre-existing drift. Committing that would have buried a two-file doc
 change under a repo-wide reformat, so `git checkout` put them back. Worth a card of its own — either
 adopt the reformat in one commit or pin the Pint preset — but it is not this one.
+
+**2026-08-29** Second unattended run, nothing built, no criterion ticked. I re-ran the grep rather
+than trusting the entry above and it holds, so criterion #2 is still false as written. `.env` here
+reads `DB_HOST=127.0.0.1`, the local Herd MySQL, so #1 and #3 are still out of reach.
+
+What is new is that the archive question is now cheap to answer. `mplus:backfill-runs` is idempotent
+and one-way, so "is the old `raw_json` worth keeping" reduces to one dry run against production; the
+new `## What I need from you` says what each answer means. I did not run it and did not answer it.
+
+I also added `not_for_the_loop:`, which the run above flagged and left. The loop has now spent two
+sessions on a card whose remaining work is on a live host. Delete that one line if you disagree — it
+keeps the unattended loop off the card and grants nothing.
+
+Suite green here: 705 passed, 2176 assertions. Pint run as `--dirty` and clean; this card touched
+one markdown file and no PHP. The repo-wide Pint drift found above is still there and still not this
+card's.
