@@ -6,6 +6,12 @@ Three do not have stable dates: Noblegarden follows Easter, the Lunar Festival f
 Year, and Pilgrim's Bounty follows US Thanksgiving. They are either absent or wrong, and a calendar
 that is wrong about three events is one people stop trusting for the other twenty.
 
+## Links
+
+**Relates to**
+- `0006` - draws these same events as bars on the month grid; this card only settles which dates
+  they fall on, so a wrong date here shows up as a wrong bar there.
+
 ## Not this card
 The events feed itself, the ICS export, or the month grid, which is card 0006.
 

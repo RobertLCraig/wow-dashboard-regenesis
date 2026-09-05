@@ -25,6 +25,20 @@ again: it read 3087 MB before the clear-out and 1424 MB after, both confirmed in
 **Why it needs you** Raising the ticket needs the hosting account login, which is not reachable from
 here.
 
+## Why
+On 2026-07-08 the database hit the cap and Hostinger auto-revoked the write grants. Sessions were on
+the `database` driver, so every request tried to write a session row, every write was denied, and
+the site returned 500. Sessions and cache moved to `file`, so public pages serve.
+
+Logins and every sync job stay blocked until the grants come back. Officers can now at least log in
+and read the site: `User::save()` swallows the revoked-grant error rather than 500ing.
+
+## Links
+
+**Relates to**
+- `0003` - the syncs refill the snapshot tables at roughly 1 GB a day and re-trip the same cap, so
+  this card recurs until that one stops the growth at the point of writing.
+
 ## What was actually wrong, and what was done
 
 The database really was over the cap. hPanel and the database's own numbers measure different
@@ -47,14 +61,6 @@ return.
 **This buys about two days, not a fix.** The syncs write roughly 1 GB a day, which is what refilled
 the tables and re-tripped the cap on 10 July, a day after the last clear-out. Card 0003 is the
 actual fix.
-
-## Why
-On 2026-07-08 the database hit the cap and Hostinger auto-revoked the write grants. Sessions were on
-the `database` driver, so every request tried to write a session row, every write was denied, and
-the site returned 500. Sessions and cache moved to `file`, so public pages serve.
-
-Logins and every sync job stay blocked until the grants come back. Officers can now at least log in
-and read the site: `User::save()` swallows the revoked-grant error rather than 500ing.
 
 ## Not this card
 Stopping the refill. That is card 0003, and it is the one that stops this recurring.

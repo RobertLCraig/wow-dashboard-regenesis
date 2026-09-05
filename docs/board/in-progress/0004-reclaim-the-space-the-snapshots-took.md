@@ -44,13 +44,26 @@ On production:
 one day want back out of them, and only you know whether that matters.
 
 ## Why
-Truncating `member_equipment_snapshots` brought the database from 3072 MB back to 1695 MB, but
-InnoDB does not return freed pages to the size meter on its own, and the meter is what Hostinger
-enforces the cap against. Two further reductions are named in the runbook and neither has been
-done: `member_snapshots.raw_json` is ballast no widget reads, and an `OPTIMIZE TABLE` pass is what
-actually hands the pages back.
+The database still measures 1695 MB against a 3072 MB cap. Truncating `member_equipment_snapshots`
+on 2026-08-19 took it from 3072 MB to that 1695 MB by emptying the rows, but InnoDB does not hand
+the freed pages back to the size meter on its own, and that meter is the number Hostinger enforces
+the cap against.
 
-Both need write grants, which is why this card cannot start until card 0001 confirms they are back.
+So the headroom the truncation looked like it bought is not there. Going over the cap is what
+revoked the write grants on 2026-07-08 and put every route on a 500, and the syncs write roughly
+1 GB a day, so the same outage is days rather than months away. The runbook has carried two named
+reductions since that incident and neither has been done.
+
+## Links
+
+**Blocked by**
+- `0001` - every reduction here writes to the live database, and that card is where the revoked
+  `INSERT` and `UPDATE` grants are confirmed back.
+
+**Relates to**
+- `0002` - measures the database against its own cap in the weekly digest, so the next approach is
+  seen coming instead of arriving as a 500.
+- `0003` - stops the snapshot tables refilling, which is what makes any space reclaimed here last.
 
 ## Not this card
 Preventing regrowth. That is cards 0002 and 0003.
@@ -71,8 +84,17 @@ Preventing regrowth. That is cards 0002 and 0003.
 - [ ] Run `OPTIMIZE TABLE` and record the before and after sizes in the runbook
 
 ## Plan
+**The two reductions the runbook names**, in [docs/ops-runbook.md](../../ops-runbook.md), section
+"Follow-ups (not yet done)", items 2 and 3: thin `member_snapshots.raw_json` at 14 KB a row, and run
+a one-off `OPTIMIZE TABLE` so InnoDB gives the freed pages back to the meter. Both need the write
+grants, which is why `needs: 0001`.
+
 Do the grep first and do it honestly: `raw_json` is the kind of column something reads once, in a
-command nobody runs often, and the migration that drops it is the one that finds out.
+command nobody runs often, and the migration that drops it is the one that finds out. That grep has
+since been done and it says do not drop the column - four live readers, listed in the 2026-08-29
+entry below and in the runbook's follow-up 2. The card's original premise that `raw_json` was
+"ballast no widget reads" is false, so criterion #2 cannot be met as written and has not been
+reworded.
 
 ## Comments
 

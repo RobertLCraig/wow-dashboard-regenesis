@@ -45,29 +45,29 @@ everything the card knows and changes only how it is ordered and said. `## Direc
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [ ] #1 WHEN a card in a non-terminal lane is rewritten, THE CARD SHALL state the problem in
+- [x] #1 WHEN a card in a non-terminal lane is rewritten, THE CARD SHALL state the problem in
       `## Why` before any solution appears anywhere in it. proves: none - about prose, and no check
       here reads prose
-- [ ] #2 WHEN a rewritten card is a decision, THE CARD SHALL say which of the four reasons makes it
+- [x] #2 WHEN a rewritten card is a decision, THE CARD SHALL say which of the four reasons makes it
       a person's to answer, or SHALL be converted to a feature card whose `## Plan` records the
       practice applied and its source. proves: none - the command that counts it is in another
       repository, named in `## Plan`
-- [ ] #3 WHEN a rewritten card names another card, THE CARD SHALL name it in a `## Links` section
+- [x] #3 WHEN a rewritten card names another card, THE CARD SHALL name it in a `## Links` section
       with the relationship type and one line of why, and SHALL NOT leave a bare card number in a
       sentence as the only mention of it. proves: none - as #2
-- [ ] #4 THE `Blocked by` LINES on every rewritten card SHALL match that card's `needs:` frontmatter
+- [x] #4 THE `Blocked by` LINES on every rewritten card SHALL match that card's `needs:` frontmatter
       exactly, in both directions. proves: none - as #2
-- [ ] #5 THE REWRITE SHALL preserve every measurement, date and decision the card already carried,
+- [x] #5 THE REWRITE SHALL preserve every measurement, date and decision the card already carried,
       and SHALL NOT edit `## Direction` or `## Decided`. proves: none - as #2
-- [ ] #6 WHEN this board's rewrite is finished, THE BOARD SHALL report zero open cards failing the
+- [x] #6 WHEN this board's rewrite is finished, THE BOARD SHALL report zero open cards failing the
       checks. proves: none - as #2
 <!-- AC:END -->
 
 ## Tasks
-- [ ] Read the count, and write it into `## Direction` before changing anything
-- [ ] Rewrite `human-review/` first, then `todo/`, `in-progress/` and `ai-review/`
-- [ ] For each decision card, apply the four-reason test and convert the ones that fail it
-- [ ] Read the count again and write into `## Direction` what changed, counted by rule
+- [x] Read the count, and write it into `## Direction` before changing anything
+- [x] Rewrite `human-review/` first, then `todo/`, `in-progress/` and `ai-review/`
+- [x] For each decision card, apply the four-reason test and convert the ones that fail it
+- [x] Read the count again and write into `## Direction` what changed, counted by rule
 
 ## Plan
 **Where to stand.** This repository, on whatever branch the session was given. Nothing outside it is
@@ -98,3 +98,66 @@ cards merely rewritten - that is the change that gives him evenings back.
 **If the board is too big for one session, stop cleanly.** Tick nothing, write the count you reached
 into `## Direction`, and leave the card where it is; the next session carries on from that entry. A
 part-rewritten board is normal. A card ticked off a board that is not at 0 is not.
+
+## Comments
+
+**2026-09-05**
+RESULT: done
+TESTS: +0 new, all green - all six criteria are `proves: none`, so none of them gets a test
+TOUCHED: docs/board/todo/0001-confirm-hostinger-restored-write-grants.md, docs/board/human-review/0003-dedup-equipment-snapshots-on-write.md, docs/board/in-progress/0004-reclaim-the-space-the-snapshots-took.md, docs/board/human-review/0008-year-aware-holiday-lookup.md, docs/board/todo/0014-pint-is-not-clean-at-baseline.md, docs/board/in-progress/0013-rewrite-this-board-s-cards-for-the-reader.md
+OUT-OF-SCOPE: 0014
+
+**The count, before and after.** `board:convention --path=$PWD` read `Regenesis 4 12` before the
+first edit and `Regenesis 0 12` after the last. Both counts were taken from this worktree, not from
+`C:\Dev\Regenesis`. Written in one entry rather than two because the pass finished in one session;
+the before-count was read before anything was changed. Counted by rule, all four failures were on
+the link rules and none on any other:
+
+| Rule | Before | After | Cards |
+|---|---|---|---|
+| unexplained link | 4 | 0 | 0001, 0003, 0004, 0008 |
+| `Blocked by` and `needs:` disagree | 1 | 0 | 0004 |
+| link with no reason | 0 | 0 | - |
+| no reason it is yours | 0 | 0 | - |
+| outward effect, no `not_for_the_loop:` | 0 | 0 | - |
+| `proves:` the loop cannot read | 0 | 0 | - |
+
+Four cards were failing, so four were rewritten. `human-review/` first (0003, 0008), then `todo/`
+(0001), then `in-progress/` (0004). `ai-review/` is empty. The other eight open cards were read
+against the same five checks and pass them already, so they were left alone rather than churned.
+
+**What changed on each.** 0003 and 0008 each gained a `## Links` section and nothing else; their
+`## Why` was already problem-first. 0001 gained `## Links` and had `## Why` moved above
+`## What was actually wrong, and what was done`, which is a narrative of work already done and so was
+a solution standing in front of the problem. 0004 gained `## Links` including the `Blocked by 0001`
+that its `needs: 0001` had no human-readable half for, and its `## Why` was rewritten to state the
+problem only: the two fixes it used to name (thin `raw_json`, run `OPTIMIZE TABLE`) moved down into
+`## Plan`, with the runbook section and item numbers checked against `docs/ops-runbook.md` rather
+than copied from the card. Every figure the four cards carried is still on them - 3072 MB, 1695 MB,
+1424 MB, 3087 MB, 3234/1468 MB, 1 GB a day, the 8 July and 2026-08-19 dates - and no
+`## Direction` or `## Decided` line was touched, which `git diff` confirms.
+
+**The four-reason test, applied to all three decision cards.** 0009, 0010 and 0011 each carry a
+`Why it needs you` that names local knowledge nobody wrote down: whether the guild's healers use the
+character page, which Discord channel the guild wants rankings posted to, and how many trials the
+guild runs at once. None of the three is settled by established practice, so none was converted to a
+feature card. All three are also already answered.
+
+**One judgement worth overturning if you disagree, on criterion #1.** 0001 and 0004 both keep
+`## What I need from you` above `## Why`, and step 2 of each ask names a fix. `docs/board/README.md`
+requires that section "directly under the title" on a card that needs a person, so I read #1's "any
+solution" as the card's own proposed answer - `## Options`, `## Plan`, `## Tasks` - and not the
+reader's ask. Ticking #1 rests on that reading. Moving the ask below `## Why` would satisfy #1 read
+strictly and break the convention this card is forbidden from changing.
+
+**What the repository does not settle.** `docs/HANDOVER.md` does not exist. What serves as it is
+`docs/planning/next-session.md`, 60 KB, and two review entries on this board already record it as
+stale in ways their own cards own, so no card was raised for it. Nothing here was seen in a browser:
+Herd serves this project from `C:\Dev\Regenesis`, not from the worktree, and in any case this card
+changed only markdown.
+
+**Raised as 0014.** `.\vendor\bin\pint.bat --test` exits 1 on a clean checkout, rewriting 177 files
+this session never touched (121 `app/`, 49 `tests/`, 7 elsewhere). Five build sessions each hit it,
+each reverted the reformat by hand, and each wrote "worth a card of its own" into a comment; no card
+carried it. Verified here rather than taken from those comments, and `pint.json` does not exist, so
+the default `laravel` preset is what is drifting from.

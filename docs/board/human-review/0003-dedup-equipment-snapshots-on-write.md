@@ -8,6 +8,13 @@ The existing `snapshots.payload_hash` dedup does not help here: it hashes the wh
 batches rotate through the 100 stalest members per run, so the hash almost never matches. The dedup
 exists at the wrong granularity rather than being absent, which is why the table grew despite it.
 
+## Links
+
+**Relates to**
+- `0002` - warns in the weekly digest before the cap is reached again; this card slows the growth,
+  that one measures it.
+- `0004` - hands back the space the table has already taken; this card only stops it taking more.
+
 ## Not this card
 Reclaiming the space already used, which is card 0004, and the alerting, which is 0002.
 
