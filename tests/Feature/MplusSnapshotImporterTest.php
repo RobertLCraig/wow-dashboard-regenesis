@@ -93,8 +93,7 @@ it('hits /mythic-keystone-profile and stores rating + runs', function () {
     expect($row->current_period_runs)->toBeArray();
     expect($row->seasons)->toBeArray();
 
-    Http::assertSent(fn ($req) =>
-        str_contains($req->url(), '/profile/wow/character/silvermoon/sheday/mythic-keystone-profile')
+    Http::assertSent(fn ($req) => str_contains($req->url(), '/profile/wow/character/silvermoon/sheday/mythic-keystone-profile')
         && $req->hasHeader('Battlenet-Namespace', 'profile-eu'));
 });
 
@@ -153,5 +152,5 @@ it('throws when credentials are missing', function () {
     makeMplusMember('Sheday-Silvermoon');
 
     expect(fn () => makeMplusImporter()->pull())
-        ->toThrow(\RuntimeException::class, 'not configured');
+        ->toThrow(RuntimeException::class, 'not configured');
 });

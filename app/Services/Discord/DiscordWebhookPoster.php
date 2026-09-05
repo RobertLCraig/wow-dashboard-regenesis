@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Http;
 class DiscordWebhookPoster
 {
     private const MESSAGE_LIMIT = 2000;
+
     private const INTER_CHUNK_DELAY_MS = 250;
 
     public function __construct(
@@ -52,7 +53,7 @@ class DiscordWebhookPoster
                 return [
                     'posted' => $posted,
                     'status' => $lastStatus,
-                    'error' => 'request failed: ' . $e->getMessage(),
+                    'error' => 'request failed: '.$e->getMessage(),
                 ];
             }
 
@@ -61,7 +62,7 @@ class DiscordWebhookPoster
                 return [
                     'posted' => $posted,
                     'status' => $resp->status(),
-                    'error' => "discord returned {$resp->status()}: " . mb_substr($resp->body(), 0, 200),
+                    'error' => "discord returned {$resp->status()}: ".mb_substr($resp->body(), 0, 200),
                 ];
             }
             $posted++;

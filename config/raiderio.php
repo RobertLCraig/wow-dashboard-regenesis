@@ -159,27 +159,27 @@ return [
     | lowercase fallback so officers can spot ones to add.
     */
     'realm_slugs' => [
-        'TwistingNether'      => 'twisting-nether',
-        'ArgentDawn'          => 'argent-dawn',
-        'BurningLegion'       => 'burning-legion',
-        'BurningSteppes'      => 'burning-steppes',
-        'DefiasBrotherhood'   => 'defias-brotherhood',
-        'EmeraldDream'        => 'emerald-dream',
-        'GrimBatol'           => 'grim-batol',
-        'KazzakEU'            => 'kazzak',
-        'KhazModan'           => 'khaz-modan',
-        'KhazGoroth'          => 'khaz-goroth',
-        'MoonGlade'           => 'moon-glade',
-        'PozzodellEternita'   => 'pozzo-dell-eternità',
-        'ScarshieldLegion'    => 'scarshield-legion',
-        'SilverHand'          => 'silver-hand',
-        'SteamwheedleCartel'  => 'steamwheedle-cartel',
-        'StormScale'          => 'stormscale',
-        'TheMaelstrom'        => 'the-maelstrom',
-        'TheVentureCo'        => 'the-venture-co',
-        'TheSha\'tar'         => 'the-shatar',
-        'TheSchatar'          => 'the-shatar',
-        'YsondreFR'           => 'ysondre',
+        'TwistingNether' => 'twisting-nether',
+        'ArgentDawn' => 'argent-dawn',
+        'BurningLegion' => 'burning-legion',
+        'BurningSteppes' => 'burning-steppes',
+        'DefiasBrotherhood' => 'defias-brotherhood',
+        'EmeraldDream' => 'emerald-dream',
+        'GrimBatol' => 'grim-batol',
+        'KazzakEU' => 'kazzak',
+        'KhazModan' => 'khaz-modan',
+        'KhazGoroth' => 'khaz-goroth',
+        'MoonGlade' => 'moon-glade',
+        'PozzodellEternita' => 'pozzo-dell-eternità',
+        'ScarshieldLegion' => 'scarshield-legion',
+        'SilverHand' => 'silver-hand',
+        'SteamwheedleCartel' => 'steamwheedle-cartel',
+        'StormScale' => 'stormscale',
+        'TheMaelstrom' => 'the-maelstrom',
+        'TheVentureCo' => 'the-venture-co',
+        'TheSha\'tar' => 'the-shatar',
+        'TheSchatar' => 'the-shatar',
+        'YsondreFR' => 'ysondre',
 
         // Realms where GRM didn't strip the apostrophe / parens, observed
         // in production logs as repeated 400s from RIO. The collapsed
@@ -187,9 +187,9 @@ return [
         // dash; the slug on the right is the form RIO actually accepts.
         // Note RIO PRESERVES UNICODE in slugs (verified: "aggra-portugues"
         // 400s, "aggra-português" 200s) - do not transliterate.
-        'Blade\'sEdge'        => 'blades-edge',
-        'Drek\'Thar'          => 'drekthar',
-        'Aggra(Português)'    => 'aggra-português',
+        'Blade\'sEdge' => 'blades-edge',
+        'Drek\'Thar' => 'drekthar',
+        'Aggra(Português)' => 'aggra-português',
         'Pozzodell\'Eternità' => 'pozzo-dell-eternità',
     ],
 ];

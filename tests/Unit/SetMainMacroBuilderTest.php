@@ -25,7 +25,7 @@ it('splits into multiple macros when total bytes exceed 255', function () {
 });
 
 it('reports a name as oversized when its single line cannot fit', function () {
-    $name = str_repeat('x', 240) . '-Realm';
+    $name = str_repeat('x', 240).'-Realm';
     $out = SetMainMacroBuilder::build([$name]);
     expect($out['oversized'])->toBe([$name]);
     expect($out['macros'])->toBe([]);

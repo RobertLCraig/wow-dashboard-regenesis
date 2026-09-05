@@ -19,13 +19,11 @@ use Illuminate\Support\Collection;
  */
 class AotcCohortGapBuilder
 {
-    public function __construct(private readonly RaidProgressionAnalyzer $analyzer)
-    {
-    }
+    public function __construct(private readonly RaidProgressionAnalyzer $analyzer) {}
 
     /**
-     * @param  Collection<int, Member>  $activeMembers Active roster, with alt_group_id + main_member_id loaded.
-     * @param  Collection<int, MemberRaidSnapshot>  $snapshots Latest Blizzard raid snapshots, one per member.
+     * @param  Collection<int, Member>  $activeMembers  Active roster, with alt_group_id + main_member_id loaded.
+     * @param  Collection<int, MemberRaidSnapshot>  $snapshots  Latest Blizzard raid snapshots, one per member.
      * @return ?array{
      *   tier: array{expansion_id:int, expansion_name:string, instance_id:int, instance_name:string},
      *   active_count: int,

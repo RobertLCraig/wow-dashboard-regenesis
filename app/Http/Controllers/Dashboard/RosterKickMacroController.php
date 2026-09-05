@@ -58,6 +58,7 @@ class RosterKickMacroController extends Controller
                     'name' => $m->name,
                     'reason' => $m->status === Member::STATUS_BANNED ? 'already banned' : 'already left',
                 ];
+
                 continue;
             }
             $charName = $this->charName($m->name);

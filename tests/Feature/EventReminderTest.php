@@ -38,20 +38,21 @@ function reminderEvent(CarbonImmutable $startsAt, array $overrides = []): RaidEv
 {
     static $seq = 0;
     $seq++;
+
     return RaidEvent::query()->create(array_replace([
-        'raidhelper_event_id' => '90000000' . $seq,
+        'raidhelper_event_id' => '90000000'.$seq,
         'server_id' => '1247256415542841416',
         'channel_id' => 'CH-HEROIC',
         'title' => 'Heroic Tuesday',
         'starts_at' => $startsAt,
-        'ics_uid' => 'ics-' . $seq,
+        'ics_uid' => 'ics-'.$seq,
         'ics_sequence' => 0,
     ], $overrides));
 }
 
 function newDispatcher(int $tickWindow = 5, array $offsets = [60, 30, 5]): EventReminderDispatcher
 {
-    return new EventReminderDispatcher(new WebhookRouter(), $offsets, $tickWindow);
+    return new EventReminderDispatcher(new WebhookRouter, $offsets, $tickWindow);
 }
 
 it('fires a reminder when an event start matches an offset within the tick window', function () {

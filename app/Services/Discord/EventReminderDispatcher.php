@@ -89,6 +89,7 @@ class EventReminderDispatcher
                     ->exists();
                 if ($alreadyLogged) {
                     $stats['skipped_already_logged']++;
+
                     continue;
                 }
 
@@ -103,6 +104,7 @@ class EventReminderDispatcher
                         'posted_at' => $now,
                         'webhook_count' => 0,
                     ]);
+
                     continue;
                 }
 
@@ -115,6 +117,7 @@ class EventReminderDispatcher
                             'webhook_id' => $hook->id, 'event_id' => $event->id, 'offset' => $offset, 'error' => $r['error'],
                         ]);
                         $stats['errored']++;
+
                         continue;
                     }
                     $hook->forceFill(['last_posted_at' => $now])->save();
@@ -145,6 +148,7 @@ class EventReminderDispatcher
                 return (string) $slug;
             }
         }
+
         return null;
     }
 
@@ -153,12 +157,12 @@ class EventReminderDispatcher
         $tz = config('raidhelper.timezone', 'Europe/London');
         $when = $event->starts_at?->setTimezone($tz)->format('D d M H:i T') ?? 'TBC';
         $heading = match (true) {
-            $offsetMinutes <= 5  => '**Starting in a few minutes**',
-            $offsetMinutes < 60  => "**Starting in {$offsetMinutes} minutes**",
+            $offsetMinutes <= 5 => '**Starting in a few minutes**',
+            $offsetMinutes < 60 => "**Starting in {$offsetMinutes} minutes**",
             $offsetMinutes === 60 => '**Starting in an hour**',
             default => sprintf('**Starting in %d minutes**', $offsetMinutes),
         };
-        $teamPrefix = $teamSlug ? ucfirst($teamSlug) . ': ' : '';
+        $teamPrefix = $teamSlug ? ucfirst($teamSlug).': ' : '';
 
         return "{$heading}\n{$teamPrefix}{$event->title}\n{$when}\nSign up: {$event->discordJumpUrl()}";
     }

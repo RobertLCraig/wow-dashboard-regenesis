@@ -22,6 +22,7 @@ class IcsBuilder
     {
         $cal = $this->newCalendar();
         $this->addEvent($cal, $event);
+
         return (string) $cal->serialize();
     }
 
@@ -34,6 +35,7 @@ class IcsBuilder
         foreach ($events as $e) {
             $this->addEvent($cal, $e);
         }
+
         return (string) $cal->serialize();
     }
 
@@ -58,6 +60,7 @@ class IcsBuilder
         foreach ($worldEvents as $w) {
             $this->addWorldEvent($cal, $w);
         }
+
         return (string) $cal->serialize();
     }
 
@@ -85,7 +88,7 @@ class IcsBuilder
             $event['name'],
             $event['starts_at']->format('Ymd'),
         );
-        $uid = 'world-' . hash('sha256', $uidSeed) . '@regenesis';
+        $uid = 'world-'.hash('sha256', $uidSeed).'@regenesis';
 
         // Date-only events: ICS expects DTSTART;VALUE=DATE for all-day
         // banner rendering. DTEND on date-only events is exclusive
@@ -117,7 +120,7 @@ class IcsBuilder
             ? ($event->ends_at instanceof CarbonImmutable ? $event->ends_at->setTimezone($tz) : CarbonImmutable::parse((string) $event->ends_at, 'UTC')->setTimezone($tz))
             : $start->addHours(2);
 
-        $description = trim(($event->description ?? '') . "\n\n" . $event->discordJumpUrl());
+        $description = trim(($event->description ?? '')."\n\n".$event->discordJumpUrl());
 
         $cal->add('VEVENT', [
             'UID' => $event->ics_uid,

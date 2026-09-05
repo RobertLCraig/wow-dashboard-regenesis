@@ -12,13 +12,14 @@ use App\Models\Snapshot;
 use App\Models\TeamMapping;
 use App\Services\Bis\BisComparisonService;
 use App\Services\Blizzard\EquipmentAnalyzer;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Searchable + filterable roster page. Replaces the alt-groups +
@@ -76,7 +77,7 @@ class RosterController extends Controller
         // CSV always exports flat: officers want one row per character,
         // not collapsed cohorts. The ?group= flag is ignored here.
         $rows = $this->rows($filter, false);
-        $filename = 'roster-' . now()->format('Y-m-d') . ($filter !== 'all' ? "-{$filter}" : '') . '.csv';
+        $filename = 'roster-'.now()->format('Y-m-d').($filter !== 'all' ? "-{$filter}" : '').'.csv';
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'wb');
@@ -138,7 +139,7 @@ class RosterController extends Controller
     }
 
     /**
-     * @return Collection<int, array{member: Member, snap: ?MemberSnapshot, ilvl: ?int, ilvl_source: ?string, bis_issues: ?array<string,int>, gear_health: ?array{missing_enchants:list<string>, empty_sockets:list<string>, total_issues:int, equipped_ilvl:?int, pieces_count:int}, main: ?Member, flags: list<string>, group_member_ids: list<int>, alts: \Illuminate\Support\Collection<int,Member>}>
+     * @return Collection<int, array{member: Member, snap: ?MemberSnapshot, ilvl: ?int, ilvl_source: ?string, bis_issues: ?array<string,int>, gear_health: ?array{missing_enchants:list<string>, empty_sockets:list<string>, total_issues:int, equipped_ilvl:?int, pieces_count:int}, main: ?Member, flags: list<string>, group_member_ids: list<int>, alts: Collection<int,Member>}>
      */
     private function rows(string $filter, bool $grouped): Collection
     {
@@ -179,6 +180,7 @@ class RosterController extends Controller
 
         return $rowMembers->map(function (Member $m) use ($snapsByMember, $ilvlsByMember, $bisIssuesByMember, $gearHealthByMember, $groupIdsByMember, $altsByMainId, $staleMainByMember, $mplusActivityByMember, $altGroupSiblings) {
             $ilvl = $ilvlsByMember->get($m->id, ['ilvl' => null, 'source' => null]);
+
             return [
                 'member' => $m,
                 'snap' => $snapsByMember->get($m->id),
@@ -225,12 +227,12 @@ class RosterController extends Controller
         // best-matching variant for each member without an N+1.
         $profilesByClassSpec = BisProfile::query()
             ->get()
-            ->groupBy(fn (BisProfile $p) => $p->class . '|' . $p->spec);
+            ->groupBy(fn (BisProfile $p) => $p->class.'|'.$p->spec);
         if ($profilesByClassSpec->isEmpty()) {
             return collect();
         }
 
-        $service = new BisComparisonService();
+        $service = new BisComparisonService;
         $out = collect();
         foreach ($members as $member) {
             $snap = $snapsByMember->get($member->id);
@@ -246,7 +248,7 @@ class RosterController extends Controller
             if ($class === null || $spec === null) {
                 continue;
             }
-            $candidates = $profilesByClassSpec->get($class . '|' . $spec, collect());
+            $candidates = $profilesByClassSpec->get($class.'|'.$spec, collect());
             $gear = $service->extractFromRio($raw);
             $profile = $service->pickBestProfileFromGear($candidates, $gear);
             if ($profile === null) {
@@ -262,6 +264,7 @@ class RosterController extends Controller
             );
             $out->put($member->id, $service->countIssues($comparison));
         }
+
         return $out;
     }
 
@@ -296,11 +299,12 @@ class RosterController extends Controller
             ->whereIn('member_id', $members->pluck('id')->all())
             ->get();
 
-        $analyzer = new EquipmentAnalyzer();
+        $analyzer = new EquipmentAnalyzer;
         $out = collect();
         foreach ($rows as $row) {
             $out->put($row->member_id, $analyzer->analyze($row));
         }
+
         return $out;
     }
 
@@ -353,6 +357,7 @@ class RosterController extends Controller
                 ]);
             }
         }
+
         return $resolved;
     }
 
@@ -363,7 +368,7 @@ class RosterController extends Controller
      * full cohort (matches the old alt-groups widget behaviour).
      *
      * @param  list<int>  $mainIds
-     * @return Collection<int, \Illuminate\Database\Eloquent\Collection<int, Member>>
+     * @return Collection<int, EloquentCollection<int, Member>>
      */
     private function altsForMains(string $guildKey, array $mainIds): Collection
     {
@@ -407,6 +412,7 @@ class RosterController extends Controller
 
         return $members->mapWithKeys(function (Member $m) use ($byGroup) {
             $ids = $m->alt_group_id ? ($byGroup->get($m->alt_group_id, []) ?: [$m->id]) : [$m->id];
+
             return [$m->id => $ids];
         });
     }
@@ -422,23 +428,23 @@ class RosterController extends Controller
         }
 
         return match ($filter) {
-            'inactive_7d'  => $this->inactive($q, 7),
+            'inactive_7d' => $this->inactive($q, 7),
             'inactive_14d' => $this->inactive($q, 14),
             'inactive_30d' => $this->inactive($q, 30),
             'inactive_60d' => $this->inactive($q, 60),
             'inactive_90d' => $this->inactive($q, 90),
-            'alts'    => $q->whereNotNull('main_member_id'),
-            'mains'   => $q->whereNull('main_member_id')->whereNotNull('alt_group_id'),
-            'trial'   => $q->onAnyTeam([TeamMapping::TEAM_HEROIC_TRIAL, TeamMapping::TEAM_MYTHIC_TRIAL]),
+            'alts' => $q->whereNotNull('main_member_id'),
+            'mains' => $q->whereNull('main_member_id')->whereNotNull('alt_group_id'),
+            'trial' => $q->onAnyTeam([TeamMapping::TEAM_HEROIC_TRIAL, TeamMapping::TEAM_MYTHIC_TRIAL]),
             'action_queue' => $q->where(function (Builder $sub) {
                 $sub->where('recommend_promote', true)
                     ->orWhere('recommend_demote', true)
                     ->orWhere('recommend_kick', true);
             }),
-            'banned'  => $q->where('status', Member::STATUS_BANNED),
+            'banned' => $q->where('status', Member::STATUS_BANNED),
             'no_keys_14d' => $this->withoutKeysSince($q, 14),
             'no_keys_30d' => $this->withoutKeysSince($q, 30),
-            default   => $q,
+            default => $q,
         };
     }
 
@@ -452,6 +458,7 @@ class RosterController extends Controller
     private function withoutKeysSince(Builder $q, int $days): Builder
     {
         $cutoff = Carbon::now()->subDays($days);
+
         return $q->whereNotIn('id', MemberMplusRun::query()
             ->select('member_id')
             ->where('completed_at', '>=', $cutoff));
@@ -474,7 +481,7 @@ class RosterController extends Controller
      * missing entry as "no keys".
      *
      * @param  EloquentCollection<int, Member>  $members
-     * @return Collection<int, array{count:int, highest:int, last_completed_at:\Carbon\CarbonInterface}>
+     * @return Collection<int, array{count:int, highest:int, last_completed_at:CarbonInterface}>
      */
     private function mplusActivityByMember(EloquentCollection $members, int $days): Collection
     {
@@ -517,6 +524,7 @@ class RosterController extends Controller
         if (! $latest) {
             return collect();
         }
+
         return MemberSnapshot::query()
             ->where('snapshot_id', $latest->id)
             ->whereIn('member_id', $members->pluck('id'))
@@ -530,12 +538,25 @@ class RosterController extends Controller
     private function flagsFor(Member $m, bool $mainLooksStale = false): array
     {
         $flags = [];
-        if ($m->recommend_promote) $flags[] = 'promote';
-        if ($m->recommend_demote)  $flags[] = 'demote';
-        if ($m->recommend_kick)    $flags[] = 'kick';
-        if ($m->recommend_special) $flags[] = 'special';
-        if ($m->status === Member::STATUS_BANNED) $flags[] = 'banned';
-        if ($mainLooksStale) $flags[] = 'main?';
+        if ($m->recommend_promote) {
+            $flags[] = 'promote';
+        }
+        if ($m->recommend_demote) {
+            $flags[] = 'demote';
+        }
+        if ($m->recommend_kick) {
+            $flags[] = 'kick';
+        }
+        if ($m->recommend_special) {
+            $flags[] = 'special';
+        }
+        if ($m->status === Member::STATUS_BANNED) {
+            $flags[] = 'banned';
+        }
+        if ($mainLooksStale) {
+            $flags[] = 'main?';
+        }
+
         return $flags;
     }
 
@@ -571,6 +592,7 @@ class RosterController extends Controller
                 ->where('id', '!=', $m->id)
                 ->pluck('name')
                 ->all();
+
             return [$m->id => $names];
         });
     }
@@ -627,6 +649,7 @@ class RosterController extends Controller
                 $stale->put($main->id, true);
             }
         }
+
         return $stale;
     }
 
@@ -645,10 +668,12 @@ class RosterController extends Controller
         foreach (self::FILTERS as $f) {
             if ($f === 'bis_issues') {
                 $counts[$f] = $this->countBisIssueMembers($guildKey);
+
                 continue;
             }
             $counts[$f] = $this->baseQuery($guildKey, $f)->count();
         }
+
         return $counts;
     }
 
@@ -667,6 +692,7 @@ class RosterController extends Controller
         }
         $snapsByMember = $this->latestRaiderioSnapshotsByMember($guildKey, $members);
         $issues = $this->bisIssuesByMember($members, $snapsByMember);
+
         return $issues->filter(fn (array $i) => ($i['total'] ?? 0) > 0)->count();
     }
 }

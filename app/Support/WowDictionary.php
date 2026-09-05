@@ -24,10 +24,13 @@ class WowDictionary
 {
     /** @var array<string, array{name:string, spell_id:?int}>|null */
     private ?array $enchants = null;
+
     /** @var array<string, array{name:string}>|null */
     private ?array $gems = null;
+
     /** @var array<string,mixed>|null */
     private ?array $enchantMeta = null;
+
     /** @var array<string,mixed>|null */
     private ?array $gemMeta = null;
 
@@ -42,6 +45,7 @@ class WowDictionary
     public function enchant(int $id): ?array
     {
         $entry = $this->enchants()[(string) $id] ?? null;
+
         return $this->normaliseEntry($entry);
     }
 
@@ -51,6 +55,7 @@ class WowDictionary
     public function gem(int $id): ?array
     {
         $entry = $this->gems()[(string) $id] ?? null;
+
         return $this->normaliseEntry($entry);
     }
 
@@ -108,6 +113,7 @@ class WowDictionary
         if ($this->enchants === null) {
             [$this->enchantMeta, $this->enchants] = $this->loadFile($this->enchantsPath ?? base_path('database/data/wow-enchants.json'));
         }
+
         return $this->enchants;
     }
 
@@ -119,6 +125,7 @@ class WowDictionary
         if ($this->gems === null) {
             [$this->gemMeta, $this->gems] = $this->loadFile($this->gemsPath ?? base_path('database/data/wow-gems.json'));
         }
+
         return $this->gems;
     }
 
@@ -136,6 +143,7 @@ class WowDictionary
         }
         $meta = is_array($decoded['_meta'] ?? null) ? $decoded['_meta'] : [];
         $entries = is_array($decoded['entries'] ?? null) ? $decoded['entries'] : [];
+
         return [$meta, $entries];
     }
 
@@ -155,6 +163,7 @@ class WowDictionary
         if (! is_string($name) || trim($name) === '') {
             return null;
         }
+
         return $entry;
     }
 
@@ -178,6 +187,7 @@ class WowDictionary
         if ($b === null) {
             return $a;
         }
+
         return $a->lessThan($b) ? $a : $b;
     }
 }

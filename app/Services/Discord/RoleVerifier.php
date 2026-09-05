@@ -27,7 +27,7 @@ class RoleVerifier
 
     public function __construct(
         private readonly string $guildId,
-        /** @var array<string,?string>  e.g. ['gm' => '12345', 'big6' => '67890', 'officer' => '...'] */
+        /** @var array<string,?string> e.g. ['gm' => '12345', 'big6' => '67890', 'officer' => '...'] */
         private readonly array $tierRoleIds,
         private readonly int $cacheTtlMinutes = 5,
     ) {}
@@ -51,6 +51,7 @@ class RoleVerifier
             // a flood of requests doesn't keep retrying, and try again
             // soon.
             Cache::put($cacheKey, $user->tier ?? '', now()->addSeconds(30));
+
             return $user->tier;
         }
 
@@ -58,6 +59,7 @@ class RoleVerifier
             // Refresh token is genuinely rejected (or absent). User
             // needs to re-OAuth; cache the deny for the full TTL.
             Cache::put($cacheKey, '', now()->addMinutes($this->cacheTtlMinutes));
+
             return null;
         }
 
@@ -69,6 +71,7 @@ class RoleVerifier
         } catch (ConnectionException $e) {
             Log::warning('Discord role check connection failed', ['user_id' => $user->id, 'message' => $e->getMessage()]);
             Cache::put($cacheKey, $user->tier ?? '', now()->addSeconds(30));
+
             return $user->tier;
         }
 
@@ -76,12 +79,14 @@ class RoleVerifier
             // User isn't in the configured guild at all.
             Cache::put($cacheKey, '', now()->addMinutes($this->cacheTtlMinutes));
             $user->forceFill(['tier' => null, 'last_role_check_at' => now()])->save();
+
             return null;
         }
 
         if ($resp->status() >= 500 || $resp->status() === 429) {
             Log::warning('Discord role check transient', ['user_id' => $user->id, 'status' => $resp->status()]);
             Cache::put($cacheKey, $user->tier ?? '', now()->addSeconds(30));
+
             return $user->tier;
         }
 
@@ -91,6 +96,7 @@ class RoleVerifier
                 'status' => $resp->status(),
                 'body' => mb_substr($resp->body(), 0, 200),
             ]);
+
             return $user->tier;
         }
 
@@ -125,6 +131,7 @@ class RoleVerifier
                 return $tier;
             }
         }
+
         return null;
     }
 
@@ -170,6 +177,7 @@ class RoleVerifier
                 'status' => $resp->status(),
                 'body' => mb_substr($resp->body(), 0, 200),
             ]);
+
             return null;
         }
 

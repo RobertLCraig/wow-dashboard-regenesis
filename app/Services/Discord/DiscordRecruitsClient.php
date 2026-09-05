@@ -2,6 +2,7 @@
 
 namespace App\Services\Discord;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -55,9 +56,9 @@ class DiscordRecruitsClient
         $this->assertConfigured();
 
         $response = Http::acceptJson()
-            ->withHeaders(['Authorization' => 'Bot ' . $this->botToken])
+            ->withHeaders(['Authorization' => 'Bot '.$this->botToken])
             ->timeout($this->timeoutSeconds)
-            ->get(self::API_BASE . "/guilds/" . config('discord.guild_id') . "/threads/active");
+            ->get(self::API_BASE.'/guilds/'.config('discord.guild_id').'/threads/active');
 
         $this->assertOk($response, 'active threads fetch');
 
@@ -97,9 +98,9 @@ class DiscordRecruitsClient
             }
 
             $response = Http::acceptJson()
-                ->withHeaders(['Authorization' => 'Bot ' . $this->botToken])
+                ->withHeaders(['Authorization' => 'Bot '.$this->botToken])
                 ->timeout($this->timeoutSeconds)
-                ->get(self::API_BASE . "/channels/{$this->channelId}/threads/archived/public", $query);
+                ->get(self::API_BASE."/channels/{$this->channelId}/threads/archived/public", $query);
 
             $this->assertOk($response, 'archived threads fetch');
 
@@ -142,9 +143,9 @@ class DiscordRecruitsClient
         $this->assertConfigured();
 
         $response = Http::acceptJson()
-            ->withHeaders(['Authorization' => 'Bot ' . $this->botToken])
+            ->withHeaders(['Authorization' => 'Bot '.$this->botToken])
             ->timeout($this->timeoutSeconds)
-            ->get(self::API_BASE . "/channels/{$threadId}/messages/{$threadId}");
+            ->get(self::API_BASE."/channels/{$threadId}/messages/{$threadId}");
 
         // 404 is normal when the bot lacks history scope on a single
         // archived thread or the original message was deleted; treat as
@@ -155,6 +156,7 @@ class DiscordRecruitsClient
         $this->assertOk($response, 'first-message fetch');
 
         $body = $response->json();
+
         return is_array($body) ? $body : null;
     }
 
@@ -163,12 +165,12 @@ class DiscordRecruitsClient
         if (! $this->isConfigured()) {
             throw new \RuntimeException(
                 'Discord bot token / recruits channel id are not configured. '
-                . 'Set DISCORD_BOT_TOKEN and DISCORD_RECRUITS_CHANNEL_ID.'
+                .'Set DISCORD_BOT_TOKEN and DISCORD_RECRUITS_CHANNEL_ID.'
             );
         }
     }
 
-    private function assertOk(\Illuminate\Http\Client\Response $response, string $context): void
+    private function assertOk(Response $response, string $context): void
     {
         if (! $response->successful()) {
             throw new \RuntimeException(sprintf(

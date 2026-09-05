@@ -34,6 +34,7 @@ class PruneMplusRuns extends Command
 
         if ($days <= 0) {
             $this->info('Retention disabled (days=0); nothing to prune.');
+
             return self::SUCCESS;
         }
 
@@ -44,12 +45,14 @@ class PruneMplusRuns extends Command
 
         if ($count === 0) {
             $this->info(sprintf('No runs older than %d days (cutoff %s).', $days, $cutoff->toDateString()));
+
             return self::SUCCESS;
         }
 
         if ($dryRun) {
             $this->info(sprintf('[dry-run] Would prune %d runs older than %s (%d days).',
                 $count, $cutoff->toDateString(), $days));
+
             return self::SUCCESS;
         }
 

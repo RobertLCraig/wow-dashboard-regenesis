@@ -7,7 +7,6 @@ use App\Models\MemberEvent;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Compare the just-ingested snapshot N to its predecessor N-1 (same
@@ -25,7 +24,7 @@ class GrmSnapshotDiffer
     ) {}
 
     /**
-     * @return array<string,int>  Counts per event type emitted.
+     * @return array<string,int> Counts per event type emitted.
      */
     public function diff(Snapshot $current): array
     {
@@ -37,7 +36,7 @@ class GrmSnapshotDiffer
             ->first();
 
         $emitted = [];
-        $emit = function (Member $m, string $type, array $payload = null, CarbonImmutable $when = null) use ($current, &$emitted) {
+        $emit = function (Member $m, string $type, ?array $payload = null, ?CarbonImmutable $when = null) use ($current, &$emitted) {
             MemberEvent::query()->create([
                 'member_id' => $m->id,
                 'snapshot_id' => $current->id,
@@ -130,6 +129,7 @@ class GrmSnapshotDiffer
                         $emit($m, MemberEvent::TYPE_JOINED, ['initial' => true]);
                     }
                 });
+
             return $emitted;
         }
 

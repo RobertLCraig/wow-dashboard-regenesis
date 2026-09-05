@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Crypt;
@@ -17,10 +17,13 @@ use Illuminate\Support\Facades\Crypt;
  */
 class DiscordWebhook extends Model
 {
-    public const PURPOSE_WEEKLY_DIGEST   = 'weekly_digest';
-    public const PURPOSE_EVENT_ANNOUNCE  = 'event_announce';
-    public const PURPOSE_EVENT_REMINDER  = 'event_reminder';
-    public const PURPOSE_TEAM_NEWS       = 'team_news';
+    public const PURPOSE_WEEKLY_DIGEST = 'weekly_digest';
+
+    public const PURPOSE_EVENT_ANNOUNCE = 'event_announce';
+
+    public const PURPOSE_EVENT_REMINDER = 'event_reminder';
+
+    public const PURPOSE_TEAM_NEWS = 'team_news';
 
     /**
      * Known purposes with display labels and a short hint for the admin
@@ -30,10 +33,10 @@ class DiscordWebhook extends Model
      * @var array<string, array{label:string, hint:string}>
      */
     public const PURPOSES = [
-        self::PURPOSE_WEEKLY_DIGEST  => ['label' => 'Weekly digest',   'hint' => 'Sunday officer summary'],
+        self::PURPOSE_WEEKLY_DIGEST => ['label' => 'Weekly digest',   'hint' => 'Sunday officer summary'],
         self::PURPOSE_EVENT_ANNOUNCE => ['label' => 'Event announce',  'hint' => 'New / changed Raid-Helper events'],
         self::PURPOSE_EVENT_REMINDER => ['label' => 'Event reminder',  'hint' => 'Pre-raid pings'],
-        self::PURPOSE_TEAM_NEWS      => ['label' => 'Team news',       'hint' => 'Roster changes for this team'],
+        self::PURPOSE_TEAM_NEWS => ['label' => 'Team news',       'hint' => 'Roster changes for this team'],
     ];
 
     protected $guarded = ['id'];

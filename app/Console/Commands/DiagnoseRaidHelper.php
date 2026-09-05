@@ -32,12 +32,13 @@ class DiagnoseRaidHelper extends Command
         $apiKey = (string) config('raidhelper.api_key');
         $serverId = (string) config('raidhelper.server_id');
 
-        $this->line('Configured server id: ' . ($serverId ?: '<EMPTY>'));
-        $this->line('Configured api key:   ' . ($apiKey ? str_repeat('*', 8) . substr($apiKey, -4) : '<EMPTY>'));
+        $this->line('Configured server id: '.($serverId ?: '<EMPTY>'));
+        $this->line('Configured api key:   '.($apiKey ? str_repeat('*', 8).substr($apiKey, -4) : '<EMPTY>'));
         $this->newLine();
 
         if ($apiKey === '' || $serverId === '') {
             $this->error('RAID_HELPER_API_KEY or RAID_HELPER_SERVER_ID not set.');
+
             return self::FAILURE;
         }
 
@@ -55,6 +56,7 @@ class DiagnoseRaidHelper extends Command
             if ($leaderId === '') {
                 $this->newLine();
                 $this->error('--channel requires --leader=<discord_user_id> (the API rejects fake leader IDs).');
+
                 return self::FAILURE;
             }
 
@@ -69,7 +71,7 @@ class DiagnoseRaidHelper extends Command
                 'description' => 'Created by raidhelper:diagnose. Will auto-delete immediately.',
             ]);
             $status = $resp->status();
-            $this->renderProbeLine('POST /api/v4/servers/{server}/channels/' . $channelId . '/event', $status, $resp->body());
+            $this->renderProbeLine('POST /api/v4/servers/{server}/channels/'.$channelId.'/event', $status, $resp->body());
 
             if ($resp->successful() && $resp->json('event.id')) {
                 $eventId = $resp->json('event.id');
@@ -92,7 +94,7 @@ class DiagnoseRaidHelper extends Command
             $resp = $call();
             $this->renderProbeLine($label, $resp->status(), $resp->body());
         } catch (\Throwable $e) {
-            $this->error("[ EXC ] {$label} -> " . $e->getMessage());
+            $this->error("[ EXC ] {$label} -> ".$e->getMessage());
         }
     }
 

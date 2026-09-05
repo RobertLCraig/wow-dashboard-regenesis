@@ -86,6 +86,7 @@ class DiscordWebhookController extends Controller
                 ->route('admin.webhooks.index')
                 ->withErrors(['webhook' => "Test failed: {$r['error']}"]);
         }
+
         return redirect()
             ->route('admin.webhooks.index')
             ->with('status', "Test ping sent to \"{$webhook->label}\".");
@@ -113,6 +114,7 @@ class DiscordWebhookController extends Controller
             $r = (new DiscordWebhookPoster($hook->url))->post($this->pingMessage($hook));
             if ($r['error']) {
                 $failed[] = "\"{$hook->label}\" ({$r['error']})";
+
                 continue;
             }
             $ok++;
@@ -124,6 +126,7 @@ class DiscordWebhookController extends Controller
                 ->with('status', "Test ping sent to {$ok} webhook(s).");
         }
         $failedList = implode('; ', $failed);
+
         return redirect()
             ->route('admin.webhooks.index')
             ->withErrors([
@@ -134,7 +137,7 @@ class DiscordWebhookController extends Controller
     private function pingMessage(DiscordWebhook $webhook): string
     {
         return sprintf(
-            "Test ping from Regenesis dashboard - %s (%s%s).",
+            'Test ping from Regenesis dashboard - %s (%s%s).',
             $webhook->label,
             DiscordWebhook::purposeLabel($webhook->purpose),
             $webhook->team_slug ? " / {$webhook->team_slug}" : '',
@@ -155,7 +158,7 @@ class DiscordWebhookController extends Controller
                 'max:1024',
                 'regex:/^https:\/\/(canary\.|ptb\.)?discord(app)?\.com\/api\/webhooks\/[0-9]+\/[A-Za-z0-9_\-]+$/',
             ],
-            'purpose' => ['required', 'string', 'max:32', 'in:' . implode(',', $known)],
+            'purpose' => ['required', 'string', 'max:32', 'in:'.implode(',', $known)],
             'team_slug' => ['nullable', 'string', 'max:32'],
             'enabled' => ['nullable', 'boolean'],
         ]);

@@ -40,19 +40,20 @@ class IcsController extends Controller
     private function stableEtag(string $body): string
     {
         $stable = preg_replace('/^DTSTAMP:[^\r\n]*\r?\n?/m', '', $body);
-        return '"' . hash('sha256', (string) $stable) . '"';
+
+        return '"'.hash('sha256', (string) $stable).'"';
     }
 
     public function show(Request $request, RaidEvent $event, IcsBuilder $builder): Response
     {
-        $expected = hash_hmac('sha256', $event->ics_uid . '|' . $event->ics_sequence, config('app.key'));
+        $expected = hash_hmac('sha256', $event->ics_uid.'|'.$event->ics_sequence, config('app.key'));
         if (! hash_equals($expected, (string) $request->query('sig'))) {
             abort(403, 'invalid signature');
         }
 
         return response($builder->buildOne($event), 200, [
             'Content-Type' => 'text/calendar; charset=utf-8',
-            'Content-Disposition' => 'attachment; filename="regenesis-' . $event->id . '.ics"',
+            'Content-Disposition' => 'attachment; filename="regenesis-'.$event->id.'.ics"',
         ]);
     }
 

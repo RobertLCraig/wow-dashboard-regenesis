@@ -11,6 +11,7 @@ use App\Models\TeamMapping;
 use App\Models\WclActorParse;
 use App\Models\WclFight;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Collection;
 
@@ -102,6 +103,7 @@ class WeeklyDigestBuilder
                 $years = $e->member?->join_date
                     ? (int) $e->member->join_date->diffInYears($now)
                     : 0;
+
                 return ['name' => $e->member?->name ?? '?', 'years' => $years];
             });
     }
@@ -130,6 +132,7 @@ class WeeklyDigestBuilder
                 ]);
             $rows = $rows->concat($hits);
         }
+
         return $rows->sortByDesc('days_ago')->values();
     }
 
@@ -140,9 +143,9 @@ class WeeklyDigestBuilder
     {
         $reviewed = MemberAction::query()
             ->whereIn('decision', [MemberAction::DECISION_ACCEPTED, MemberAction::DECISION_DISMISSED])
-            ->orWhere(function (QueryBuilder|\Illuminate\Database\Eloquent\Builder $q) {
+            ->orWhere(function (QueryBuilder|Builder $q) {
                 $q->where('decision', MemberAction::DECISION_SNOOZED)
-                  ->where('snooze_until', '>', $this->now ?? now());
+                    ->where('snooze_until', '>', $this->now ?? now());
             })
             ->pluck('action_type', 'member_id');
 
@@ -156,8 +159,8 @@ class WeeklyDigestBuilder
 
         return [
             'promote' => $count('recommend_promote', MemberAction::TYPE_PROMOTE),
-            'demote'  => $count('recommend_demote',  MemberAction::TYPE_DEMOTE),
-            'kick'    => $count('recommend_kick',    MemberAction::TYPE_KICK),
+            'demote' => $count('recommend_demote', MemberAction::TYPE_DEMOTE),
+            'kick' => $count('recommend_kick', MemberAction::TYPE_KICK),
         ];
     }
 
@@ -167,7 +170,9 @@ class WeeklyDigestBuilder
     private function teamProgression(): array
     {
         $latest = $this->latestRaiderio();
-        if (! $latest) return [];
+        if (! $latest) {
+            return [];
+        }
 
         $snapsByMember = MemberSnapshot::query()
             ->where('snapshot_id', $latest->id)
@@ -184,7 +189,9 @@ class WeeklyDigestBuilder
         $out = [];
         foreach (TeamMapping::TEAMS as $team) {
             $members = $membersByTeam->get($team, collect());
-            if ($members->isEmpty()) continue;
+            if ($members->isEmpty()) {
+                continue;
+            }
 
             $snaps = $members->map(fn ($m) => $snapsByMember->get($m->id))->filter();
 
@@ -198,7 +205,9 @@ class WeeklyDigestBuilder
             $bestTotal = 0;
             foreach ($snaps as $snap) {
                 foreach ((array) ($snap->raid_progression_json ?? []) as $p) {
-                    if (! is_array($p)) continue;
+                    if (! is_array($p)) {
+                        continue;
+                    }
                     $total = (int) ($p['total_bosses'] ?? 0);
                     $m = $maxDiff === 'mythic' ? (int) ($p['mythic_bosses_killed'] ?? 0) : 0;
                     $h = in_array($maxDiff, ['mythic', 'heroic'], true) ? (int) ($p['heroic_bosses_killed'] ?? 0) : 0;
@@ -217,7 +226,7 @@ class WeeklyDigestBuilder
                 $bestM > 0 => "{$bestM}/{$bestTotal} M",
                 $bestH > 0 => "{$bestH}/{$bestTotal} H",
                 $bestN > 0 => "{$bestN}/{$bestTotal} N",
-                default    => null,
+                default => null,
             };
             $ilvls = $snaps->pluck('ilvl')->filter()->all();
 
@@ -227,6 +236,7 @@ class WeeklyDigestBuilder
                 'top_ilvl' => $ilvls ? max($ilvls) : null,
             ];
         }
+
         return $out;
     }
 
@@ -236,7 +246,9 @@ class WeeklyDigestBuilder
     private function topRio(int $limit): Collection
     {
         $latest = $this->latestRaiderio();
-        if (! $latest) return collect();
+        if (! $latest) {
+            return collect();
+        }
 
         return MemberSnapshot::query()
             ->where('snapshot_id', $latest->id)
@@ -278,7 +290,9 @@ class WeeklyDigestBuilder
             if (! isset($byMember[$p->member_id])) {
                 $byMember[$p->member_id] = $p;
             }
-            if (count($byMember) >= $limit) break;
+            if (count($byMember) >= $limit) {
+                break;
+            }
         }
 
         return collect(array_values($byMember))->map(function (WclActorParse $p) {
@@ -301,7 +315,9 @@ class WeeklyDigestBuilder
     private function database(): ?array
     {
         $tables = ($this->dbSize ?? new DatabaseSize)->tableSizes();
-        if ($tables === null) return null;
+        if ($tables === null) {
+            return null;
+        }
 
         $cap = (int) config('digest.db_cap_mb');
         $total = round(array_sum(array_column($tables, 'mb')), 1);
@@ -343,15 +359,15 @@ class WeeklyDigestBuilder
         }
 
         if ($db = $d['database']) {
-            $size = number_format($db['total_mb'], 1) . ' MB of ' . number_format($db['cap_mb']) . " MB ({$db['percent']}%)";
+            $size = number_format($db['total_mb'], 1).' MB of '.number_format($db['cap_mb'])." MB ({$db['percent']}%)";
             if ($db['over']) {
                 $lines[] = '';
                 $lines[] = "⚠️ **Database at {$size}** - past the warning threshold. Prune or reclaim before writes are revoked.";
                 $largest = array_map(
-                    fn ($t) => "{$t['name']} " . number_format($t['mb'], 1) . ' MB',
+                    fn ($t) => "{$t['name']} ".number_format($t['mb'], 1).' MB',
                     $db['top_tables'],
                 );
-                $lines[] = 'Largest tables: ' . implode(', ', $largest) . '.';
+                $lines[] = 'Largest tables: '.implode(', ', $largest).'.';
                 $lines[] = '';
             } else {
                 $lines[] = "**Database**: {$size}.";
@@ -364,9 +380,13 @@ class WeeklyDigestBuilder
             foreach ($d['team_progression'] as $team => $stats) {
                 $label = TeamMapping::teamLabel($team);
                 $bits = ["{$stats['count']} members"];
-                if ($stats['best_summary']) $bits[] = $stats['best_summary'];
-                if ($stats['top_ilvl'])     $bits[] = "top ilvl {$stats['top_ilvl']}";
-                $lines[] = "- {$label}: " . implode(' / ', $bits);
+                if ($stats['best_summary']) {
+                    $bits[] = $stats['best_summary'];
+                }
+                if ($stats['top_ilvl']) {
+                    $bits[] = "top ilvl {$stats['top_ilvl']}";
+                }
+                $lines[] = "- {$label}: ".implode(' / ', $bits);
             }
         }
 

@@ -5,7 +5,7 @@ use Carbon\CarbonImmutable;
 
 it('returns the Darkmoon Faire for a month whose 1st is mid-week', function () {
     // April 2026: 1st is Wednesday. First Sunday is the 5th.
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2026-04-01'),
         CarbonImmutable::parse('2026-04-30'),
     );
@@ -17,7 +17,7 @@ it('returns the Darkmoon Faire for a month whose 1st is mid-week', function () {
 
 it('opens Darkmoon Faire on the 1st when the month starts on a Sunday', function () {
     // March 2026: 1st is Sunday. Faire runs the 1st through the 7th.
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2026-03-01'),
         CarbonImmutable::parse('2026-03-31'),
     );
@@ -27,7 +27,7 @@ it('opens Darkmoon Faire on the 1st when the month starts on a Sunday', function
 });
 
 it('returns one Darkmoon Faire per month across a multi-month window', function () {
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2026-04-01'),
         CarbonImmutable::parse('2026-06-30'),
     );
@@ -41,7 +41,7 @@ it('returns one Darkmoon Faire per month across a multi-month window', function 
 it('skips a Darkmoon Faire that starts before the window opens', function () {
     // Window opens 2026-04-08, mid-Faire. Faire that started 2026-04-05
     // ends 2026-04-11 so it overlaps and is included.
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2026-04-08'),
         CarbonImmutable::parse('2026-04-30'),
     );
@@ -52,7 +52,7 @@ it('skips a Darkmoon Faire that starts before the window opens', function () {
 
 it('skips a Darkmoon Faire that has already ended before the window', function () {
     // Window opens 2026-04-12, the Sunday after the April Faire ends.
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2026-04-12'),
         CarbonImmutable::parse('2026-04-30'),
     );
@@ -61,7 +61,7 @@ it('skips a Darkmoon Faire that has already ended before the window', function (
 });
 
 it('returns an empty list when the from date is after the to date', function () {
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2026-05-01'),
         CarbonImmutable::parse('2026-04-01'),
     );
@@ -69,7 +69,7 @@ it('returns an empty list when the from date is after the to date', function () 
 });
 
 it('marks the Trading Post reset on the 1st of each month', function () {
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2026-04-01'),
         CarbonImmutable::parse('2026-06-30'),
     );
@@ -81,7 +81,7 @@ it('marks the Trading Post reset on the 1st of each month', function () {
 });
 
 it('returns Brewfest at the canonical Sept 20 - Oct 6 window', function () {
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2026-09-01'),
         CarbonImmutable::parse('2026-10-31'),
     );
@@ -92,7 +92,7 @@ it('returns Brewfest at the canonical Sept 20 - Oct 6 window', function () {
 });
 
 it("returns Hallow's End at the canonical Oct 18 - Nov 1 window", function () {
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2026-10-01'),
         CarbonImmutable::parse('2026-11-30'),
     );
@@ -105,7 +105,7 @@ it("returns Hallow's End at the canonical Oct 18 - Nov 1 window", function () {
 it('handles a Feast of Winter Veil that spans the year boundary', function () {
     // Window opens after Winter Veil 2025 already started; the event
     // ends 2026-01-02 so it should still surface.
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2025-12-25'),
         CarbonImmutable::parse('2026-01-15'),
     );
@@ -117,7 +117,7 @@ it('handles a Feast of Winter Veil that spans the year boundary', function () {
 
 it('does not duplicate annual holidays when the window spans multiple years', function () {
     // Two-year window; expect exactly two of each yearly holiday.
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2026-01-01'),
         CarbonImmutable::parse('2027-12-31'),
     );
@@ -128,7 +128,7 @@ it('does not duplicate annual holidays when the window spans multiple years', fu
 });
 
 it('returns Love is in the Air at Feb 7-21', function () {
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2026-02-01'),
         CarbonImmutable::parse('2026-02-28'),
     );
@@ -139,7 +139,7 @@ it('returns Love is in the Air at Feb 7-21', function () {
 });
 
 it("returns Children's Week at May 1-7", function () {
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2026-05-01'),
         CarbonImmutable::parse('2026-05-31'),
     );
@@ -150,7 +150,7 @@ it("returns Children's Week at May 1-7", function () {
 });
 
 it('returns Day of the Dead at Nov 1-3', function () {
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2026-11-01'),
         CarbonImmutable::parse('2026-11-30'),
     );
@@ -164,7 +164,7 @@ it('returns Day of the Dead at Nov 1-3', function () {
 // Festival tracks Lunar New Year, Pilgrim's Bounty tracks US
 // Thanksgiving. Table-driven, so the test is table-driven too.
 it('places each moving holiday on the right dates for its year', function (int $year, string $name, string $start, string $end) {
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse($year.'-01-01'),
         CarbonImmutable::parse($year.'-12-31'),
     );
@@ -197,7 +197,7 @@ it('omits the moving holidays for a year the lookup does not cover', function ()
     // 2031 has no row in the table. The fixed-date holidays still land,
     // which is what proves the year itself was processed and only the
     // three moving ones dropped out.
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2031-01-01'),
         CarbonImmutable::parse('2031-12-31'),
     );
@@ -210,7 +210,7 @@ it('omits the moving holidays for a year the lookup does not cover', function ()
 });
 
 it('does not duplicate a moving holiday across a multi-year window', function () {
-    $events = (new WorldEventsCalendar())->eventsInRange(
+    $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2026-01-01'),
         CarbonImmutable::parse('2028-12-31'),
     );

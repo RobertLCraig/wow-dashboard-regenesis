@@ -30,7 +30,7 @@ function makeRaidEvent(array $overrides = []): RaidEvent
 
 it('serves a single event ics with valid signature', function () {
     $event = makeRaidEvent();
-    $sig = hash_hmac('sha256', $event->ics_uid . '|' . $event->ics_sequence, config('app.key'));
+    $sig = hash_hmac('sha256', $event->ics_uid.'|'.$event->ics_sequence, config('app.key'));
 
     $resp = $this->get(route('event.ics', ['event' => $event, 'sig' => $sig]));
 
@@ -54,7 +54,7 @@ it('rejects ics requests with missing or wrong signature', function () {
 
 it('signature is invalidated after editing (ics_sequence bumps)', function () {
     $event = makeRaidEvent();
-    $oldSig = hash_hmac('sha256', $event->ics_uid . '|0', config('app.key'));
+    $oldSig = hash_hmac('sha256', $event->ics_uid.'|0', config('app.key'));
 
     $event->ics_sequence = 1;
     $event->save();

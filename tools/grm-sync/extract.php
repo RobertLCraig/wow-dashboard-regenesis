@@ -1,5 +1,7 @@
 <?php
 
+use App\Services\Grm\LuaTableParser;
+
 /**
  * GRM SavedVariables → JSON CLI.
  *
@@ -19,7 +21,6 @@
  * Requires Composer's autoloader so the App\Services\Grm\LuaTableParser
  * class is available. Sole shared dependency between server + PC.
  */
-
 if ($argc < 2) {
     fwrite(STDERR, "Usage: php extract.php <path-to-savedvariables.lua> [guild_key]\n");
     exit(1);
@@ -33,10 +34,10 @@ if (! is_readable($path)) {
     exit(2);
 }
 
-require __DIR__ . '/../../vendor/autoload.php';
+require __DIR__.'/../../vendor/autoload.php';
 
 try {
-    $parser = new App\Services\Grm\LuaTableParser;
+    $parser = new LuaTableParser;
     $payload = $parser->parseFile($path, [
         'GRM_GuildMemberHistory_Save',
         'GRM_PlayersThatLeftHistory_Save',
@@ -44,7 +45,7 @@ try {
         'GRM_Alts',
     ]);
 } catch (Throwable $e) {
-    fwrite(STDERR, "Parse failed: " . $e->getMessage() . "\n");
+    fwrite(STDERR, 'Parse failed: '.$e->getMessage()."\n");
     exit(3);
 }
 

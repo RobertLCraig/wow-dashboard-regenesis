@@ -28,13 +28,15 @@ class PullWclReports extends Command
     {
         if (! config('wcl.client_id') || ! config('wcl.client_secret')) {
             $this->warn('WCL_CLIENT_ID / WCL_CLIENT_SECRET not set; skipping.');
+
             return self::SUCCESS;
         }
 
         try {
             $r = WclReportImporter::fromConfig()->pull();
         } catch (\Throwable $e) {
-            $this->error('WCL reports pull failed: ' . $e->getMessage());
+            $this->error('WCL reports pull failed: '.$e->getMessage());
+
             return self::FAILURE;
         }
 
@@ -52,7 +54,8 @@ class PullWclReports extends Command
                 maxReports: (int) $this->option('max-fights'),
             );
         } catch (\Throwable $e) {
-            $this->error('WCL fights backfill failed: ' . $e->getMessage());
+            $this->error('WCL fights backfill failed: '.$e->getMessage());
+
             return self::FAILURE;
         }
 
@@ -60,6 +63,7 @@ class PullWclReports extends Command
             'Fights: processed %d reports (%d new fights, %d new parses, %d errored).',
             $f['reports_processed'], $f['fights_inserted'], $f['parses_inserted'], $f['errored'],
         ));
+
         return self::SUCCESS;
     }
 }

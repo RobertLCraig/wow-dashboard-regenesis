@@ -15,7 +15,8 @@ use Illuminate\Support\Facades\Schema;
  * Idempotent so it works whether the column is still present (dev
  * baseline) or already gone (post-recovery production).
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         if (Schema::hasColumn('member_social_snapshots', 'transmogs')) {

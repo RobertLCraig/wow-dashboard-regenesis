@@ -52,15 +52,15 @@ class DiscordAnnouncementsClient
         if (! $this->isConfigured()) {
             throw new \RuntimeException(
                 'Discord bot token / announcements channel id are not configured. '
-                . 'Set DISCORD_BOT_TOKEN and DISCORD_ANNOUNCEMENTS_CHANNEL_ID.'
+                .'Set DISCORD_BOT_TOKEN and DISCORD_ANNOUNCEMENTS_CHANNEL_ID.'
             );
         }
         $clamped = max(1, min(100, $limit));
 
         $response = Http::acceptJson()
-            ->withHeaders(['Authorization' => 'Bot ' . $this->botToken])
+            ->withHeaders(['Authorization' => 'Bot '.$this->botToken])
             ->timeout($this->timeoutSeconds)
-            ->get(self::API_BASE . "/channels/{$this->channelId}/messages", [
+            ->get(self::API_BASE."/channels/{$this->channelId}/messages", [
                 'limit' => $clamped,
             ]);
 
@@ -73,6 +73,7 @@ class DiscordAnnouncementsClient
         }
 
         $body = $response->json();
+
         return is_array($body) ? array_values($body) : [];
     }
 }

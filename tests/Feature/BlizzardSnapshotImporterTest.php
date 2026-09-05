@@ -190,8 +190,7 @@ it('uses the configured realm slug map when calling Blizzard', function () {
         requestDelayMs: 0,
     ))->pull();
 
-    Http::assertSent(fn ($req) =>
-        str_contains($req->url(), '/profile/wow/character/pozzo-delleternita/argus'));
+    Http::assertSent(fn ($req) => str_contains($req->url(), '/profile/wow/character/pozzo-delleternita/argus'));
 });
 
 it('drops ilvl for parked alts whose last login is outside the recency window', function () {
@@ -309,7 +308,7 @@ it('throws when Blizzard credentials are not configured', function () {
         client: BlizzardClient::fromConfig(),
         guildKey: 'Regenesis-Silvermoon',
     ))->pull())
-        ->toThrow(\RuntimeException::class, 'Blizzard client credentials are not configured');
+        ->toThrow(RuntimeException::class, 'Blizzard client credentials are not configured');
 });
 
 it('blizzard:pull short-circuits cleanly when credentials are not configured', function () {

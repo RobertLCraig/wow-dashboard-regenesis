@@ -1,6 +1,11 @@
 <?php
 
 use App\Models\BisProfile;
+use App\Models\Member;
+use App\Models\MemberEquipmentSnapshot;
+use App\Models\MemberSnapshot;
+use App\Models\Snapshot;
+use App\Services\Bis\BisComparisonService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -12,6 +17,7 @@ function writeHealerJson(array $profiles): string
         '_meta' => ['tier' => 'TEST'],
         'profiles' => $profiles,
     ], JSON_THROW_ON_ERROR));
+
     return $tmp;
 }
 
@@ -132,13 +138,13 @@ it('produces a profile that the BiS comparison resolver actually picks up', func
     ]);
     test()->artisan('bis:seed-healers', ['--path' => $path])->assertExitCode(0);
 
-    $member = \App\Models\Member::query()->create([
+    $member = Member::query()->create([
         'guild_key' => 'Regenesis-Silvermoon',
         'name' => 'TestRestoSham-Silvermoon',
         'class' => 'SHAMAN',
         'level' => 90,
         'rank_index' => 5,
-        'status' => \App\Models\Member::STATUS_ACTIVE,
+        'status' => Member::STATUS_ACTIVE,
         'first_seen_at' => now(),
         'last_seen_at' => now(),
         'last_online_at' => now(),
@@ -146,26 +152,26 @@ it('produces a profile that the BiS comparison resolver actually picks up', func
     config(['grm.guild_key' => 'Regenesis-Silvermoon']);
 
     // Blizzard profile-summary snapshot supplies the spec.
-    $blizzSnap = \App\Models\Snapshot::query()->create([
+    $blizzSnap = Snapshot::query()->create([
         'guild_key' => 'Regenesis-Silvermoon',
         'captured_at' => now(),
-        'source' => \App\Models\Snapshot::SOURCE_BLIZZARD,
+        'source' => Snapshot::SOURCE_BLIZZARD,
         'payload_hash' => bin2hex(random_bytes(8)),
     ]);
-    \App\Models\MemberSnapshot::query()->create([
+    MemberSnapshot::query()->create([
         'snapshot_id' => $blizzSnap->id,
         'member_id' => $member->id,
         'raw_json' => ['active_spec' => ['name' => 'Restoration', 'id' => 264]],
     ]);
 
     // Blizzard equipment snapshot supplies the gear.
-    $equipSnap = \App\Models\Snapshot::query()->create([
+    $equipSnap = Snapshot::query()->create([
         'guild_key' => 'Regenesis-Silvermoon',
         'captured_at' => now(),
-        'source' => \App\Models\Snapshot::SOURCE_BLIZZARD_EQUIPMENT,
+        'source' => Snapshot::SOURCE_BLIZZARD_EQUIPMENT,
         'payload_hash' => bin2hex(random_bytes(8)),
     ]);
-    \App\Models\MemberEquipmentSnapshot::query()->create([
+    MemberEquipmentSnapshot::query()->create([
         'snapshot_id' => $equipSnap->id,
         'member_id' => $member->id,
         'pieces' => [
@@ -173,7 +179,7 @@ it('produces a profile that the BiS comparison resolver actually picks up', func
         ],
     ]);
 
-    $cmp = (new \App\Services\Bis\BisComparisonService())->compareForMember($member);
+    $cmp = (new BisComparisonService)->compareForMember($member);
     expect($cmp)->not->toBeNull();
     expect($cmp['spec'])->toBe('restoration');
     expect($cmp['profile_name'])->toBe('MID1_Shaman_Restoration_stub');
@@ -182,7 +188,7 @@ it('produces a profile that the BiS comparison resolver actually picks up', func
     expect($cmp['slots']['head']['bis_item_id'])->toBeNull();
     // Empty BiS gear means no missing/wrong issues count toward the
     // roster's BiS-issues column.
-    $issues = (new \App\Services\Bis\BisComparisonService())->countIssues($cmp);
+    $issues = (new BisComparisonService)->countIssues($cmp);
     expect($issues['missing_enchants'])->toBe(0);
     expect($issues['wrong_enchants'])->toBe(0);
 

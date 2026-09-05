@@ -2,6 +2,7 @@
 
 use App\Models\EventSignup;
 use App\Models\Member;
+use App\Models\MemberTeam;
 use App\Models\RaidEvent;
 use App\Models\TeamMapping;
 use App\Models\User;
@@ -40,11 +41,12 @@ function compMember(string $name, string $team, string $class = 'PRIEST'): Membe
         'first_seen_at' => now(),
         'last_seen_at' => now(),
     ]);
-    \App\Models\MemberTeam::query()->create([
+    MemberTeam::query()->create([
         'member_id' => $member->id,
         'team' => $team,
         'is_override' => false,
     ]);
+
     return $member;
 }
 
@@ -57,6 +59,7 @@ function compFight(int $daysAgo = 2, int $difficulty = WclFight::DIFFICULTY_HERO
         'start_time' => now()->subDays($daysAgo),
         'captured_at' => now(),
     ]);
+
     return WclFight::query()->create([
         'wcl_report_id' => $report->id, 'fight_id' => 1,
         'encounter_id' => 100, 'name' => 'Plexus Sentinel',
@@ -91,14 +94,14 @@ it('SpecRoleMap classifies known specs into the right role', function (string $c
     expect(SpecRoleMap::role($class, $spec))->toBe($expected);
 })->with([
     'protection paladin' => ['paladin', 'protection', SpecRoleMap::ROLE_TANK],
-    'holy paladin'       => ['paladin', 'holy',       SpecRoleMap::ROLE_HEALER],
-    'retribution'        => ['paladin', 'retribution', SpecRoleMap::ROLE_MELEE],
-    'frost mage'         => ['mage', 'frost', SpecRoleMap::ROLE_RANGED],
-    'survival hunter'    => ['hunter', 'survival', SpecRoleMap::ROLE_MELEE],
-    'beast mastery'      => ['hunter', 'beast mastery', SpecRoleMap::ROLE_RANGED],
+    'holy paladin' => ['paladin', 'holy',       SpecRoleMap::ROLE_HEALER],
+    'retribution' => ['paladin', 'retribution', SpecRoleMap::ROLE_MELEE],
+    'frost mage' => ['mage', 'frost', SpecRoleMap::ROLE_RANGED],
+    'survival hunter' => ['hunter', 'survival', SpecRoleMap::ROLE_MELEE],
+    'beast mastery' => ['hunter', 'beast mastery', SpecRoleMap::ROLE_RANGED],
     'devastation evoker' => ['evoker', 'devastation', SpecRoleMap::ROLE_RANGED],
     'preservation evoker' => ['evoker', 'preservation', SpecRoleMap::ROLE_HEALER],
-    'mixed-case class'   => ['DemonHunter', 'Vengeance', SpecRoleMap::ROLE_TANK],
+    'mixed-case class' => ['DemonHunter', 'Vengeance', SpecRoleMap::ROLE_TANK],
 ]);
 
 it('SpecRoleMap returns null for unknown class+spec', function () {
@@ -119,9 +122,9 @@ it('builds buckets keyed by inferred role with members sorted by avg parse desc'
 
     $f = compFight(2);
     compParse($f, $tank, null, 'protection', WclActorParse::ROLE_TANK);
-    compParse($f, $heal, 90,  'holy',       WclActorParse::ROLE_HEALER);
-    compParse($f, $dps1, 60,  'frost',      WclActorParse::ROLE_DPS);
-    compParse($f, $dps2, 80,  'frost',      WclActorParse::ROLE_DPS);
+    compParse($f, $heal, 90, 'holy', WclActorParse::ROLE_HEALER);
+    compParse($f, $dps1, 60, 'frost', WclActorParse::ROLE_DPS);
+    compParse($f, $dps2, 80, 'frost', WclActorParse::ROLE_DPS);
 
     $members = Member::query()->onAnyTeam([TeamMapping::TEAM_HEROIC])->with('teams')->get();
     $buckets = (new TeamCompositionBuilder)->build($members, days: 14);
@@ -199,7 +202,7 @@ it('honours the days query string', function () {
 });
 
 it('honours the difficulty query string', function () {
-    $resp = $this->actingAs(compOfficer())->get('/composition/mythic?difficulty=' . WclFight::DIFFICULTY_MYTHIC);
+    $resp = $this->actingAs(compOfficer())->get('/composition/mythic?difficulty='.WclFight::DIFFICULTY_MYTHIC);
     $resp->assertOk();
     expect($resp->getContent())->toContain('value="5" selected');
 });
@@ -217,7 +220,6 @@ it('falls back to a sensible window when days is bogus', function () {
     // 14 (default) is selected.
     expect($resp->getContent())->toContain('value="14" selected');
 });
-
 
 it('shows the Unclassified footer when members exist but have no parses', function () {
     compMember('Active', TeamMapping::TEAM_HEROIC, 'MAGE');
@@ -267,7 +269,7 @@ function compEvent(string $channelId, int $hoursFromNow = 24): RaidEvent
         'channel_id' => $channelId,
         'title' => 'Tonight - Test Raid',
         'starts_at' => now()->addHours($hoursFromNow),
-        'ics_uid' => 'uid-' . uniqid('', true),
+        'ics_uid' => 'uid-'.uniqid('', true),
     ]);
 }
 
@@ -361,7 +363,6 @@ it('shows the cross-team note when more raiders signed up than are on this team'
     $resp->assertOk()
         ->assertSee('1 of 3 signed up');
 });
-
 
 it('ignores an ?event= id that belongs to a different team channel', function () {
     compMember('Member-Silvermoon', TeamMapping::TEAM_HEROIC, 'MAGE');

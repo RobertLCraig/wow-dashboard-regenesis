@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\RateLimiter;
 class RaiderioSyncController extends Controller
 {
     private const FRESH_TTL_SECONDS = 60;
+
     private const MUTEX_TTL_SECONDS = 300;
 
     public function store(): RedirectResponse
@@ -35,11 +36,12 @@ class RaiderioSyncController extends Controller
         $guildKey = (string) config('grm.guild_key');
         $back = redirect()->route('admin.sync.index');
 
-        $key = 'raiderio-sync:user:' . auth()->id();
+        $key = 'raiderio-sync:user:'.auth()->id();
         if (RateLimiter::tooManyAttempts($key, maxAttempts: 1)) {
             $minutes = (int) ceil(RateLimiter::availableIn($key) / 60);
+
             return $back->withErrors([
-                'raiderio' => "Manual RIO sync is limited to once per hour. Try again in {$minutes} minute" . ($minutes === 1 ? '' : 's') . '.',
+                'raiderio' => "Manual RIO sync is limited to once per hour. Try again in {$minutes} minute".($minutes === 1 ? '' : 's').'.',
             ]);
         }
 

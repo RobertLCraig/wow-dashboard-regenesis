@@ -13,18 +13,19 @@ use Illuminate\Support\Collection;
  */
 function aotcCohortMember(int $id, string $name, string $class = 'PRIEST', ?int $altGroupId = null, ?int $mainMemberId = null): Member
 {
-    $m = new Member();
+    $m = new Member;
     $m->id = $id;
     $m->name = $name;
     $m->class = $class;
     $m->alt_group_id = $altGroupId;
     $m->main_member_id = $mainMemberId;
+
     return $m;
 }
 
 function aotcRaidSnap(int $memberId, int $instanceId, string $difficulty, int $completed, int $total): MemberRaidSnapshot
 {
-    $m = new MemberRaidSnapshot();
+    $m = new MemberRaidSnapshot;
     $m->member_id = $memberId;
     $m->expansions = [
         [
@@ -38,12 +39,13 @@ function aotcRaidSnap(int $memberId, int $instanceId, string $difficulty, int $c
             ]],
         ],
     ];
+
     return $m;
 }
 
 function aotcBuildCohortGap(Collection $members, Collection $snaps): ?array
 {
-    return (new AotcCohortGapBuilder(new RaidProgressionAnalyzer()))->build($members, $snaps);
+    return (new AotcCohortGapBuilder(new RaidProgressionAnalyzer))->build($members, $snaps);
 }
 
 it('counts a one-character cohort with AOTC as cleared', function () {
@@ -65,10 +67,10 @@ it('rolls a cohort up to the declared main when only the alt has AOTC', function
     // Healer alt has AOTC, warrior main does not. Officers should see
     // one AOTC-cleared player here, not "warrior is missing AOTC".
     $main = aotcCohortMember(1, 'Tankmain-Silvermoon', 'WARRIOR', altGroupId: 10, mainMemberId: null);
-    $alt  = aotcCohortMember(2, 'Healalt-Silvermoon', 'PRIEST',  altGroupId: 10, mainMemberId: 1);
+    $alt = aotcCohortMember(2, 'Healalt-Silvermoon', 'PRIEST', altGroupId: 10, mainMemberId: 1);
 
     $mainSnap = aotcRaidSnap(1, 1296, 'HEROIC', 5, 8); // not yet
-    $altSnap  = aotcRaidSnap(2, 1296, 'HEROIC', 8, 8); // cleared
+    $altSnap = aotcRaidSnap(2, 1296, 'HEROIC', 8, 8); // cleared
 
     $gap = aotcBuildCohortGap(new Collection([$main, $alt]), new Collection([$mainSnap, $altSnap]));
 
@@ -85,7 +87,7 @@ it('rolls a cohort up to the declared main when only the alt has AOTC', function
 
 it('keeps a cohort in missing-AOTC when none of its characters have it', function () {
     $main = aotcCohortMember(1, 'Twomains-Silvermoon', 'PALADIN', altGroupId: 11, mainMemberId: null);
-    $alt  = aotcCohortMember(2, 'Twomains-Alt',         'PRIEST',  altGroupId: 11, mainMemberId: 1);
+    $alt = aotcCohortMember(2, 'Twomains-Alt', 'PRIEST', altGroupId: 11, mainMemberId: 1);
 
     $gap = aotcBuildCohortGap(
         new Collection([$main, $alt]),
@@ -105,7 +107,7 @@ it('keeps a cohort in missing-AOTC when none of its characters have it', functio
 
 it('promotes CE only when a cohort cleared every Mythic boss', function () {
     $solo = aotcCohortMember(1, 'Mythicsolo-Silvermoon', 'DRUID');
-    $snap = new MemberRaidSnapshot();
+    $snap = new MemberRaidSnapshot;
     $snap->member_id = 1;
     $snap->expansions = [[
         'expansion' => ['id' => 503, 'name' => 'TWW'],
@@ -158,7 +160,7 @@ it('returns null when no Blizzard raid snapshots are available', function () {
 it('returns null when the active roster is empty even with stray snapshots', function () {
     $stray = aotcRaidSnap(99, 1296, 'HEROIC', 8, 8);
 
-    $gap = aotcBuildCohortGap(new Collection(), new Collection([$stray]));
+    $gap = aotcBuildCohortGap(new Collection, new Collection([$stray]));
 
     expect($gap)->toBeNull();
 });

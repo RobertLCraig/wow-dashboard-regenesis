@@ -29,6 +29,7 @@ class SyncRaidHelperAttendance extends Command
     {
         if (! config('raidhelper.api_key')) {
             $this->warn('RAID_HELPER_API_KEY not set; skipping.');
+
             return self::SUCCESS;
         }
 
@@ -45,6 +46,7 @@ class SyncRaidHelperAttendance extends Command
 
         if (! $resp->successful()) {
             $this->error("Raid-Helper /attendance returned {$resp->status()}");
+
             return self::FAILURE;
         }
 
@@ -52,6 +54,7 @@ class SyncRaidHelperAttendance extends Command
         $rows = $body['result'] ?? [];
         if (! is_array($rows) || empty($rows)) {
             $this->info('No attendance rows returned.');
+
             return self::SUCCESS;
         }
 
@@ -82,6 +85,7 @@ class SyncRaidHelperAttendance extends Command
         });
 
         $this->info("Wrote $written attendance rows.");
+
         return self::SUCCESS;
     }
 }

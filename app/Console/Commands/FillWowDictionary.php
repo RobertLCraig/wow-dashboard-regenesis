@@ -69,6 +69,7 @@ class FillWowDictionary extends Command
 
         $this->line('');
         $this->info(sprintf('Filled %d enchant + %d gem entries.', $enchantsTouched, $gemsTouched));
+
         return self::SUCCESS;
     }
 
@@ -79,11 +80,13 @@ class FillWowDictionary extends Command
     {
         if (! is_file($path)) {
             $this->warn("Dictionary file not found: {$path}");
+
             return 0;
         }
         $decoded = json_decode((string) file_get_contents($path), true);
         if (! is_array($decoded)) {
             $this->warn("Dictionary file is not valid JSON: {$path}");
+
             return 0;
         }
 
@@ -103,12 +106,14 @@ class FillWowDictionary extends Command
             $payload = $fetcher($id);
             if ($payload === null) {
                 $this->warn("  {$kind} #{$id}: not found");
+
                 continue;
             }
 
             $name = $payload['name'] ?? null;
             if (! is_string($name) || $name === '') {
                 $this->warn("  {$kind} #{$id}: source returned no name");
+
                 continue;
             }
 
@@ -133,7 +138,7 @@ class FillWowDictionary extends Command
 
         file_put_contents(
             $path,
-            json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n",
+            json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n",
         );
 
         return $touched;
@@ -159,6 +164,7 @@ class FillWowDictionary extends Command
         if ($name === '') {
             return null;
         }
+
         // wago's CSV doesn't carry the trigger spell id directly for
         // most enchants; leaving spell_id null falls back to the
         // wowhead.com/item-enchantment URL which works fine.
@@ -178,6 +184,7 @@ class FillWowDictionary extends Command
         if ($name === null) {
             return null;
         }
+
         return ['name' => $name];
     }
 
@@ -205,6 +212,7 @@ class FillWowDictionary extends Command
                 return $candidate;
             }
         }
+
         return null;
     }
 
@@ -217,6 +225,7 @@ class FillWowDictionary extends Command
     private function cleanEnchantName(string $raw): string
     {
         $name = trim($raw, " \t\n\r\0\x0B\"");
+
         return trim((string) preg_replace('/\s*\|A:[^|]*\|a\s*$/u', '', $name));
     }
 
@@ -238,6 +247,7 @@ class FillWowDictionary extends Command
         if ($headers === [] || count($headers) !== count($values)) {
             return null;
         }
+
         return array_combine($headers, $values) ?: null;
     }
 
@@ -254,7 +264,7 @@ class FillWowDictionary extends Command
         }
         $response = Http::timeout(15)->get('https://wago.tools/api/builds');
         if (! $response->successful()) {
-            throw new \RuntimeException('wago.tools /api/builds returned ' . $response->status());
+            throw new \RuntimeException('wago.tools /api/builds returned '.$response->status());
         }
         $payload = $response->json();
         $candidates = is_array($payload['wow'] ?? null) ? $payload['wow'] : [];

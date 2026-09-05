@@ -8,7 +8,6 @@ use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Pool;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -74,6 +73,7 @@ class RaiderioSnapshotImporter
             [$charName, $collapsedRealm] = $this->splitName($member->name);
             if ($charName === null) {
                 $errored++;
+
                 continue;
             }
 
@@ -108,6 +108,7 @@ class RaiderioSnapshotImporter
                         ->timeout($timeout)
                         ->get($url, $query);
                 }
+
                 return $reqs;
             });
 
@@ -120,15 +121,18 @@ class RaiderioSnapshotImporter
                         'message' => $resp->getMessage(),
                     ]);
                     $errored++;
+
                     continue;
                 }
                 if ($resp === null) {
                     $errored++;
+
                     continue;
                 }
 
                 if ($resp->status() === 404) {
                     $missing++;
+
                     continue;
                 }
 
@@ -145,12 +149,14 @@ class RaiderioSnapshotImporter
                         ]);
                     }
                     $errored++;
+
                     continue;
                 }
 
                 $body = $resp->json();
                 if (! is_array($body)) {
                     $errored++;
+
                     continue;
                 }
 
@@ -308,6 +314,7 @@ class RaiderioSnapshotImporter
             return [null, null];
         }
         $realm = RealmSlug::realmFromMemberName($memberName);
+
         return [$charName, $realm];
     }
 
@@ -334,6 +341,7 @@ class RaiderioSnapshotImporter
         if (! $this->ilvlSampleIsFresh($gear, $member)) {
             return null;
         }
+
         return (int) round((float) $v);
     }
 
@@ -366,6 +374,7 @@ class RaiderioSnapshotImporter
         } catch (\Throwable) {
             return false;
         }
+
         return $observed->greaterThanOrEqualTo($cutoff);
     }
 
@@ -385,6 +394,7 @@ class RaiderioSnapshotImporter
         if (! is_numeric($all)) {
             return null;
         }
+
         return (float) $all;
     }
 
@@ -404,6 +414,7 @@ class RaiderioSnapshotImporter
             fn ($r) => is_array($r) && isset($r['mythic_level']) && is_int($r['mythic_level']) ? $r['mythic_level'] : null,
             $runs
         ));
+
         return $levels ? max($levels) : null;
     }
 
@@ -494,6 +505,7 @@ class RaiderioSnapshotImporter
                 $key = $row['completed_at'];
                 if (! isset($byKey[$key])) {
                     $byKey[$key] = $row;
+
                     continue;
                 }
                 if ($byKey[$key]['score'] === null && $row['score'] !== null) {
@@ -501,6 +513,7 @@ class RaiderioSnapshotImporter
                 }
             }
         }
+
         return array_values($byKey);
     }
 
@@ -577,6 +590,7 @@ class RaiderioSnapshotImporter
             return null;
         }
         $slug = $seasons[0]['season'] ?? null;
+
         return is_string($slug) && $slug !== '' ? mb_substr($slug, 0, 32) : null;
     }
 }

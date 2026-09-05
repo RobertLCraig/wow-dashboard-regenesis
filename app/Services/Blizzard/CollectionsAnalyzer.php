@@ -29,7 +29,9 @@ use Illuminate\Support\Collection;
 class CollectionsAnalyzer
 {
     public const TYPE_MOUNT = 'mount';
+
     public const TYPE_PET = 'pet';
+
     public const TYPE_TOY = 'toy';
 
     public const TYPES = [self::TYPE_MOUNT, self::TYPE_PET, self::TYPE_TOY];
@@ -69,6 +71,7 @@ class CollectionsAnalyzer
             $snap = $snapsByMember->get($m->id);
             if ($snap === null || ! is_array($this->itemsArray($snap, $type))) {
                 $noData[] = $entry;
+
                 continue;
             }
             if ($this->memberHas($snap, $type, $id)) {
@@ -113,6 +116,7 @@ class CollectionsAnalyzer
         if (! is_array($items)) {
             return [];
         }
+
         // Filter to integers - defensive against legacy verbose payloads
         // that may still be in the DB during a gradual rollout, plus any
         // garbage Blizzard might send.

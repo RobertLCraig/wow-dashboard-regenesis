@@ -40,19 +40,19 @@ class SimcProfileParser
      * canonical form. Matches the values stored in bis_profiles.class.
      */
     private const CLASS_NORMALISE = [
-        'deathknight'  => 'death_knight',
-        'demonhunter'  => 'demon_hunter',
-        'druid'        => 'druid',
-        'evoker'       => 'evoker',
-        'hunter'       => 'hunter',
-        'mage'         => 'mage',
-        'monk'         => 'monk',
-        'paladin'      => 'paladin',
-        'priest'       => 'priest',
-        'rogue'        => 'rogue',
-        'shaman'       => 'shaman',
-        'warlock'      => 'warlock',
-        'warrior'      => 'warrior',
+        'deathknight' => 'death_knight',
+        'demonhunter' => 'demon_hunter',
+        'druid' => 'druid',
+        'evoker' => 'evoker',
+        'hunter' => 'hunter',
+        'mage' => 'mage',
+        'monk' => 'monk',
+        'paladin' => 'paladin',
+        'priest' => 'priest',
+        'rogue' => 'rogue',
+        'shaman' => 'shaman',
+        'warlock' => 'warlock',
+        'warrior' => 'warrior',
     ];
 
     /**
@@ -103,6 +103,7 @@ class SimcProfileParser
                 if (preg_match('/^#\s*gear_ilvl\s*=\s*([\d.]+)/', $line, $m)) {
                     $gearIlvl = (float) $m[1];
                 }
+
                 continue;
             }
 
@@ -112,6 +113,7 @@ class SimcProfileParser
                 $rawClass = $m[1];
                 $class = self::CLASS_NORMALISE[$rawClass] ?? null;
                 $profileName = $m[2];
+
                 continue;
             }
 
@@ -125,10 +127,12 @@ class SimcProfileParser
 
             if ($key === 'spec') {
                 $spec = strtolower($value);
+
                 continue;
             }
             if ($key === 'level') {
                 $level = is_numeric($value) ? (int) $value : null;
+
                 continue;
             }
             if ($key === 'temporary_enchant') {
@@ -136,13 +140,15 @@ class SimcProfileParser
                 foreach (explode('/', $value) as $part) {
                     [$slot, $name] = array_pad(explode(':', $part, 2), 2, null);
                     if ($slot && $name) {
-                        $consumables['temporary_enchant_' . trim($slot)] = trim($name);
+                        $consumables['temporary_enchant_'.trim($slot)] = trim($name);
                     }
                 }
+
                 continue;
             }
             if (in_array($key, self::CONSUMABLE_KEYS, true)) {
                 $consumables[$key] = $value;
+
                 continue;
             }
             if (in_array($key, self::GEAR_SLOTS, true)) {
@@ -150,6 +156,7 @@ class SimcProfileParser
                 if ($item !== null) {
                     $gear[$key] = $item;
                 }
+
                 continue;
             }
             // Anything else (talents, role, race, position, source,
@@ -253,7 +260,7 @@ class SimcProfileParser
         // token classes take two. Anything past that is the hero.
         $classOffset = 1;
         foreach (self::TWO_TOKEN_CLASSES as $two) {
-            if (str_starts_with($body, $two . '_')) {
+            if (str_starts_with($body, $two.'_')) {
                 $classOffset = 2;
                 break;
             }
@@ -263,6 +270,7 @@ class SimcProfileParser
         if ($afterSpec === []) {
             return null;
         }
+
         // Replace hyphen with underscore so e.g. "Void-Scarred" lands
         // alongside "void_scarred" in the unique key.
         return strtolower(str_replace('-', '_', implode('_', $afterSpec)));

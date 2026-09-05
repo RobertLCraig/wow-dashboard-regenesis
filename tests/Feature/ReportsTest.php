@@ -30,7 +30,7 @@ function makeReport(array $overrides = []): WclReport
 {
     return WclReport::query()->create(array_replace([
         'guild_key' => 'Regenesis-Silvermoon',
-        'code' => 'rpt' . substr(md5((string) microtime(true)), 0, 6),
+        'code' => 'rpt'.substr(md5((string) microtime(true)), 0, 6),
         'title' => 'Tuesday Heroic',
         'start_time' => CarbonImmutable::parse('2026-04-22 19:30'),
         'end_time' => CarbonImmutable::parse('2026-04-22 22:30'),
@@ -62,7 +62,6 @@ it('index shows fight count and kill count for each report', function () {
     // Kill count rendered inside the emerald-300 span; 2 kills out of 3 fights.
     expect($body)->toContain('class="text-emerald-300">2</span>');
 });
-
 
 it('detail shows the fights and per-actor parses with formatted metric_per_second values', function () {
     $r = makeReport();
@@ -108,4 +107,3 @@ it('detail shows "no per-actor data" message when a fight has no parses', functi
 it('detail 404s an unknown report code', function () {
     $this->actingAs(reportsOfficer())->get('/reports/nonexistent')->assertStatus(404);
 });
-

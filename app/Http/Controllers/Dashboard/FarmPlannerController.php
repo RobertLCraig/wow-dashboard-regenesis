@@ -26,7 +26,7 @@ class FarmPlannerController extends Controller
     {
         abort_unless(auth()->user()?->can('roster.view'), 403);
 
-        $analyzer = new CollectionsAnalyzer();
+        $analyzer = new CollectionsAnalyzer;
         $rawType = (string) $request->query('type', '');
         $rawId = $request->query('id');
         $type = $analyzer->isValidType($rawType) ? $rawType : null;

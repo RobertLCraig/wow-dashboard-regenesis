@@ -7,6 +7,7 @@ use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use App\Services\Raiderio\RealmSlug;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -58,7 +59,7 @@ class BlizzardSnapshotImporter
         if (! $this->client->isConfigured()) {
             throw new \RuntimeException(
                 'Blizzard client credentials are not configured. '
-                . 'Set BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET.'
+                .'Set BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET.'
             );
         }
 
@@ -76,6 +77,7 @@ class BlizzardSnapshotImporter
             [$charName, $collapsedRealm] = $this->splitName($member->name);
             if ($charName === null) {
                 $errored++;
+
                 continue;
             }
 
@@ -117,6 +119,7 @@ class BlizzardSnapshotImporter
                         ->withHeaders($headers)
                         ->get($url, $query);
                 }
+
                 return $reqs;
             });
 
@@ -129,15 +132,18 @@ class BlizzardSnapshotImporter
                         'message' => $resp->getMessage(),
                     ]);
                     $errored++;
+
                     continue;
                 }
                 if ($resp === null) {
                     $errored++;
+
                     continue;
                 }
 
                 if ($resp->status() === 404) {
                     $missing++;
+
                     continue;
                 }
 
@@ -148,12 +154,14 @@ class BlizzardSnapshotImporter
                         'body' => mb_substr((string) $resp->body(), 0, 200),
                     ]);
                     $errored++;
+
                     continue;
                 }
 
                 $body = $resp->json();
                 if (! is_array($body)) {
                     $errored++;
+
                     continue;
                 }
 
@@ -232,9 +240,9 @@ class BlizzardSnapshotImporter
      * Without a limit, returns every active member - same shape as
      * before. Stable secondary sort by member.id breaks ties.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, Member>
+     * @return Collection<int, Member>
      */
-    private function selectMembersToFetch(): \Illuminate\Database\Eloquent\Collection
+    private function selectMembersToFetch(): Collection
     {
         $latestPerMember = DB::table('member_snapshots as ms')
             ->select('ms.member_id', DB::raw('MAX(s.captured_at) as last_seen'))
@@ -269,6 +277,7 @@ class BlizzardSnapshotImporter
             return [null, null];
         }
         $realm = RealmSlug::realmFromMemberName($memberName);
+
         return [$charName, $realm];
     }
 
@@ -293,6 +302,7 @@ class BlizzardSnapshotImporter
         if (! $this->ilvlSampleIsFresh($body, $member)) {
             return null;
         }
+
         return (int) round((float) $v);
     }
 
@@ -321,6 +331,7 @@ class BlizzardSnapshotImporter
             return false;
         }
         $lastLogin = CarbonImmutable::createFromTimestampMs((int) $lastLoginMs);
+
         return $lastLogin->greaterThanOrEqualTo($cutoff);
     }
 }

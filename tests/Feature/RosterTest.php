@@ -1,9 +1,11 @@
 <?php
 
 use App\Models\AltGroup;
+use App\Models\BisProfile;
 use App\Models\Member;
 use App\Models\MemberEquipmentSnapshot;
 use App\Models\MemberSnapshot;
+use App\Models\MemberTeam;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
 use App\Models\User;
@@ -41,7 +43,7 @@ function rosterMember(string $name, array $overrides = []): Member
     ], $overrides));
 
     if ($team !== null) {
-        \App\Models\MemberTeam::query()->create([
+        MemberTeam::query()->create([
             'member_id' => $member->id,
             'team' => $team,
             'is_override' => false,
@@ -169,15 +171,15 @@ it('roster ilvl prefers Blizzard over Wowaudit and Wowaudit over RIO', function 
     $m = rosterMember('Sheday-Silvermoon');
 
     foreach ([
-        Snapshot::SOURCE_RAIDERIO  => 245,
-        Snapshot::SOURCE_WOWAUDIT  => 265,
-        Snapshot::SOURCE_BLIZZARD  => 282,
+        Snapshot::SOURCE_RAIDERIO => 245,
+        Snapshot::SOURCE_WOWAUDIT => 265,
+        Snapshot::SOURCE_BLIZZARD => 282,
     ] as $source => $ilvl) {
         $snap = Snapshot::query()->create([
             'guild_key' => 'Regenesis-Silvermoon',
             'captured_at' => now(),
             'source' => $source,
-            'payload_hash' => 'h-' . $source,
+            'payload_hash' => 'h-'.$source,
         ]);
         MemberSnapshot::query()->create([
             'snapshot_id' => $snap->id,
@@ -399,7 +401,7 @@ it('BiS column shows OK / issue count / dash based on comparison result', functi
     $issues = rosterMember('Issues-Silvermoon'); // missing enchant + missing gems = 2 issues
     $noData = rosterMember('Nodata-Silvermoon'); // no snapshot at all
 
-    \App\Models\BisProfile::query()->create([
+    BisProfile::query()->create([
         'class' => 'priest',
         'spec' => 'frost',
         'hero_talent' => null,
@@ -493,7 +495,7 @@ it('bis_issues filter shows only members with > 0 issues', function () {
     rosterMember('Clean-Silvermoon');
     $broken = rosterMember('Broken-Silvermoon');
 
-    \App\Models\BisProfile::query()->create([
+    BisProfile::query()->create([
         'class' => 'priest',
         'spec' => 'frost',
         'hero_talent' => null,

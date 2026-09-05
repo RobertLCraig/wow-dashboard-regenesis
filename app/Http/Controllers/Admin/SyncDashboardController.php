@@ -13,6 +13,8 @@ use App\Services\Grm\LuaTableParser;
 use App\Services\Sync\SyncStatus;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 /**
@@ -61,7 +63,7 @@ class SyncDashboardController extends Controller
             SyncStatus::SOURCE_RAIDHELPER => [
                 'label' => 'Raid-Helper',
                 'description' => 'Discord raid signups. Real-time push via webhook + a daily safety-net pull.',
-                'last_seen_at' => $rhLast ? \Illuminate\Support\Carbon::parse($rhLast) : null,
+                'last_seen_at' => $rhLast ? Carbon::parse($rhLast) : null,
                 'last_summary' => $rhLast ? "{$rhCount} events cached" : null,
                 'state' => SyncStatus::get(SyncStatus::SOURCE_RAIDHELPER),
                 'cadence' => 'Push: webhook on event create/update/delete. Pull: daily 06:15 UK.',
@@ -145,6 +147,7 @@ class SyncDashboardController extends Controller
         $rawFile = $_FILES['grm_file'] ?? null;
         if (is_array($rawFile) && (int) ($rawFile['error'] ?? 0) !== UPLOAD_ERR_OK) {
             $hint = $this->describeUploadError((int) $rawFile['error']);
+
             return $back->withErrors(['grm_upload' => $hint]);
         }
         if (! $request->hasFile('grm_file')) {
@@ -157,6 +160,7 @@ class SyncDashboardController extends Controller
                     ini_get('post_max_size'),
                 )]);
             }
+
             return $back->withErrors(['grm_upload' => 'No file was received. If you definitely picked a file, the request body may have exceeded PHP\'s post_max_size; raise post_max_size + upload_max_filesize and try again.']);
         }
 
@@ -167,7 +171,7 @@ class SyncDashboardController extends Controller
             'grm_file' => ['required', 'file', 'max:51200'],
         ]);
 
-        /** @var \Illuminate\Http\UploadedFile $file */
+        /** @var UploadedFile $file */
         $file = $validated['grm_file'];
         $contents = $file->get();
         $fileName = $file->getClientOriginalName();
@@ -204,7 +208,7 @@ class SyncDashboardController extends Controller
             // GRM globals we actually consume. Anything else in the file
             // (Recount, Details, etc.) is skipped so the parser doesn't
             // waste time on tables we'd discard later.
-            $payload = (new LuaTableParser())->parse($contents, only: [
+            $payload = (new LuaTableParser)->parse($contents, only: [
                 'GRM_GuildMemberHistory_Save',
                 'GRM_PlayersThatLeftHistory_Save',
                 'GRM_Alts',
@@ -212,7 +216,8 @@ class SyncDashboardController extends Controller
                 'GRM_AddonSettings_Save',
             ]);
         } catch (\Throwable $e) {
-            $write(SyncStatus::FAILED, 'parsing', $summary, 'Lua parse failed: ' . $e->getMessage());
+            $write(SyncStatus::FAILED, 'parsing', $summary, 'Lua parse failed: '.$e->getMessage());
+
             return $back->withErrors(['grm_upload' => 'Could not parse the .lua file. Make sure it is the GRM SavedVariables file (Guild_Roster_Manager.lua).']);
         }
 
@@ -238,14 +243,15 @@ class SyncDashboardController extends Controller
         $write(SyncStatus::RUNNING, 'saving', $summary, null);
 
         try {
-            $result = (new GrmSnapshotIngester())->ingest(
+            $result = (new GrmSnapshotIngester)->ingest(
                 guildKey: $guildKey,
                 payload: $payload,
                 grmVersion: $grmVersion,
             );
         } catch (\Throwable $e) {
-            $write(SyncStatus::FAILED, 'saving', $summary, 'Ingest failed: ' . $e->getMessage());
-            return $back->withErrors(['grm_upload' => 'Saving the snapshot failed: ' . $e->getMessage()]);
+            $write(SyncStatus::FAILED, 'saving', $summary, 'Ingest failed: '.$e->getMessage());
+
+            return $back->withErrors(['grm_upload' => 'Saving the snapshot failed: '.$e->getMessage()]);
         }
 
         $summary = array_merge($summary, [
@@ -255,6 +261,7 @@ class SyncDashboardController extends Controller
 
         if ($result['was_duplicate']) {
             $write(SyncStatus::DONE, 'duplicate', $summary, null);
+
             return $back->with('status', "Upload received but it matches an existing snapshot (#{$result['snapshot_id']}) - the dashboard already has this data. Nothing new to ingest.");
         }
 
@@ -268,7 +275,7 @@ class SyncDashboardController extends Controller
             IngestSnapshotJob::dispatchSync($result['snapshot_id']);
         } catch (\Throwable $e) {
             // Job already wrote FAILED state; just surface to flash too.
-            return $back->withErrors(['grm_upload' => 'Snapshot saved (#' . $result['snapshot_id'] . ") but processing failed: " . $e->getMessage()]);
+            return $back->withErrors(['grm_upload' => 'Snapshot saved (#'.$result['snapshot_id'].') but processing failed: '.$e->getMessage()]);
         }
 
         // Bus::fake() in tests short-circuits dispatchSync without running
@@ -305,11 +312,12 @@ class SyncDashboardController extends Controller
         }
 
         if (count($bits) === 1) {
-            return $bits[0] . '. (Processing details will appear in the panel below.)';
+            return $bits[0].'. (Processing details will appear in the panel below.)';
         }
 
         $head = array_shift($bits);
-        return $head . ': ' . implode(', ', $bits) . '.';
+
+        return $head.': '.implode(', ', $bits).'.';
     }
 
     private function describeUploadError(int $code): string
@@ -325,7 +333,7 @@ class SyncDashboardController extends Controller
             UPLOAD_ERR_NO_TMP_DIR => 'PHP has no temp directory configured for uploads. Ask hosting support.',
             UPLOAD_ERR_CANT_WRITE => 'PHP could not write the uploaded file to disk. Ask hosting support.',
             UPLOAD_ERR_EXTENSION => 'A PHP extension blocked the upload.',
-            default => 'Upload failed (PHP error code ' . $code . ').',
+            default => 'Upload failed (PHP error code '.$code.').',
         };
     }
 
@@ -337,6 +345,7 @@ class SyncDashboardController extends Controller
         }
         $unit = strtolower(substr($raw, -1));
         $num = (int) $raw;
+
         return match ($unit) {
             'g' => $num * 1024 * 1024 * 1024,
             'm' => $num * 1024 * 1024,
@@ -348,12 +357,13 @@ class SyncDashboardController extends Controller
     private function humanBytes(int $bytes): string
     {
         if ($bytes >= 1024 * 1024) {
-            return round($bytes / 1024 / 1024, 1) . 'M';
+            return round($bytes / 1024 / 1024, 1).'M';
         }
         if ($bytes >= 1024) {
-            return round($bytes / 1024) . 'K';
+            return round($bytes / 1024).'K';
         }
-        return $bytes . 'B';
+
+        return $bytes.'B';
     }
 
     private function latestSnapshot(string $guildKey, string $source): ?Snapshot

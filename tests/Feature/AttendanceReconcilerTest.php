@@ -34,12 +34,12 @@ function arMember(string $name, array $overrides = []): Member
 function arEvent(int $hoursAgo = 24, string $title = 'Test raid'): RaidEvent
 {
     return RaidEvent::query()->create([
-        'raidhelper_event_id' => 'rh-' . uniqid('', true),
+        'raidhelper_event_id' => 'rh-'.uniqid('', true),
         'server_id' => 'srv',
         'channel_id' => 'CH-H',
         'title' => $title,
         'starts_at' => now()->subHours($hoursAgo),
-        'ics_uid' => 'uid-' . uniqid('', true),
+        'ics_uid' => 'uid-'.uniqid('', true),
     ]);
 }
 
@@ -88,6 +88,7 @@ function arWclWithActors(int $hoursAgo, array $actorNames): WclReport
             'role' => WclActorParse::ROLE_HEALER,
         ]);
     }
+
     return $report;
 }
 

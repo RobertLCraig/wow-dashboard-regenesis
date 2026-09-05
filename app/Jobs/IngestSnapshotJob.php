@@ -42,6 +42,7 @@ class IngestSnapshotJob implements ShouldQueue
         $snapshot = Snapshot::query()->find($this->snapshotId);
         if (! $snapshot) {
             Log::warning('IngestSnapshotJob: snapshot row gone', ['id' => $this->snapshotId]);
+
             return;
         }
 
@@ -53,7 +54,8 @@ class IngestSnapshotJob implements ShouldQueue
             $payload = $this->readPayload($snapshot);
             if (! $payload) {
                 Log::error('IngestSnapshotJob: payload unreadable', ['snapshot_id' => $snapshot->id, 'raw_path' => $snapshot->raw_path]);
-                $this->updateStatus($isGrm, SyncStatus::FAILED, 'normalizing', [], 'Snapshot payload unreadable from raw_path: ' . $snapshot->raw_path);
+                $this->updateStatus($isGrm, SyncStatus::FAILED, 'normalizing', [], 'Snapshot payload unreadable from raw_path: '.$snapshot->raw_path);
+
                 return;
             }
 
@@ -143,6 +145,7 @@ class IngestSnapshotJob implements ShouldQueue
         } catch (\JsonException) {
             return null;
         }
+
         return is_array($envelope['payload'] ?? null) ? $envelope['payload'] : null;
     }
 }

@@ -20,7 +20,7 @@ class NameDiff
 {
     /**
      * @param  iterable<string>  $siblings  Other names in the same alt group.
-     * @return list<array{0:string, 1:bool}>  [char, isDifferent] per grapheme.
+     * @return list<array{0:string, 1:bool}> [char, isDifferent] per grapheme.
      */
     public static function annotate(string $name, iterable $siblings): array
     {
@@ -52,6 +52,7 @@ class NameDiff
             }
             $out[] = [$char, $diff];
         }
+
         return $out;
     }
 
@@ -71,6 +72,7 @@ class NameDiff
             }
         }
         $iconv = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
+
         return mb_strtolower($iconv !== false ? $iconv : $s);
     }
 }

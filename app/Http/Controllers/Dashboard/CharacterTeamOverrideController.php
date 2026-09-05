@@ -35,7 +35,7 @@ class CharacterTeamOverrideController extends Controller
 
         $validated = $request->validate([
             'teams' => ['array'],
-            'teams.*' => ['string', 'in:' . implode(',', TeamMapping::TEAMS)],
+            'teams.*' => ['string', 'in:'.implode(',', TeamMapping::TEAMS)],
             'action' => ['nullable', 'string', 'in:save,clear'],
         ]);
 

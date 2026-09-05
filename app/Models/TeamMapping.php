@@ -16,11 +16,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TeamMapping extends Model
 {
     public const SOURCE_GRM_RANK = 'grm_rank';
+
     public const SOURCE_DISCORD_ROLE = 'discord_role';
 
     public const TEAM_MYTHIC = 'mythic';
+
     public const TEAM_MYTHIC_TRIAL = 'mythic_trial';
+
     public const TEAM_HEROIC = 'heroic';
+
     public const TEAM_HEROIC_TRIAL = 'heroic_trial';
 
     /** @var list<string> */
@@ -51,9 +55,9 @@ class TeamMapping extends Model
     public static function teamLabel(?string $team): string
     {
         return match ($team) {
-            self::TEAM_MYTHIC       => 'Mythic Team',
+            self::TEAM_MYTHIC => 'Mythic Team',
             self::TEAM_MYTHIC_TRIAL => 'Mythic Trial Team',
-            self::TEAM_HEROIC       => 'Heroic Team',
+            self::TEAM_HEROIC => 'Heroic Team',
             self::TEAM_HEROIC_TRIAL => 'Heroic Trial Team',
             default => 'Unassigned',
         };

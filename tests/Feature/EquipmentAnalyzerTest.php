@@ -15,9 +15,10 @@ function piece(string $slotType, array $overrides = []): array
 
 function snapWithPieces(array $pieces, ?int $equippedIlvl = 282): MemberEquipmentSnapshot
 {
-    $m = new MemberEquipmentSnapshot();
+    $m = new MemberEquipmentSnapshot;
     $m->equipped_ilvl = $equippedIlvl;
     $m->pieces = $pieces;
+
     return $m;
 }
 
@@ -35,7 +36,7 @@ it('reports zero issues when every enchantable slot has an enchant and no empty 
         piece('NECK', ['sockets' => [['item' => ['id' => 213743]]]]),
     ];
 
-    $r = (new EquipmentAnalyzer())->analyze(snapWithPieces($pieces));
+    $r = (new EquipmentAnalyzer)->analyze(snapWithPieces($pieces));
 
     expect($r['missing_enchants'])->toBe([]);
     expect($r['empty_sockets'])->toBe([]);
@@ -52,7 +53,7 @@ it('flags every enchantable slot that has no enchantment_id', function () {
         piece('MAIN_HAND', ['enchantments' => [['enchantment_id' => 99]]]),
     ];
 
-    $r = (new EquipmentAnalyzer())->analyze(snapWithPieces($pieces));
+    $r = (new EquipmentAnalyzer)->analyze(snapWithPieces($pieces));
 
     expect($r['missing_enchants'])->toBe(['CHEST', 'LEGS', 'FEET']);
     expect($r['total_issues'])->toBe(3);
@@ -70,7 +71,7 @@ it('does not flag slots that are not in the enchantable list', function () {
         piece('OFF_HAND'),
     ];
 
-    $r = (new EquipmentAnalyzer())->analyze(snapWithPieces($pieces));
+    $r = (new EquipmentAnalyzer)->analyze(snapWithPieces($pieces));
 
     expect($r['missing_enchants'])->toBe([]);
     expect($r['total_issues'])->toBe(0);
@@ -82,14 +83,14 @@ it('counts every empty socket on every slot', function () {
         piece('HEAD', ['sockets' => [['item' => ['id' => 213743]], ['item' => null]]]),
     ];
 
-    $r = (new EquipmentAnalyzer())->analyze(snapWithPieces($pieces));
+    $r = (new EquipmentAnalyzer)->analyze(snapWithPieces($pieces));
 
     expect($r['empty_sockets'])->toBe(['NECK', 'NECK', 'HEAD']);
     expect($r['total_issues'])->toBe(3);
 });
 
 it('handles missing snapshot, missing pieces, and malformed pieces gracefully', function () {
-    $analyzer = new EquipmentAnalyzer();
+    $analyzer = new EquipmentAnalyzer;
 
     expect($analyzer->analyze(null)['total_issues'])->toBe(0);
 

@@ -6,7 +6,6 @@ use App\Models\Snapshot;
 use App\Models\User;
 use App\Services\Blizzard\CollectionsAnalyzer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Collection;
 
 uses(RefreshDatabase::class);
 
@@ -56,20 +55,20 @@ function farmSnap(int $memberId, int $snapshotId, array $payloads): MemberSocial
 }
 
 it('analyzer detects mount ownership in the slim ID-only mount array', function () {
-    $snap = new MemberSocialSnapshot();
+    $snap = new MemberSocialSnapshot;
     $snap->mounts = ['mounts' => [1234, 5678]];
 
-    $analyzer = new CollectionsAnalyzer();
+    $analyzer = new CollectionsAnalyzer;
     expect($analyzer->memberHas($snap, CollectionsAnalyzer::TYPE_MOUNT, 1234))->toBeTrue();
     expect($analyzer->memberHas($snap, CollectionsAnalyzer::TYPE_MOUNT, 9999))->toBeFalse();
 });
 
 it('analyzer detects pet + toy ownership in slim ID-only arrays', function () {
-    $snap = new MemberSocialSnapshot();
+    $snap = new MemberSocialSnapshot;
     $snap->pets = ['pets' => [42, 43]];
     $snap->toys = ['toys' => [99]];
 
-    $analyzer = new CollectionsAnalyzer();
+    $analyzer = new CollectionsAnalyzer;
     expect($analyzer->memberHas($snap, CollectionsAnalyzer::TYPE_PET, 42))->toBeTrue();
     expect($analyzer->memberHas($snap, CollectionsAnalyzer::TYPE_TOY, 99))->toBeTrue();
     expect($analyzer->memberHas($snap, CollectionsAnalyzer::TYPE_PET, 99))->toBeFalse();
@@ -97,7 +96,7 @@ it('gap() buckets members into has / missing / no_data with coverage percent', f
     ]);
 
     $members = collect([$hasIt, $needs, $unknown]);
-    $gap = (new CollectionsAnalyzer())->gap($members, $snaps, CollectionsAnalyzer::TYPE_MOUNT, 1234);
+    $gap = (new CollectionsAnalyzer)->gap($members, $snaps, CollectionsAnalyzer::TYPE_MOUNT, 1234);
 
     expect($gap['has'])->toHaveCount(1)->and($gap['has'][0]['name'])->toBe('Hasit-Silvermoon');
     expect($gap['missing'])->toHaveCount(1)->and($gap['missing'][0]['name'])->toBe('Needs-Silvermoon');

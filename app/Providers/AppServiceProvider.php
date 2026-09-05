@@ -3,7 +3,12 @@
 namespace App\Providers;
 
 use App\Models\RaidEvent;
+use App\Models\User;
 use App\Observers\RaidEventObserver;
+use App\Services\Blizzard\BlizzardClient;
+use App\Services\RaidHelper\RaidHelperClient;
+use App\Services\Wowaudit\WowauditClient;
+use App\Support\WowDictionary;
 use Illuminate\Console\Events\ScheduledTaskFailed;
 use Illuminate\Console\Events\ScheduledTaskFinished;
 use Illuminate\Console\Events\ScheduledTaskSkipped;
@@ -12,6 +17,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
+use SocialiteProviders\Discord\DiscordExtendSocialite;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,18 +29,18 @@ class AppServiceProvider extends ServiceProvider
         // to their fromConfig() factories so type-hinted method
         // injection in controllers / commands "just works", and tests
         // that override config() before resolving get the right values.
-        $this->app->scoped(\App\Services\RaidHelper\RaidHelperClient::class,
-            fn () => \App\Services\RaidHelper\RaidHelperClient::fromConfig());
-        $this->app->scoped(\App\Services\Wowaudit\WowauditClient::class,
-            fn () => \App\Services\Wowaudit\WowauditClient::fromConfig());
-        $this->app->scoped(\App\Services\Blizzard\BlizzardClient::class,
-            fn () => \App\Services\Blizzard\BlizzardClient::fromConfig());
+        $this->app->scoped(RaidHelperClient::class,
+            fn () => RaidHelperClient::fromConfig());
+        $this->app->scoped(WowauditClient::class,
+            fn () => WowauditClient::fromConfig());
+        $this->app->scoped(BlizzardClient::class,
+            fn () => BlizzardClient::fromConfig());
 
         // The dictionary loads two JSON files lazily on first lookup.
         // scoped() so the cached arrays live for the duration of one
         // request / command and don't leak across tests.
-        $this->app->scoped(\App\Support\WowDictionary::class,
-            fn () => new \App\Support\WowDictionary());
+        $this->app->scoped(WowDictionary::class,
+            fn () => new WowDictionary);
     }
 
     public function boot(): void
@@ -46,7 +52,7 @@ class AppServiceProvider extends ServiceProvider
         // related services config lives, rather than tucked in a
         // listener class for one provider.
         Event::listen(SocialiteWasCalled::class, [
-            \SocialiteProviders\Discord\DiscordExtendSocialite::class,
+            DiscordExtendSocialite::class,
             'handle',
         ]);
 
@@ -118,7 +124,7 @@ class AppServiceProvider extends ServiceProvider
     private function registerGates(): void
     {
         $anyOfficerTier = fn ($user) => $user !== null && $user->isOfficerTier();
-        $memberOrAbove = fn ($user) => $user !== null && $user->isAtLeast(\App\Models\User::TIER_MEMBER);
+        $memberOrAbove = fn ($user) => $user !== null && $user->isAtLeast(User::TIER_MEMBER);
 
         foreach ([
             'dashboard.social.view',   // sidebar: Social - the guild-wide events hub

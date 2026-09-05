@@ -29,6 +29,7 @@ class PullBlizzardSnapshot extends Command
         $client = BlizzardClient::fromConfig();
         if (! $client->isConfigured()) {
             $this->info('blizzard:pull skipped (BLIZZARD_CLIENT_ID / BLIZZARD_CLIENT_SECRET not set).');
+
             return self::SUCCESS;
         }
 
@@ -47,7 +48,8 @@ class PullBlizzardSnapshot extends Command
         try {
             $result = $importer->pull();
         } catch (\Throwable $e) {
-            $this->error('blizzard pull failed: ' . $e->getMessage());
+            $this->error('blizzard pull failed: '.$e->getMessage());
+
             return self::FAILURE;
         }
 

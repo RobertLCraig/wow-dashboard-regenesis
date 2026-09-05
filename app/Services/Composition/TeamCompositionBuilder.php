@@ -71,9 +71,9 @@ class TeamCompositionBuilder
             $memberParses = $byMember->get($member->id, collect());
 
             $latest = $memberParses->sortByDesc(fn ($p) => $p->fight?->start_time)->first();
-            $latestSpec  = $latest?->actor_spec;
+            $latestSpec = $latest?->actor_spec;
             $latestClass = $latest?->actor_class ?? $member->class;
-            $latestIlvl  = $latest?->item_level;
+            $latestIlvl = $latest?->item_level;
 
             // Role priority: explicit spec map -> wcl role column -> unknown.
             $role = SpecRoleMap::role($latestClass, $latestSpec);
@@ -82,19 +82,19 @@ class TeamCompositionBuilder
             }
 
             $ranked = $memberParses->filter(fn ($p) => $p->parse_percentile !== null);
-            $best   = $ranked->first(); // already sorted parse_percentile desc
-            $avg    = $ranked->isNotEmpty() ? $ranked->avg('parse_percentile') : null;
+            $best = $ranked->first(); // already sorted parse_percentile desc
+            $avg = $ranked->isNotEmpty() ? $ranked->avg('parse_percentile') : null;
 
             $buckets[$role ?? 'unknown'][] = [
-                'member'        => $member,
-                'parses_count'  => $ranked->count(),
-                'avg_parse'     => $avg !== null ? (float) round($avg, 1) : null,
-                'best_parse'    => $best?->parse_percentile,
-                'best_fight'    => $best?->fight,
-                'latest_spec'   => $latestSpec,
-                'latest_class'  => $latestClass,
-                'latest_ilvl'   => $latestIlvl,
-                'role'          => $role ?? 'unknown',
+                'member' => $member,
+                'parses_count' => $ranked->count(),
+                'avg_parse' => $avg !== null ? (float) round($avg, 1) : null,
+                'best_parse' => $best?->parse_percentile,
+                'best_fight' => $best?->fight,
+                'latest_spec' => $latestSpec,
+                'latest_class' => $latestClass,
+                'latest_ilvl' => $latestIlvl,
+                'role' => $role ?? 'unknown',
             ];
         }
 
@@ -105,8 +105,13 @@ class TeamCompositionBuilder
                 if ($a['avg_parse'] === null && $b['avg_parse'] === null) {
                     return strcasecmp($a['member']->name, $b['member']->name);
                 }
-                if ($a['avg_parse'] === null) return 1;
-                if ($b['avg_parse'] === null) return -1;
+                if ($a['avg_parse'] === null) {
+                    return 1;
+                }
+                if ($b['avg_parse'] === null) {
+                    return -1;
+                }
+
                 return $b['avg_parse'] <=> $a['avg_parse'];
             });
         }
@@ -126,9 +131,9 @@ class TeamCompositionBuilder
     {
         return match ($wclRole) {
             WclActorParse::ROLE_HEALER => SpecRoleMap::ROLE_HEALER,
-            WclActorParse::ROLE_DPS    => SpecRoleMap::ROLE_MELEE,
-            WclActorParse::ROLE_TANK   => SpecRoleMap::ROLE_TANK,
-            default                    => null,
+            WclActorParse::ROLE_DPS => SpecRoleMap::ROLE_MELEE,
+            WclActorParse::ROLE_TANK => SpecRoleMap::ROLE_TANK,
+            default => null,
         };
     }
 }

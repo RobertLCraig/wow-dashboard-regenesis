@@ -5,6 +5,7 @@ namespace App\Services\Blizzard;
 use App\Models\Member;
 use App\Models\MemberRaidSnapshot;
 use App\Models\Snapshot;
+use App\Services\Raiderio\RealmSlug;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Facades\DB;
@@ -48,7 +49,7 @@ class RaidEncountersSnapshotImporter
         if (! $this->client->isConfigured()) {
             throw new \RuntimeException(
                 'Blizzard client credentials are not configured. '
-                . 'Set BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET.'
+                .'Set BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET.'
             );
         }
 
@@ -70,6 +71,7 @@ class RaidEncountersSnapshotImporter
             $endpoint = $this->resolveEndpoint($member);
             if ($endpoint === null) {
                 $errored++;
+
                 continue;
             }
             $jobs[$member->id] = $endpoint + ['member' => $member];
@@ -90,6 +92,7 @@ class RaidEncountersSnapshotImporter
                         ->withHeaders($job['headers'])
                         ->get($job['url'], $job['query']);
                 }
+
                 return $reqs;
             });
 
@@ -102,15 +105,18 @@ class RaidEncountersSnapshotImporter
                         'message' => $resp->getMessage(),
                     ]);
                     $errored++;
+
                     continue;
                 }
                 if ($resp === null) {
                     $errored++;
+
                     continue;
                 }
 
                 if ($resp->status() === 404) {
                     $missing++;
+
                     continue;
                 }
 
@@ -121,12 +127,14 @@ class RaidEncountersSnapshotImporter
                         'body' => mb_substr((string) $resp->body(), 0, 200),
                     ]);
                     $errored++;
+
                     continue;
                 }
 
                 $body = $resp->json();
                 if (! is_array($body)) {
                     $errored++;
+
                     continue;
                 }
 
@@ -196,11 +204,11 @@ class RaidEncountersSnapshotImporter
 
         $slug = $member->realm_slug;
         if ($slug === null || $slug === '') {
-            $slug = \App\Services\Raiderio\RealmSlug::slugifyCanonical($member->realm);
+            $slug = RealmSlug::slugifyCanonical($member->realm);
         }
         if ($slug === null || $slug === '') {
-            $collapsed = \App\Services\Raiderio\RealmSlug::realmFromMemberName($member->name);
-            $slug = \App\Services\Raiderio\RealmSlug::slugify($collapsed);
+            $collapsed = RealmSlug::realmFromMemberName($member->name);
+            $slug = RealmSlug::slugify($collapsed);
         }
         if ($slug === '') {
             return null;

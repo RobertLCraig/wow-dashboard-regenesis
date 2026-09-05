@@ -45,7 +45,7 @@ function deathRow(WclFight $fight, string $actor, string $abilityName, int $time
         'actor_name' => $actor,
         'killing_ability_id' => $abilityId,
         'killing_ability_name' => $abilityName,
-        'killing_ability_icon' => 'icon-' . mb_strtolower($abilityName),
+        'killing_ability_icon' => 'icon-'.mb_strtolower($abilityName),
         'death_time_ms' => $timeMs,
     ]);
 }
@@ -57,10 +57,10 @@ it('aggregates top killing abilities per encounter across recent reports', funct
 
     deathRow($kill, 'A', 'Devastating Blow', 100_000, 100);
     deathRow($kill, 'B', 'Devastating Blow', 200_000, 100);
-    deathRow($wipe, 'A', 'Spike',            500_000, 200);
-    deathRow($wipe, 'B', 'Spike',            600_000, 200);
-    deathRow($wipe, 'C', 'Spike',            700_000, 200);
-    deathRow($wipe, 'D', 'Ground Wave',      800_000, 300);
+    deathRow($wipe, 'A', 'Spike', 500_000, 200);
+    deathRow($wipe, 'B', 'Spike', 600_000, 200);
+    deathRow($wipe, 'C', 'Spike', 700_000, 200);
+    deathRow($wipe, 'D', 'Ground Wave', 800_000, 300);
 
     $out = (new DeathCauseAggregator('Regenesis-Silvermoon'))->topByEncounter();
 
@@ -94,12 +94,12 @@ it('splits each ability into deaths-on-kills vs deaths-on-wipes', function () {
 it('orders encounters by total deaths so the loudest wipe-cause leads', function () {
     $report = deathReport('rrrrrr', '2026-04-22 19:30');
     $bossA = deathFight($report, 1, 2900, 'Plexus Sentinel', kill: false);
-    $bossB = deathFight($report, 2, 2901, 'Loom',           kill: true);
+    $bossB = deathFight($report, 2, 2901, 'Loom', kill: true);
 
     deathRow($bossA, 'A', 'Spike', 100_000);
-    deathRow($bossB, 'A', 'Web',   100_000);
-    deathRow($bossB, 'B', 'Web',   200_000);
-    deathRow($bossB, 'C', 'Web',   300_000);
+    deathRow($bossB, 'A', 'Web', 100_000);
+    deathRow($bossB, 'B', 'Web', 200_000);
+    deathRow($bossB, 'C', 'Web', 300_000);
 
     $out = (new DeathCauseAggregator('Regenesis-Silvermoon'))->topByEncounter();
 

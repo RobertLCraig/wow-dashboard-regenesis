@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\RaidEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -236,8 +237,8 @@ it('sync pulls every page and upserts each event', function () {
         ->assertRedirect()
         ->assertSessionHas('status', 'Synced 3 events from Raid-Helper.');
 
-    expect(\App\Models\RaidEvent::count())->toBe(3);
-    expect(\App\Models\RaidEvent::pluck('raidhelper_event_id')->all())->toEqualCanonicalizing(['e1', 'e2', 'e3']);
+    expect(RaidEvent::count())->toBe(3);
+    expect(RaidEvent::pluck('raidhelper_event_id')->all())->toEqualCanonicalizing(['e1', 'e2', 'e3']);
 });
 
 it('sync is rate-limited to one call per hour per user', function () {

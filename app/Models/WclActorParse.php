@@ -7,9 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WclActorParse extends Model
 {
-    public const ROLE_TANK   = 'tank';
+    public const ROLE_TANK = 'tank';
+
     public const ROLE_HEALER = 'healer';
-    public const ROLE_DPS    = 'dps';
+
+    public const ROLE_DPS = 'dps';
 
     protected $guarded = ['id'];
 

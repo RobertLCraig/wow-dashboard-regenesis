@@ -8,10 +8,12 @@ use App\Services\Discord\DiscordRoleMentionResolver;
 use App\Services\RaidHelper\EventUpserter;
 use App\Services\RaidHelper\RaidHelperClient;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\Response;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class EventController extends Controller
@@ -74,7 +76,7 @@ class EventController extends Controller
             'duration_mode' => ['required', 'in:duration,end_time,default'],
             'duration_minutes' => ['nullable', 'required_if:duration_mode,duration', 'integer', 'min:15', 'max:1440'],
             'ends_at' => ['nullable', 'required_if:duration_mode,end_time', 'date', 'after:starts_at'],
-            'template_id' => ['required', 'string', \Illuminate\Validation\Rule::in(
+            'template_id' => ['required', 'string', Rule::in(
                 array_column(config('raidhelper.templates', []), 'id')
             )],
             // Channel can come from the dropdown OR a pasted ID via the
@@ -186,6 +188,7 @@ class EventController extends Controller
                 if (preg_match('/^\d{15,25}$/', $value)) {
                     return $value;
                 }
+
                 return $channelLookup->get($value, $value);
             };
 
@@ -209,6 +212,7 @@ class EventController extends Controller
                 'status' => $resp->status(),
                 'body' => mb_substr($resp->body(), 0, 500),
             ]);
+
             return back()
                 ->withInput()
                 ->withErrors(['raidhelper' => $this->humaniseRaidHelperError($resp, $validated['channel_id'])]);
@@ -241,12 +245,13 @@ class EventController extends Controller
     {
         abort_unless(auth()->user()?->can('events.create'), 403);
 
-        $key = 'events-sync:user:' . auth()->id();
+        $key = 'events-sync:user:'.auth()->id();
         if (RateLimiter::tooManyAttempts($key, maxAttempts: 1)) {
             $minutes = (int) ceil(RateLimiter::availableIn($key) / 60);
+
             return redirect()
                 ->route('events.index')
-                ->withErrors(['raidhelper' => "Manual sync is limited to once per hour. Try again in {$minutes} minute" . ($minutes === 1 ? '' : 's') . '.']);
+                ->withErrors(['raidhelper' => "Manual sync is limited to once per hour. Try again in {$minutes} minute".($minutes === 1 ? '' : 's').'.']);
         }
         RateLimiter::hit($key, decaySeconds: 3600);
 
@@ -298,6 +303,7 @@ class EventController extends Controller
         $resp = $client->deleteEvent($event->raidhelper_event_id);
         if (! $resp->successful() && $resp->status() !== 404) {
             Log::warning('Raid-Helper delete failed', ['status' => $resp->status()]);
+
             return back()->withErrors(['raidhelper' => "Raid-Helper delete returned {$resp->status()}."]);
         }
         $event->delete();
@@ -309,7 +315,7 @@ class EventController extends Controller
 
     private function signedIcsToken(RaidEvent $event): string
     {
-        return hash_hmac('sha256', $event->ics_uid . '|' . $event->ics_sequence, config('app.key'));
+        return hash_hmac('sha256', $event->ics_uid.'|'.$event->ics_sequence, config('app.key'));
     }
 
     /**
@@ -326,6 +332,7 @@ class EventController extends Controller
                 return $slug;
             }
         }
+
         return null;
     }
 
@@ -338,7 +345,7 @@ class EventController extends Controller
      * "Raid-Helper can't see that channel" - either the ID is wrong
      * or the bot isn't in it.
      */
-    private function humaniseRaidHelperError(\Illuminate\Http\Client\Response $resp, string $channelId): string
+    private function humaniseRaidHelperError(Response $resp, string $channelId): string
     {
         $title = $resp->json('title');
         $reason = is_string($title) && $title !== ''
@@ -358,6 +365,7 @@ class EventController extends Controller
     {
         $token = auth()->user()->ensureCalendarToken();
         $https = route('calendar.subscription', ['token' => $token]);
+
         return preg_replace('#^https?://#', 'webcal://', $https);
     }
 }

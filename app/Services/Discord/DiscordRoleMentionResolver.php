@@ -97,6 +97,7 @@ class DiscordRoleMentionResolver
                 $out[$cid] = $names;
             }
         }
+
         return $out;
     }
 

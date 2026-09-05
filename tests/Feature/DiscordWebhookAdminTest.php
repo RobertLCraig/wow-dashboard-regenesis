@@ -60,7 +60,7 @@ it('router returns enabled webhooks matching a purpose', function () {
     makeWebhook(['label' => 'B', 'purpose' => DiscordWebhook::PURPOSE_WEEKLY_DIGEST, 'enabled' => false]);
     makeWebhook(['label' => 'C', 'purpose' => DiscordWebhook::PURPOSE_EVENT_ANNOUNCE]);
 
-    $hits = (new WebhookRouter())->routeFor(DiscordWebhook::PURPOSE_WEEKLY_DIGEST);
+    $hits = (new WebhookRouter)->routeFor(DiscordWebhook::PURPOSE_WEEKLY_DIGEST);
     expect($hits->pluck('label')->all())->toBe(['A']);
 });
 
@@ -68,14 +68,14 @@ it('router prefers team-scoped webhooks over guild-wide for the same purpose', f
     makeWebhook(['label' => 'guild',  'purpose' => DiscordWebhook::PURPOSE_EVENT_ANNOUNCE, 'team_slug' => null]);
     makeWebhook(['label' => 'heroic', 'purpose' => DiscordWebhook::PURPOSE_EVENT_ANNOUNCE, 'team_slug' => 'heroic']);
 
-    $hits = (new WebhookRouter())->routeFor(DiscordWebhook::PURPOSE_EVENT_ANNOUNCE, 'heroic');
+    $hits = (new WebhookRouter)->routeFor(DiscordWebhook::PURPOSE_EVENT_ANNOUNCE, 'heroic');
     expect($hits->pluck('label')->all())->toBe(['heroic']);
 });
 
 it('router falls back to guild-wide when no team-scoped webhook exists', function () {
     makeWebhook(['label' => 'guild', 'purpose' => DiscordWebhook::PURPOSE_EVENT_ANNOUNCE, 'team_slug' => null]);
 
-    $hits = (new WebhookRouter())->routeFor(DiscordWebhook::PURPOSE_EVENT_ANNOUNCE, 'mythic');
+    $hits = (new WebhookRouter)->routeFor(DiscordWebhook::PURPOSE_EVENT_ANNOUNCE, 'mythic');
     expect($hits->pluck('label')->all())->toBe(['guild']);
 });
 
@@ -194,8 +194,7 @@ it('admin test posts a ping to the webhook URL', function () {
         ->assertRedirect('/admin/webhooks')
         ->assertSessionHas('status');
 
-    Http::assertSent(fn ($req) =>
-        $req->url() === 'https://discord.com/api/webhooks/100/aaa'
+    Http::assertSent(fn ($req) => $req->url() === 'https://discord.com/api/webhooks/100/aaa'
         && str_contains($req['content'], 'Test ping')
     );
 });

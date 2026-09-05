@@ -17,9 +17,12 @@ namespace App\Services\Composition;
  */
 class SpecRoleMap
 {
-    public const ROLE_TANK   = 'tank';
+    public const ROLE_TANK = 'tank';
+
     public const ROLE_HEALER = 'healer';
-    public const ROLE_MELEE  = 'melee';
+
+    public const ROLE_MELEE = 'melee';
+
     public const ROLE_RANGED = 'ranged';
 
     /** @var array<string, array<string, string>>  class => spec => role */
@@ -99,6 +102,7 @@ class SpecRoleMap
         }
         $c = strtolower(str_replace([' ', '-', '_'], '', $class));
         $s = strtolower(trim($spec));
+
         return self::MAP[$c][$s] ?? null;
     }
 
@@ -116,11 +120,11 @@ class SpecRoleMap
     public static function label(string $role): string
     {
         return match ($role) {
-            self::ROLE_TANK   => 'Tanks',
+            self::ROLE_TANK => 'Tanks',
             self::ROLE_HEALER => 'Healers',
-            self::ROLE_MELEE  => 'Melee DPS',
+            self::ROLE_MELEE => 'Melee DPS',
             self::ROLE_RANGED => 'Ranged DPS',
-            default           => ucfirst($role),
+            default => ucfirst($role),
         };
     }
 }

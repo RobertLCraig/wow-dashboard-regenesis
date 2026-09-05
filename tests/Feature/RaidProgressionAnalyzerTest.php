@@ -6,8 +6,9 @@ use Illuminate\Support\Collection;
 
 function snap(array $expansions): MemberRaidSnapshot
 {
-    $m = new MemberRaidSnapshot();
+    $m = new MemberRaidSnapshot;
     $m->expansions = $expansions;
+
     return $m;
 }
 
@@ -49,7 +50,7 @@ it('picks the highest-id expansion and within it the highest-id instance as curr
         ['expansion' => ['id' => 503, 'name' => 'TWW'], 'instances' => [instance(1296, 'Manaforge', [])]],
     ]);
 
-    $tier = (new RaidProgressionAnalyzer())->currentTier(new Collection([$a, $b]));
+    $tier = (new RaidProgressionAnalyzer)->currentTier(new Collection([$a, $b]));
 
     expect($tier)->toBe([
         'expansion_id' => 503,
@@ -60,7 +61,7 @@ it('picks the highest-id expansion and within it the highest-id instance as curr
 });
 
 it('returns null when there are no expansions in any snapshot', function () {
-    $r = (new RaidProgressionAnalyzer())->currentTier(new Collection([snap([]), snap([])]));
+    $r = (new RaidProgressionAnalyzer)->currentTier(new Collection([snap([]), snap([])]));
     expect($r)->toBeNull();
 });
 
@@ -75,7 +76,7 @@ it('hasAotcOn requires every Heroic encounter cleared', function () {
             instance(1296, 'Manaforge', [mode('HEROIC', 7, 8)]),
         ]],
     ]);
-    $analyzer = new RaidProgressionAnalyzer();
+    $analyzer = new RaidProgressionAnalyzer;
 
     expect($analyzer->hasAotcOn($cleared, 1296))->toBeTrue();
     expect($analyzer->hasAotcOn($partial, 1296))->toBeFalse();
@@ -98,7 +99,7 @@ it('hasCeOn requires every Mythic encounter cleared', function () {
             ]),
         ]],
     ]);
-    $analyzer = new RaidProgressionAnalyzer();
+    $analyzer = new RaidProgressionAnalyzer;
 
     expect($analyzer->hasCeOn($heroicOnly, 1296))->toBeFalse();
     expect($analyzer->hasCeOn($ceCleared, 1296))->toBeTrue();
@@ -110,7 +111,7 @@ it('returns false for AOTC/CE on instances the snapshot has no entry for', funct
             instance(1290, 'Nerub', [mode('HEROIC', 8, 8)]),
         ]],
     ]);
-    $analyzer = new RaidProgressionAnalyzer();
+    $analyzer = new RaidProgressionAnalyzer;
 
     expect($analyzer->hasAotcOn($other, 1296))->toBeFalse();
     expect($analyzer->hasCeOn($other, 1296))->toBeFalse();
@@ -122,7 +123,7 @@ it('returns false when total_count is zero (incomplete payload guard)', function
             instance(1296, 'Manaforge', [mode('HEROIC', 0, 0)]),
         ]],
     ]);
-    expect((new RaidProgressionAnalyzer())->hasAotcOn($weird, 1296))->toBeFalse();
+    expect((new RaidProgressionAnalyzer)->hasAotcOn($weird, 1296))->toBeFalse();
 });
 
 it('teamBossBreakdown rolls up boss-by-boss kills across team members', function () {
@@ -157,7 +158,7 @@ it('teamBossBreakdown rolls up boss-by-boss kills across team members', function
         ]],
     ]);
 
-    $out = (new RaidProgressionAnalyzer())->teamBossBreakdown(new Collection([$a, $b]), 'heroic');
+    $out = (new RaidProgressionAnalyzer)->teamBossBreakdown(new Collection([$a, $b]), 'heroic');
 
     expect($out)->toHaveCount(1);
     $inst = $out[0];
@@ -198,7 +199,7 @@ it('teamBossBreakdown caps a heroic team at heroic, dropping mythic kills entire
         ]],
     ]);
 
-    $out = (new RaidProgressionAnalyzer())->teamBossBreakdown(new Collection([$crossover]), 'heroic');
+    $out = (new RaidProgressionAnalyzer)->teamBossBreakdown(new Collection([$crossover]), 'heroic');
 
     expect($out)->toHaveCount(1);
     expect($out[0]['difficulties'])->toHaveCount(1);
@@ -221,7 +222,7 @@ it('teamBossBreakdown shows mythic and heroic for a mythic team, mythic first', 
         ]],
     ]);
 
-    $out = (new RaidProgressionAnalyzer())->teamBossBreakdown(new Collection([$snap]), 'mythic');
+    $out = (new RaidProgressionAnalyzer)->teamBossBreakdown(new Collection([$snap]), 'mythic');
 
     $diffs = $out[0]['difficulties'];
     expect($diffs)->toHaveCount(2);
@@ -250,7 +251,7 @@ it('teamBossBreakdown orders instances newest expansion + instance first and ski
         ]],
     ]);
 
-    $out = (new RaidProgressionAnalyzer())->teamBossBreakdown(new Collection([$snap]), 'mythic');
+    $out = (new RaidProgressionAnalyzer)->teamBossBreakdown(new Collection([$snap]), 'mythic');
 
     expect($out)->toHaveCount(3);
     expect($out[0]['name'])->toBe('Manaforge'); // newest expansion + newest instance
@@ -264,7 +265,7 @@ it('teamBossBreakdown orders instances newest expansion + instance first and ski
 });
 
 it('teamBossBreakdown returns empty when the snapshot collection is empty', function () {
-    $out = (new RaidProgressionAnalyzer())->teamBossBreakdown(new Collection(), 'mythic');
+    $out = (new RaidProgressionAnalyzer)->teamBossBreakdown(new Collection, 'mythic');
     expect($out)->toBe([]);
 });
 
@@ -284,7 +285,7 @@ it('teamBossBreakdown filters to a single expansion when onlyExpansionId is set'
         ]],
     ]);
 
-    $analyzer = new RaidProgressionAnalyzer();
+    $analyzer = new RaidProgressionAnalyzer;
     $out = $analyzer->teamBossBreakdown(new Collection([$snap]), 'mythic', 510);
 
     expect($out)->toHaveCount(1);
@@ -301,7 +302,7 @@ it('teamBossBreakdown returns empty when onlyExpansionId matches no instance', f
         ]],
     ]);
 
-    $out = (new RaidProgressionAnalyzer())->teamBossBreakdown(new Collection([$snap]), 'mythic', 999);
+    $out = (new RaidProgressionAnalyzer)->teamBossBreakdown(new Collection([$snap]), 'mythic', 999);
 
     expect($out)->toBe([]);
 });

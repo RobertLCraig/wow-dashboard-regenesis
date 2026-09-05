@@ -22,10 +22,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class MemberMplusRun extends Model
 {
     public const SOURCE_RECENT = 'recent';
+
     public const SOURCE_WEEKLY_BEST = 'weekly_best';
+
     public const SOURCE_PREV_WEEKLY_BEST = 'prev_weekly_best';
+
     public const SOURCE_SEASON_BEST = 'season_best';
+
     public const SOURCE_ALTERNATE = 'alternate';
+
     public const SOURCE_ADDON = 'addon';
 
     protected $table = 'member_mplus_runs';

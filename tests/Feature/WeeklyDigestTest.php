@@ -3,8 +3,12 @@
 use App\Models\Member;
 use App\Models\MemberEvent;
 use App\Models\MemberSnapshot;
+use App\Models\MemberTeam;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
+use App\Models\WclActorParse;
+use App\Models\WclFight;
+use App\Models\WclReport;
 use App\Services\Digest\DatabaseSize;
 use App\Services\Digest\WeeklyDigestBuilder;
 use App\Services\Discord\DiscordWebhookPoster;
@@ -39,7 +43,7 @@ function digestMember(string $name, array $overrides = []): Member
     ], $overrides));
 
     if ($team !== null) {
-        \App\Models\MemberTeam::query()->create([
+        MemberTeam::query()->create([
             'member_id' => $member->id,
             'team' => $team,
             'is_override' => false,
@@ -82,7 +86,7 @@ it('digest renders +N / -0 correctly when only joins occur in the window', funct
         $m = digestMember($name);
         MemberEvent::query()->create([
             'member_id' => $m->id, 'type' => MemberEvent::TYPE_JOINED,
-            'occurred_at' => $now->subDays(2), 'dedup_hash' => 'hz-' . $i,
+            'occurred_at' => $now->subDays(2), 'dedup_hash' => 'hz-'.$i,
         ]);
     }
 
@@ -99,7 +103,7 @@ it('digest renders +0 / -N correctly when only departures occur in the window', 
         $m = digestMember($name);
         MemberEvent::query()->create([
             'member_id' => $m->id, 'type' => MemberEvent::TYPE_LEFT,
-            'occurred_at' => $now->subDays(2), 'dedup_hash' => 'hq-' . $i,
+            'occurred_at' => $now->subDays(2), 'dedup_hash' => 'hq-'.$i,
         ]);
     }
 
@@ -185,32 +189,32 @@ it('digest includes the best parses (one row per member, sorted desc) from the l
     $b = digestMember('Bruiser-Silvermoon');
     $c = digestMember('Healer-Silvermoon');
 
-    $report = \App\Models\WclReport::query()->create([
+    $report = WclReport::query()->create([
         'guild_key' => 'Regenesis-Silvermoon',
         'code' => 'rrrrrr', 'title' => 'Tuesday Heroic',
         'start_time' => $now->subDays(2),
         'captured_at' => $now,
     ]);
-    $fight = \App\Models\WclFight::query()->create([
+    $fight = WclFight::query()->create([
         'wcl_report_id' => $report->id, 'fight_id' => 1,
         'encounter_id' => 100, 'name' => 'Plexus Sentinel',
-        'difficulty' => \App\Models\WclFight::DIFFICULTY_HEROIC,
+        'difficulty' => WclFight::DIFFICULTY_HEROIC,
         'kill' => true,
         'start_time' => $now->subDays(2),
     ]);
-    \App\Models\WclActorParse::query()->create([
+    WclActorParse::query()->create([
         'wcl_fight_id' => $fight->id, 'member_id' => $a->id,
         'actor_name' => 'Sheday', 'role' => 'dps', 'parse_percentile' => 95,
     ]);
-    \App\Models\WclActorParse::query()->create([
+    WclActorParse::query()->create([
         'wcl_fight_id' => $fight->id, 'member_id' => $a->id,
         'actor_name' => 'ShedayAlt', 'role' => 'dps', 'parse_percentile' => 99,  // duplicate member
     ]);
-    \App\Models\WclActorParse::query()->create([
+    WclActorParse::query()->create([
         'wcl_fight_id' => $fight->id, 'member_id' => $b->id,
         'actor_name' => 'Bruiser', 'role' => 'dps', 'parse_percentile' => 80,
     ]);
-    \App\Models\WclActorParse::query()->create([
+    WclActorParse::query()->create([
         'wcl_fight_id' => $fight->id, 'member_id' => $c->id,
         'actor_name' => 'Healer', 'role' => 'healer', 'parse_percentile' => 60,
     ]);
@@ -228,7 +232,6 @@ it('digest includes the best parses (one row per member, sorted desc) from the l
     expect(strpos($section, '80%'))->toBeLessThan(strpos($section, '60%'));
 });
 
-
 // --- Database size warning ------------------------------------------
 
 /**
@@ -239,7 +242,8 @@ it('digest includes the best parses (one row per member, sorted desc) from the l
  */
 function fakeDbSize(array $tables): DatabaseSize
 {
-    return new class($tables) extends DatabaseSize {
+    return new class($tables) extends DatabaseSize
+    {
         /** @param list<array{name: string, mb: float}> $tables */
         public function __construct(private readonly array $tables) {}
 
@@ -307,8 +311,7 @@ it('poster posts the body to the webhook URL as JSON', function () {
     $r = (new DiscordWebhookPoster('https://discord.test/webhooks/1/abc'))->post('hi from regenesis');
 
     expect($r['posted'])->toBe(1);
-    Http::assertSent(fn ($req) =>
-        $req->url() === 'https://discord.test/webhooks/1/abc'
+    Http::assertSent(fn ($req) => $req->url() === 'https://discord.test/webhooks/1/abc'
         && $req['content'] === 'hi from regenesis'
     );
 });

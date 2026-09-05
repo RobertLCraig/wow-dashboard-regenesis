@@ -4,12 +4,13 @@ use App\Support\WowDictionary;
 
 function dictWithFiles(array $enchants, array $gems): WowDictionary
 {
-    $dir = sys_get_temp_dir() . '/wowdict-' . uniqid();
+    $dir = sys_get_temp_dir().'/wowdict-'.uniqid();
     @mkdir($dir, 0777, true);
     $enchantsPath = "{$dir}/enchants.json";
     $gemsPath = "{$dir}/gems.json";
     file_put_contents($enchantsPath, json_encode($enchants));
     file_put_contents($gemsPath, json_encode($gems));
+
     return new WowDictionary($enchantsPath, $gemsPath);
 }
 

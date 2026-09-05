@@ -39,10 +39,11 @@ class InviteMacroBuilder
 
             if (strlen($line) > self::MACRO_BYTE_LIMIT) {
                 $oversized[] = $name;
+
                 continue;
             }
 
-            $candidate = $current === '' ? $line : $current . "\n" . $line;
+            $candidate = $current === '' ? $line : $current."\n".$line;
             if (strlen($candidate) > self::MACRO_BYTE_LIMIT) {
                 $macros[] = $current;
                 $current = $line;
@@ -79,6 +80,7 @@ class InviteMacroBuilder
         // Take the first token before a comma, slash, or whitespace.
         $token = preg_split('/[\s,\/]+/u', trim($stripped), 2)[0] ?? '';
         $token = trim($token);
+
         return $token === '' ? null : $token;
     }
 }

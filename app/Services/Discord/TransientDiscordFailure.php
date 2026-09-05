@@ -8,6 +8,4 @@ namespace App\Services\Discord;
  * problem. Callers catch this and fall back to the last known good
  * state instead of locking the user out for the cache TTL.
  */
-class TransientDiscordFailure extends \RuntimeException
-{
-}
+class TransientDiscordFailure extends \RuntimeException {}

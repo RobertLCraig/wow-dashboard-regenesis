@@ -3,6 +3,7 @@
 use App\Models\Member;
 use App\Models\MemberRaidSnapshot;
 use App\Models\MemberSnapshot;
+use App\Models\MemberTeam;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
 use App\Models\User;
@@ -44,7 +45,7 @@ function makeTeamMember(string $name, ?string $team, array $overrides = []): Mem
     ], $overrides));
 
     if ($effectiveTeam !== null) {
-        \App\Models\MemberTeam::query()->create([
+        MemberTeam::query()->create([
             'member_id' => $member->id,
             'team' => $effectiveTeam,
             'is_override' => false,
@@ -60,7 +61,7 @@ function snapshotWithRow(int $memberId, array $rowOverrides = []): Snapshot
         'guild_key' => 'Regenesis-Silvermoon',
         'captured_at' => now(),
         'source' => Snapshot::SOURCE_RAIDERIO,
-        'payload_hash' => hash('sha256', (string) $memberId . microtime()),
+        'payload_hash' => hash('sha256', (string) $memberId.microtime()),
     ]);
     MemberSnapshot::query()->create(array_replace([
         'snapshot_id' => $snapshot->id,
@@ -78,6 +79,7 @@ function snapshotWithRow(int $memberId, array $rowOverrides = []): Snapshot
             ],
         ],
     ], $rowOverrides));
+
     return $snapshot;
 }
 
@@ -86,8 +88,8 @@ it('dashboard shows the team progression widget with per-team rollups', function
     // h2 has heroic kills only.
     // m1 is on the Mythic team with 6/8 mythic kills.
     // The heroic team cap means its matrix row shows H8/8, not M3/8.
-    $h1 = makeTeamMember('Healer-Silvermoon',  TeamMapping::TEAM_HEROIC);
-    $h2 = makeTeamMember('Tank-Silvermoon',    TeamMapping::TEAM_HEROIC);
+    $h1 = makeTeamMember('Healer-Silvermoon', TeamMapping::TEAM_HEROIC);
+    $h2 = makeTeamMember('Tank-Silvermoon', TeamMapping::TEAM_HEROIC);
     $m1 = makeTeamMember('Bruiser-Silvermoon', TeamMapping::TEAM_MYTHIC);
 
     $rio = Snapshot::query()->create([
@@ -103,7 +105,7 @@ it('dashboard shows the team progression widget with per-team rollups', function
         'guild_key' => 'Regenesis-Silvermoon', 'captured_at' => now(),
         'source' => Snapshot::SOURCE_BLIZZARD_RAIDS, 'payload_hash' => 'rollup-bliz',
     ]);
-    $enc  = fn (int $id, bool $k): array => [
+    $enc = fn (int $id, bool $k): array => [
         'encounter' => ['id' => $id, 'name' => "Boss{$id}"],
         'completed_count' => $k ? 1 : 0, 'last_kill_timestamp' => $k ? 1_700_000_000 : 0,
     ];
@@ -120,7 +122,7 @@ it('dashboard shows the team progression widget with per-team rollups', function
         'progress' => ['completed_count' => count(array_filter($encs, fn ($e) => $e['completed_count'])), 'total_count' => count($encs), 'encounters' => $encs],
     ];
 
-    $all8  = array_map(fn ($i) => $enc($i, true),    range(1, 8));
+    $all8 = array_map(fn ($i) => $enc($i, true), range(1, 8));
     $m3of8 = array_map(fn ($i) => $enc($i, $i <= 3), range(1, 8));
     $m6of8 = array_map(fn ($i) => $enc($i, $i <= 6), range(1, 8));
 
@@ -143,7 +145,7 @@ it('dashboard shows the team progression widget with per-team rollups', function
 it('caps the Heroic team rollup at heroic difficulty even when one member has mythic kills', function () {
     // Regression test: a Heroic-team member who joined the Mythic raid
     // for a few bosses should NOT pull the team's matrix summary to M4/9.
-    $hero      = makeTeamMember('Hero-Silvermoon',      TeamMapping::TEAM_HEROIC);
+    $hero = makeTeamMember('Hero-Silvermoon', TeamMapping::TEAM_HEROIC);
     $crossover = makeTeamMember('Crossover-Silvermoon', TeamMapping::TEAM_HEROIC);
 
     $rio = Snapshot::query()->create([
@@ -160,7 +162,7 @@ it('caps the Heroic team rollup at heroic difficulty even when one member has my
         'guild_key' => 'Regenesis-Silvermoon', 'captured_at' => now(),
         'source' => Snapshot::SOURCE_BLIZZARD_RAIDS, 'payload_hash' => 'cap-bliz',
     ]);
-    $enc  = fn (int $id, bool $k): array => [
+    $enc = fn (int $id, bool $k): array => [
         'encounter' => ['id' => $id, 'name' => "Boss{$id}"],
         'completed_count' => $k ? 1 : 0, 'last_kill_timestamp' => $k ? 1_700_000_000 : 0,
     ];
@@ -379,7 +381,6 @@ it('hides older-expansion raids in the breakdown so only the current tier shows'
     $resp->assertDontSee('OldBoss-TWW');
 });
 
-
 it('caps the heroic team breakdown at heroic, dropping mythic encounters', function () {
     $crossover = makeTeamMember('Crossover-Silvermoon', TeamMapping::TEAM_HEROIC);
     snapshotWithRow($crossover->id, ['ilvl' => 642]);
@@ -417,7 +418,6 @@ it('caps the heroic team breakdown at heroic, dropping mythic encounters', funct
     $resp->assertDontSee('MythicOnlyBoss');
     $resp->assertDontSee('1/1 M');
 });
-
 
 it('officer can trigger an on-demand RIO sync', function () {
     makeTeamMember('Sheday-Silvermoon', TeamMapping::TEAM_HEROIC);
@@ -549,8 +549,7 @@ it('rejects a concurrent press while another sync is running', function () {
 
     // The blocked caller didn't burn an HTTP call OR a rate-limit token.
     Http::assertNothingSent();
-    expect(RateLimiter::attempts('raiderio-sync:user:' . $user->id))->toBe(0);
+    expect(RateLimiter::attempts('raiderio-sync:user:'.$user->id))->toBe(0);
 
     $lock->release();
 });
-

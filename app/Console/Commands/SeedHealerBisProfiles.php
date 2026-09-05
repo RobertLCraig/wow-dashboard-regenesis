@@ -47,25 +47,29 @@ class SeedHealerBisProfiles extends Command
         $path = (string) ($this->option('path') ?? database_path('data/healer-bis-profiles.json'));
         if (! is_file($path)) {
             $this->error("Healer BiS data file not found: {$path}");
+
             return self::FAILURE;
         }
 
         $raw = file_get_contents($path);
         if ($raw === false) {
             $this->error("Could not read {$path}");
+
             return self::FAILURE;
         }
 
         try {
             $decoded = json_decode($raw, associative: true, flags: JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
-            $this->error("Invalid JSON in {$path}: " . $e->getMessage());
+            $this->error("Invalid JSON in {$path}: ".$e->getMessage());
+
             return self::FAILURE;
         }
 
         $profiles = $decoded['profiles'] ?? null;
         if (! is_array($profiles)) {
             $this->error("'profiles' key missing or not an array in {$path}");
+
             return self::FAILURE;
         }
 
@@ -77,6 +81,7 @@ class SeedHealerBisProfiles extends Command
             if (! is_array($row)) {
                 $this->warn("entry #{$i} is not an object - skipping");
                 $skipped++;
+
                 continue;
             }
             $class = $row['class'] ?? null;
@@ -84,6 +89,7 @@ class SeedHealerBisProfiles extends Command
             if (! is_string($class) || ! is_string($spec)) {
                 $this->warn("entry #{$i} missing class/spec - skipping");
                 $skipped++;
+
                 continue;
             }
 

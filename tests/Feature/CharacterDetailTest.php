@@ -1,17 +1,21 @@
 <?php
 
 use App\Models\AltGroup;
+use App\Models\AttendanceStat;
+use App\Models\BisProfile;
 use App\Models\Member;
 use App\Models\MemberAction;
 use App\Models\MemberEvent;
 use App\Models\MemberMplusRun;
 use App\Models\MemberSnapshot;
+use App\Models\MemberTeam;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
 use App\Models\User;
 use App\Models\WclActorParse;
 use App\Models\WclFight;
 use App\Models\WclReport;
+use App\Services\Bis\BisComparisonService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -50,7 +54,7 @@ function characterMember(string $name, array $overrides = []): Member
     ], $overrides));
 
     if ($team !== null) {
-        \App\Models\MemberTeam::query()->create([
+        MemberTeam::query()->create([
             'member_id' => $member->id,
             'team' => $team,
             'is_override' => false,
@@ -188,7 +192,6 @@ it('shows GRM events under the Activity section', function () {
         ->assertSee('Heroic Raider');
 });
 
-
 it('routes to characters whose realm has parentheses and accents', function () {
     // GRM stores realms verbatim, so names like "Foo-Aggra(Português)"
     // and "Foo-Drak'thul" land in the DB as-is. The route constraint
@@ -197,12 +200,12 @@ it('routes to characters whose realm has parentheses and accents', function () {
     characterMember("Mikkino-Drak'thul");
 
     $this->actingAs(characterOfficer())
-        ->get('/character/' . rawurlencode('Absolutely-Aggra(Português)'))
+        ->get('/character/'.rawurlencode('Absolutely-Aggra(Português)'))
         ->assertOk()
         ->assertSee('Absolutely-Aggra(Português)');
 
     $this->actingAs(characterOfficer())
-        ->get('/character/' . rawurlencode("Mikkino-Drak'thul"))
+        ->get('/character/'.rawurlencode("Mikkino-Drak'thul"))
         ->assertOk()
         ->assertSee("Mikkino-Drak'thul");
 });
@@ -210,7 +213,7 @@ it('routes to characters whose realm has parentheses and accents', function () {
 it('shows the latest attendance stat for the character (looked up by member_name)', function () {
     $m = characterMember('Sheday-Silvermoon');
 
-    \App\Models\AttendanceStat::query()->create([
+    AttendanceStat::query()->create([
         'guild_key' => 'Regenesis-Silvermoon',
         'captured_at' => now()->subDays(2),
         'member_name' => 'Sheday-Silvermoon',
@@ -219,7 +222,7 @@ it('shows the latest attendance stat for the character (looked up by member_name
         'total_count' => 16,
     ]);
     // Older row for the same character; should NOT win.
-    \App\Models\AttendanceStat::query()->create([
+    AttendanceStat::query()->create([
         'guild_key' => 'Regenesis-Silvermoon',
         'captured_at' => now()->subWeeks(3),
         'member_name' => 'Sheday-Silvermoon',
@@ -228,7 +231,7 @@ it('shows the latest attendance stat for the character (looked up by member_name
         'total_count' => 16,
     ]);
     // Different character; should not appear here.
-    \App\Models\AttendanceStat::query()->create([
+    AttendanceStat::query()->create([
         'guild_key' => 'Regenesis-Silvermoon',
         'captured_at' => now()->subDays(1),
         'member_name' => 'Other-Silvermoon',
@@ -250,11 +253,12 @@ it('still renders the character page even when the BiS comparison service throws
 
     // Swap in a comparison service whose compareForMember always throws.
     // The controller catches it, logs, and continues rendering.
-    $this->app->bind(\App\Services\Bis\BisComparisonService::class, function () {
-        return new class extends \App\Services\Bis\BisComparisonService {
-            public function compareForMember(\App\Models\Member $member): ?array
+    $this->app->bind(BisComparisonService::class, function () {
+        return new class extends BisComparisonService
+        {
+            public function compareForMember(Member $member): ?array
             {
-                throw new \RuntimeException('contrived test failure');
+                throw new RuntimeException('contrived test failure');
             }
         };
     });
@@ -265,11 +269,10 @@ it('still renders the character page even when the BiS comparison service throws
         ->assertSee('Crash-Silvermoon');
 });
 
-
 it('renders the BiS comparison section when a matching BisProfile exists', function () {
     $m = characterMember('Bishero-Silvermoon', ['class' => 'PALADIN', 'team' => null]);
 
-    \App\Models\BisProfile::query()->create([
+    BisProfile::query()->create([
         'class' => 'paladin',
         'spec' => 'retribution',
         'hero_talent' => null,

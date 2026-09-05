@@ -27,6 +27,7 @@ class PullBlizzardSocial extends Command
         $client = BlizzardClient::fromConfig();
         if (! $client->isConfigured()) {
             $this->info('blizzard:pull-social skipped (BLIZZARD_CLIENT_ID / BLIZZARD_CLIENT_SECRET not set).');
+
             return self::SUCCESS;
         }
 
@@ -41,7 +42,8 @@ class PullBlizzardSocial extends Command
         try {
             $result = $importer->pull();
         } catch (\Throwable $e) {
-            $this->error('blizzard:pull-social failed: ' . $e->getMessage());
+            $this->error('blizzard:pull-social failed: '.$e->getMessage());
+
             return self::FAILURE;
         }
 

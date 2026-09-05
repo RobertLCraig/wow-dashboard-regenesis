@@ -42,6 +42,7 @@ class SendWeeklyDigest extends Command
         if ($this->option('dry-run')) {
             $this->info("--- DIGEST PREVIEW ({$bytes} bytes) ---");
             $this->line($markdown);
+
             return self::SUCCESS;
         }
 
@@ -55,13 +56,16 @@ class SendWeeklyDigest extends Command
                 $r = (new DiscordWebhookPoster($legacyUrl))->post($markdown);
                 if ($r['error']) {
                     $this->error("Legacy webhook post failed: {$r['error']}");
+
                     return self::FAILURE;
                 }
                 $this->info("Posted to legacy DIGEST_DISCORD_WEBHOOK_URL env var ({$r['posted']} chunk(s)). Add it to /admin/webhooks to retire the env var.");
+
                 return self::SUCCESS;
             }
             $this->warn('No weekly_digest webhook configured; printing to stdout instead.');
             $this->line($markdown);
+
             return self::SUCCESS;
         }
 
@@ -72,6 +76,7 @@ class SendWeeklyDigest extends Command
             if ($r['error']) {
                 $failed++;
                 $this->error("[{$hook->label}] post failed after {$r['posted']} chunk(s): {$r['error']}");
+
                 continue;
             }
             $totalChunks += $r['posted'];
@@ -86,6 +91,7 @@ class SendWeeklyDigest extends Command
             'Posted weekly digest to %d webhook(s) in %d chunk(s) total (%d bytes per copy).',
             $hooks->count() - $failed, $totalChunks, $bytes,
         ));
+
         return self::SUCCESS;
     }
 }

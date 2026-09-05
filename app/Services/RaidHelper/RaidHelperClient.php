@@ -56,7 +56,7 @@ class RaidHelperClient
     {
         return $this->request()
             ->asJson()
-            ->post(self::BASE . "/servers/{$this->serverId}/channels/{$channelId}/event", $payload);
+            ->post(self::BASE."/servers/{$this->serverId}/channels/{$channelId}/event", $payload);
     }
 
     /**
@@ -68,7 +68,7 @@ class RaidHelperClient
     {
         return $this->request()
             ->asJson()
-            ->patch(self::BASE . "/events/{$eventId}", $payload);
+            ->patch(self::BASE."/events/{$eventId}", $payload);
     }
 
     /**
@@ -77,7 +77,7 @@ class RaidHelperClient
     public function deleteEvent(string $eventId): Response
     {
         return $this->request()
-            ->delete(self::BASE . "/events/{$eventId}");
+            ->delete(self::BASE."/events/{$eventId}");
     }
 
     /**
@@ -89,7 +89,7 @@ class RaidHelperClient
     public function getEvent(string $eventId): Response
     {
         return $this->request()
-            ->get(self::BASE . "/events/{$eventId}");
+            ->get(self::BASE."/events/{$eventId}");
     }
 
     /**
@@ -110,9 +110,10 @@ class RaidHelperClient
         if ($channelFilter) {
             $headers['ChannelFilter'] = $channelFilter;
         }
+
         return $this->request()
             ->withHeaders($headers)
-            ->get(self::BASE . "/servers/{$this->serverId}/events");
+            ->get(self::BASE."/servers/{$this->serverId}/events");
     }
 
     /**
@@ -121,7 +122,7 @@ class RaidHelperClient
     public function listScheduledEvents(): Response
     {
         return $this->request()
-            ->get(self::BASE . "/servers/{$this->serverId}/scheduledevents");
+            ->get(self::BASE."/servers/{$this->serverId}/scheduledevents");
     }
 
     /**
@@ -148,6 +149,6 @@ class RaidHelperClient
 
         return $this->request()
             ->withHeaders($headers)
-            ->get(self::BASE . "/servers/{$this->serverId}/attendance");
+            ->get(self::BASE."/servers/{$this->serverId}/attendance");
     }
 }

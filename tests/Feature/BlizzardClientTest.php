@@ -49,14 +49,12 @@ it('exchanges client credentials for an access token on first use', function () 
 
     BlizzardClient::fromConfig()->profile('silvermoon', 'Sheday');
 
-    Http::assertSent(fn ($req) =>
-        $req->url() === 'https://oauth.battle.test/token'
+    Http::assertSent(fn ($req) => $req->url() === 'https://oauth.battle.test/token'
         && $req->method() === 'POST'
         && $req->body() === 'grant_type=client_credentials'
-        && $req->hasHeader('Authorization', 'Basic ' . base64_encode('test-client-id:test-client-secret'))
+        && $req->hasHeader('Authorization', 'Basic '.base64_encode('test-client-id:test-client-secret'))
     );
-    Http::assertSent(fn ($req) =>
-        str_contains($req->url(), 'eu.api.blizzard.test/profile/wow/character/silvermoon/sheday')
+    Http::assertSent(fn ($req) => str_contains($req->url(), 'eu.api.blizzard.test/profile/wow/character/silvermoon/sheday')
         && $req->hasHeader('Authorization', 'Bearer shiny-token')
         && $req->hasHeader('Battlenet-Namespace', 'profile-eu')
     );
@@ -91,11 +89,9 @@ it('re-fetches the token after forgetToken()', function () {
     $client->forgetToken();
     $client->profile('silvermoon', 'Tute');
 
-    Http::assertSent(fn ($req) =>
-        str_contains($req->url(), '/profile/wow/character/silvermoon/sheday')
+    Http::assertSent(fn ($req) => str_contains($req->url(), '/profile/wow/character/silvermoon/sheday')
         && $req->hasHeader('Authorization', 'Bearer first'));
-    Http::assertSent(fn ($req) =>
-        str_contains($req->url(), '/profile/wow/character/silvermoon/tute')
+    Http::assertSent(fn ($req) => str_contains($req->url(), '/profile/wow/character/silvermoon/tute')
         && $req->hasHeader('Authorization', 'Bearer second'));
 });
 
@@ -104,7 +100,7 @@ it('throws when client credentials are missing', function () {
     $client = BlizzardClient::fromConfig();
 
     expect(fn () => $client->profile('silvermoon', 'Sheday'))
-        ->toThrow(\RuntimeException::class, 'Battle.net client credentials are not configured');
+        ->toThrow(RuntimeException::class, 'Battle.net client credentials are not configured');
 });
 
 it('throws when the OAuth endpoint returns a non-2xx', function () {
@@ -113,7 +109,7 @@ it('throws when the OAuth endpoint returns a non-2xx', function () {
     ]);
 
     expect(fn () => BlizzardClient::fromConfig()->profile('silvermoon', 'Sheday'))
-        ->toThrow(\RuntimeException::class, 'Battle.net OAuth failed: 401');
+        ->toThrow(RuntimeException::class, 'Battle.net OAuth failed: 401');
 });
 
 it('throws when the OAuth response has no access_token', function () {
@@ -122,7 +118,7 @@ it('throws when the OAuth response has no access_token', function () {
     ]);
 
     expect(fn () => BlizzardClient::fromConfig()->profile('silvermoon', 'Sheday'))
-        ->toThrow(\RuntimeException::class, 'no access_token');
+        ->toThrow(RuntimeException::class, 'no access_token');
 });
 
 it('rawurlencodes realm and character segments', function () {
@@ -169,8 +165,7 @@ it('hits the status sub-resource with the profile namespace', function () {
 
     BlizzardClient::fromConfig()->status('silvermoon', 'Sheday');
 
-    Http::assertSent(fn ($req) =>
-        str_contains($req->url(), '/profile/wow/character/silvermoon/sheday/status')
+    Http::assertSent(fn ($req) => str_contains($req->url(), '/profile/wow/character/silvermoon/sheday/status')
         && $req->hasHeader('Battlenet-Namespace', 'profile-eu'));
 });
 
@@ -182,8 +177,7 @@ it('hits the equipment sub-resource with the profile namespace', function () {
 
     BlizzardClient::fromConfig()->equipment('silvermoon', 'Sheday');
 
-    Http::assertSent(fn ($req) =>
-        str_contains($req->url(), '/profile/wow/character/silvermoon/sheday/equipment')
+    Http::assertSent(fn ($req) => str_contains($req->url(), '/profile/wow/character/silvermoon/sheday/equipment')
         && $req->hasHeader('Battlenet-Namespace', 'profile-eu'));
 });
 
@@ -195,8 +189,7 @@ it('hits the guild roster endpoint with the profile namespace', function () {
 
     BlizzardClient::fromConfig()->guildRoster('silvermoon', 'regenesis');
 
-    Http::assertSent(fn ($req) =>
-        str_contains($req->url(), '/data/wow/guild/silvermoon/regenesis/roster')
+    Http::assertSent(fn ($req) => str_contains($req->url(), '/data/wow/guild/silvermoon/regenesis/roster')
         && $req->hasHeader('Battlenet-Namespace', 'profile-eu')
         && $req->hasHeader('Authorization', 'Bearer tok'));
 });

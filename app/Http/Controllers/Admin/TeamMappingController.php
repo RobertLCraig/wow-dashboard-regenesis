@@ -82,17 +82,17 @@ class TeamMappingController extends Controller
         $validated = $request->validate([
             'ranks' => ['array'],
             'ranks.*.key' => ['required', 'string', 'max:255'],
-            'ranks.*.team' => ['nullable', 'in:' . implode(',', TeamMapping::TEAMS)],
+            'ranks.*.team' => ['nullable', 'in:'.implode(',', TeamMapping::TEAMS)],
 
             'roles' => ['array'],
             'roles.*.key' => ['required', 'string', 'regex:/^[0-9]{15,25}$/'],
             'roles.*.label' => ['nullable', 'string', 'max:255'],
-            'roles.*.team' => ['nullable', 'in:' . implode(',', TeamMapping::TEAMS)],
+            'roles.*.team' => ['nullable', 'in:'.implode(',', TeamMapping::TEAMS)],
             'roles.*.priority' => ['nullable', 'integer', 'min:0', 'max:1000'],
 
             'new_role.key' => ['nullable', 'string', 'regex:/^[0-9]{15,25}$/'],
             'new_role.label' => ['nullable', 'string', 'max:255'],
-            'new_role.team' => ['nullable', 'in:' . implode(',', TeamMapping::TEAMS)],
+            'new_role.team' => ['nullable', 'in:'.implode(',', TeamMapping::TEAMS)],
             'new_role.priority' => ['nullable', 'integer', 'min:0', 'max:1000'],
 
             'delete_role_ids' => ['array'],

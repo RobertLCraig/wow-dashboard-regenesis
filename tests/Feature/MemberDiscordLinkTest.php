@@ -99,7 +99,7 @@ it('rejects a snowflake that is the wrong length', function () {
 
 it('two members can share the same discord_user_id (main and alt)', function () {
     $main = discordLinkMember('Main-Silvermoon');
-    $alt  = discordLinkMember('Alt-Silvermoon');
+    $alt = discordLinkMember('Alt-Silvermoon');
     $u = discordLinkOfficer();
 
     foreach ([$main, $alt] as $member) {

@@ -60,6 +60,7 @@ class TeamScheduleResolver
         foreach (array_keys((array) config('raidhelper.teams', [])) as $slug) {
             $out[$slug] = self::for($slug);
         }
+
         return $out;
     }
 }

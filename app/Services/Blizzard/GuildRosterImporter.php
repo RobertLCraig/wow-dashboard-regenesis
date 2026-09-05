@@ -55,13 +55,13 @@ class GuildRosterImporter
         if (! $this->client->isConfigured()) {
             throw new \RuntimeException(
                 'Blizzard client credentials are not configured. '
-                . 'Set BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET.'
+                .'Set BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET.'
             );
         }
         if ($this->guildRealmSlug === '' || $this->guildNameSlug === '') {
             throw new \RuntimeException(
                 'Blizzard guild identity is not configured. '
-                . 'Set BLIZZARD_GUILD_REALM_SLUG and BLIZZARD_GUILD_NAME_SLUG.'
+                .'Set BLIZZARD_GUILD_REALM_SLUG and BLIZZARD_GUILD_NAME_SLUG.'
             );
         }
 

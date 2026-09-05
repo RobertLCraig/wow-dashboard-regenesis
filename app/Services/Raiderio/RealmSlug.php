@@ -33,6 +33,7 @@ class RealmSlug
         if ($pos === false || $pos === strlen($memberName) - 1) {
             return null;
         }
+
         return substr($memberName, $pos + 1);
     }
 
@@ -68,6 +69,7 @@ class RealmSlug
         $lowered = mb_strtolower($collapsedRealm);
         $hyphenated = preg_replace("/[' \u{2019}` ()]+/u", '-', $lowered) ?? $lowered;
         $collapsed = preg_replace('/-+/', '-', $hyphenated) ?? $hyphenated;
+
         return trim($collapsed, '-');
     }
 
@@ -91,6 +93,7 @@ class RealmSlug
         // \p{L} / \p{N} to keep accented letters intact - RIO preserves
         // them in slugs ("aggra-português", not "aggra-portugues").
         $s = preg_replace('/[^\p{L}\p{N}]+/u', '-', $s) ?? '';
+
         return trim($s, '-');
     }
 }

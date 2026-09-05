@@ -22,7 +22,7 @@ it('splits into a second macro when the cumulative length would exceed 255 bytes
     // 12-char name -> 21-char line (`/gremove ` = 9 + 12). With newline
     // separators that is 22 bytes per added line. 11 lines = 21 + 10*22
     // = 241 (fits). 12 lines would be 263 (overflow).
-    $names = array_map(fn ($i) => 'Charabcdefgh' . $i, range(0, 11));   // 12 names
+    $names = array_map(fn ($i) => 'Charabcdefgh'.$i, range(0, 11));   // 12 names
 
     $r = KickMacroBuilder::build($names);
 
@@ -33,7 +33,7 @@ it('splits into a second macro when the cumulative length would exceed 255 bytes
     // Every name made it in across both macros.
     $joined = implode("\n", $r['macros']);
     foreach ($names as $name) {
-        expect($joined)->toContain('/gremove ' . $name);
+        expect($joined)->toContain('/gremove '.$name);
     }
 });
 
@@ -53,7 +53,7 @@ it('trims whitespace and ignores blank entries', function () {
 });
 
 it('preserves input order across macro splits', function () {
-    $names = array_map(fn ($i) => 'Char' . str_pad((string) $i, 2, '0', STR_PAD_LEFT), range(1, 30));
+    $names = array_map(fn ($i) => 'Char'.str_pad((string) $i, 2, '0', STR_PAD_LEFT), range(1, 30));
     $r = KickMacroBuilder::build($names);
 
     $joined = implode("\n", $r['macros']);

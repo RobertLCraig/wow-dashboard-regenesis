@@ -18,6 +18,7 @@ use InvalidArgumentException;
 class RankMacroBuilder
 {
     public const OP_PROMOTE = 'promote';
+
     public const OP_DEMOTE = 'demote';
 
     public const MACRO_BYTE_LIMIT = LineMacroBuilder::MACRO_BYTE_LIMIT;

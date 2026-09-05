@@ -27,7 +27,9 @@ use RuntimeException;
 class LuaTableParser
 {
     private string $src = '';
+
     private int $pos = 0;
+
     private int $len = 0;
 
     /**
@@ -45,6 +47,7 @@ class LuaTableParser
         if ($contents === false) {
             throw new RuntimeException("Could not read $path");
         }
+
         return $this->parse($contents, $only);
     }
 
@@ -173,6 +176,7 @@ class LuaTableParser
             $c = $this->src[$this->pos];
             if ($c === $quote) {
                 $this->pos++;
+
                 return $out;
             }
             if ($c === '\\') {
@@ -198,6 +202,7 @@ class LuaTableParser
                 if (! ($next >= '0' && $next <= '9')) {
                     $this->pos++;
                 }
+
                 continue;
             }
             $out .= $c;
@@ -217,6 +222,7 @@ class LuaTableParser
             $digits .= $c;
             $this->pos++;
         }
+
         return chr((int) $digits);
     }
 
@@ -235,26 +241,30 @@ class LuaTableParser
             }
         }
         $literal = substr($this->src, $start, $this->pos - $start);
+
         return str_contains($literal, '.') || str_contains($literal, 'e') || str_contains($literal, 'E')
             ? (float) $literal
             : (int) $literal;
     }
 
-    private function readKeyword(): bool|null
+    private function readKeyword(): ?bool
     {
         if (substr($this->src, $this->pos, 4) === 'true') {
             $this->pos += 4;
+
             return true;
         }
         if (substr($this->src, $this->pos, 5) === 'false') {
             $this->pos += 5;
+
             return false;
         }
         if (substr($this->src, $this->pos, 3) === 'nil') {
             $this->pos += 3;
+
             return null;
         }
-        $this->fail('unknown keyword at position ' . $this->pos);
+        $this->fail('unknown keyword at position '.$this->pos);
     }
 
     private function readIdent(): string
@@ -271,6 +281,7 @@ class LuaTableParser
         if ($this->pos === $start) {
             $this->fail('expected identifier');
         }
+
         return substr($this->src, $start, $this->pos - $start);
     }
 
@@ -302,10 +313,12 @@ class LuaTableParser
             $c = $this->src[$this->pos];
             if ($c === '"' || $c === "'") {
                 $this->readString();
+
                 continue;
             }
             if ($c === '-' && ($this->src[$this->pos + 1] ?? '') === '-') {
                 $this->skipLineComment();
+
                 continue;
             }
             if ($c === '{') {

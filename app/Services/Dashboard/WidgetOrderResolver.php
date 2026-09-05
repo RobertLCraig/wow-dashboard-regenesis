@@ -25,7 +25,7 @@ class WidgetOrderResolver
 {
     /**
      * @param  list<array<string, mixed>>  $available
-     * @param  list<string>|null           $userOrder
+     * @param  list<string>|null  $userOrder
      * @return list<array<string, mixed>>
      */
     public static function resolve(array $available, ?array $userOrder): array

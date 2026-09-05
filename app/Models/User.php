@@ -18,9 +18,13 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     public const TIER_GM = 'gm';
+
     public const TIER_BIG6 = 'big6';
+
     public const TIER_OFFICER = 'officer';
+
     public const TIER_RAID_LEADER = 'raid_leader';
+
     public const TIER_MEMBER = 'member';
 
     /**
@@ -38,7 +42,9 @@ class User extends Authenticatable
     ];
 
     public const DISPLAY_STANDARD = 'standard';
+
     public const DISPLAY_CLEAR = 'clear';
+
     public const DISPLAY_HIGH_CLARITY = 'high_clarity';
 
     public const DISPLAY_MODES = [
@@ -48,6 +54,7 @@ class User extends Authenticatable
     ];
 
     public const THEME_DISCORD = 'discord';
+
     public const THEME_PHOENIX = 'phoenix';
 
     public const THEMES = [
@@ -151,6 +158,7 @@ class User extends Authenticatable
         if (! $this->calendar_token) {
             $this->forceFill(['calendar_token' => Str::random(64)])->save();
         }
+
         return $this->calendar_token;
     }
 

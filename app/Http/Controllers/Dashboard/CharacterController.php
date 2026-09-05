@@ -61,7 +61,7 @@ class CharacterController extends Controller
                 'class' => $member->class,
                 'level' => $member->level,
                 'message' => $e->getMessage(),
-                'file' => $e->getFile() . ':' . $e->getLine(),
+                'file' => $e->getFile().':'.$e->getLine(),
             ]);
             $bisComparison = null;
         }
@@ -162,6 +162,7 @@ class CharacterController extends Controller
     private function summariseWindow(Collection $runs, CarbonImmutable $cutoff): array
     {
         $window = $runs->filter(fn (MemberMplusRun $r) => $r->completed_at->greaterThanOrEqualTo($cutoff));
+
         return [
             'count' => $window->count(),
             'highest' => $window->max('mythic_level'),
@@ -234,6 +235,7 @@ class CharacterController extends Controller
             }
         }
         usort($byKey, fn (array $a, array $b) => $b['count'] <=> $a['count']);
+
         return array_values($byKey);
     }
 
@@ -256,6 +258,7 @@ class CharacterController extends Controller
                 $out[$source] = ['snapshot' => $latest->snapshot, 'member_snapshot' => $latest];
             }
         }
+
         return $out;
     }
 
@@ -308,6 +311,7 @@ class CharacterController extends Controller
         if (! $member->alt_group_id) {
             return collect();
         }
+
         return Member::query()
             ->forGuild($guildKey)
             ->where('alt_group_id', $member->alt_group_id)

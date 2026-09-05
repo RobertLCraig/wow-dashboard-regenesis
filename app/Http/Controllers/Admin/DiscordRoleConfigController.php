@@ -81,6 +81,7 @@ class DiscordRoleConfigController extends Controller
                 if (! empty($row['delete'])) {
                     // Cascades the team_role_mentions rows.
                     $role->delete();
+
                     continue;
                 }
                 if (empty($row['name'])) {

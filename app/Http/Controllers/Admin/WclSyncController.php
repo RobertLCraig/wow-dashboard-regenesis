@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\RateLimiter;
 class WclSyncController extends Controller
 {
     private const FRESH_TTL_SECONDS = 1800;
+
     private const MUTEX_TTL_SECONDS = 180;
 
     public function store(): RedirectResponse
@@ -35,11 +36,12 @@ class WclSyncController extends Controller
             ]);
         }
 
-        $key = 'wcl-sync:user:' . auth()->id();
+        $key = 'wcl-sync:user:'.auth()->id();
         if (RateLimiter::tooManyAttempts($key, maxAttempts: 1)) {
             $minutes = (int) ceil(RateLimiter::availableIn($key) / 60);
+
             return $back->withErrors([
-                'wcl' => "Manual WCL sync is limited to once per hour. Try again in {$minutes} minute" . ($minutes === 1 ? '' : 's') . '.',
+                'wcl' => "Manual WCL sync is limited to once per hour. Try again in {$minutes} minute".($minutes === 1 ? '' : 's').'.',
             ]);
         }
 

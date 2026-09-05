@@ -34,7 +34,7 @@ class SimcProfileLoader
             throw new \RuntimeException("SimC profiles directory does not exist: {$directory}");
         }
 
-        $files = glob(rtrim($directory, '/\\') . DIRECTORY_SEPARATOR . '*.simc') ?: [];
+        $files = glob(rtrim($directory, '/\\').DIRECTORY_SEPARATOR.'*.simc') ?: [];
         sort($files);
 
         $imported = 0;
@@ -46,6 +46,7 @@ class SimcProfileLoader
             $contents = @file_get_contents($absPath);
             if ($contents === false) {
                 $errors[] = ['file' => basename($absPath), 'message' => 'unreadable'];
+
                 continue;
             }
 
@@ -54,11 +55,13 @@ class SimcProfileLoader
             } catch (\Throwable $e) {
                 $errors[] = ['file' => basename($absPath), 'message' => $e->getMessage()];
                 Log::warning('simc parse failed', ['file' => basename($absPath), 'error' => $e->getMessage()]);
+
                 continue;
             }
 
             if ($parsed['class'] === null || $parsed['spec'] === null) {
                 $skipped++;
+
                 continue;
             }
 

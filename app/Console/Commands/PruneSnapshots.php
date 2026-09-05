@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -44,6 +45,7 @@ class PruneSnapshots extends Command
 
         if ($days <= 0) {
             $this->info('Retention disabled (days=0); nothing to prune.');
+
             return self::SUCCESS;
         }
 
@@ -62,6 +64,7 @@ class PruneSnapshots extends Command
         foreach ($tables as $table) {
             if (! Schema::hasTable($table)) {
                 $this->warn(sprintf('  %-28s skipped (no such table)', $table));
+
                 continue;
             }
 
@@ -72,6 +75,7 @@ class PruneSnapshots extends Command
                 $count = $deletable->count();
                 $grandTotal += $count;
                 $this->line(sprintf('  %-28s would prune %d (protecting %d latest)', $table, $count, count($protectedIds)));
+
                 continue;
             }
 
@@ -136,7 +140,7 @@ class PruneSnapshots extends Command
      *
      * @param  list<int>  $protectedIds
      */
-    private function deletableQuery(string $table, CarbonImmutable $cutoff, array $protectedIds): \Illuminate\Database\Query\Builder
+    private function deletableQuery(string $table, CarbonImmutable $cutoff, array $protectedIds): Builder
     {
         return DB::table($table)
             ->join('snapshots as s', 's.id', '=', $table.'.snapshot_id')

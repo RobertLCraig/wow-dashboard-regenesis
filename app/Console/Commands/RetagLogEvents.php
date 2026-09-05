@@ -43,6 +43,7 @@ class RetagLogEvents extends Command
 
                 if ($newName === $log->type_name) {
                     $unchanged++;
+
                     continue;
                 }
 
@@ -56,7 +57,7 @@ class RetagLogEvents extends Command
             }
         });
 
-        $this->info(($dryRun ? '[DRY RUN] ' : '') . "Updated $changed rows, $unchanged unchanged.");
+        $this->info(($dryRun ? '[DRY RUN] ' : '')."Updated $changed rows, $unchanged unchanged.");
         if ($byTransition !== []) {
             $this->newLine();
             $this->line('Transitions:');

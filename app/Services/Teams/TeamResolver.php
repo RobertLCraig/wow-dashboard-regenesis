@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\DB;
 class TeamResolver
 {
     private const CACHE_KEY = 'team_mappings.lookup.v1';
+
     private const CACHE_TTL_MINUTES = 60;
 
     /** @var array{grm_rank: array<string,?string>, discord_role: array<string,array{team:?string,priority:int}>}|null */
@@ -39,6 +40,7 @@ class TeamResolver
             return null;
         }
         $map = $this->load();
+
         return $map['grm_rank'][$rankName] ?? null;
     }
 
@@ -47,7 +49,7 @@ class TeamResolver
      * roles. Ties broken arbitrarily by insertion order.
      *
      * @param  array<int|string,string|int>  $roleIds  Snowflakes Discord
-     *         returned for the user. Coerced to string before lookup.
+     *                                                 returned for the user. Coerced to string before lookup.
      */
     public function forRoleIds(array $roleIds): ?string
     {
@@ -67,6 +69,7 @@ class TeamResolver
                 $bestPriority = $entry['priority'];
             }
         }
+
         return $best;
     }
 
@@ -181,6 +184,7 @@ class TeamResolver
 
         if ($valid === []) {
             $this->clearOverrides($member);
+
             return;
         }
 
@@ -260,8 +264,10 @@ class TeamResolver
                     ];
                 }
             }
+
             return ['grm_rank' => $rank, 'discord_role' => $role];
         });
+
         return $this->inMemory = $cached;
     }
 }

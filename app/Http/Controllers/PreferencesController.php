@@ -47,13 +47,14 @@ class PreferencesController extends Controller
     public function dashboardLayout(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'layout'   => ['nullable', 'array'],
+            'layout' => ['nullable', 'array'],
             'layout.*' => ['string'],
-            'reset'    => ['nullable', 'boolean'],
+            'reset' => ['nullable', 'boolean'],
         ]);
 
         if ($request->boolean('reset')) {
             $request->user()->forceFill(['dashboard_layout' => null])->save();
+
             return redirect()->back();
         }
 

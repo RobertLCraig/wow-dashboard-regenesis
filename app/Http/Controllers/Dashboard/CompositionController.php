@@ -33,12 +33,12 @@ class CompositionController extends Controller
     private const TEAMS = [
         'heroic' => [
             'label' => 'Heroic',
-            'keys'  => [TeamMapping::TEAM_HEROIC, TeamMapping::TEAM_HEROIC_TRIAL],
+            'keys' => [TeamMapping::TEAM_HEROIC, TeamMapping::TEAM_HEROIC_TRIAL],
             'defaultDifficulty' => WclFight::DIFFICULTY_HEROIC,
         ],
         'mythic' => [
             'label' => 'Mythic',
-            'keys'  => [TeamMapping::TEAM_MYTHIC, TeamMapping::TEAM_MYTHIC_TRIAL],
+            'keys' => [TeamMapping::TEAM_MYTHIC, TeamMapping::TEAM_MYTHIC_TRIAL],
             'defaultDifficulty' => WclFight::DIFFICULTY_MYTHIC,
         ],
     ];
@@ -112,15 +112,15 @@ class CompositionController extends Controller
         );
 
         return view('dashboard.composition', [
-            'teamSlug'        => $team,
-            'teamLabel'       => $config['label'],
-            'days'            => $days,
-            'difficulty'      => $difficulty === 'all' ? 'all' : ($difficulties[0] ?? $config['defaultDifficulty']),
-            'buckets'         => $buckets,
-            'memberCount'     => $members->count(),
-            'upcomingEvents'  => $upcomingEvents,
-            'event'           => $event,
-            'signedUpCount'   => $signedUpCount,
+            'teamSlug' => $team,
+            'teamLabel' => $config['label'],
+            'days' => $days,
+            'difficulty' => $difficulty === 'all' ? 'all' : ($difficulties[0] ?? $config['defaultDifficulty']),
+            'buckets' => $buckets,
+            'memberCount' => $members->count(),
+            'upcomingEvents' => $upcomingEvents,
+            'event' => $event,
+            'signedUpCount' => $signedUpCount,
         ]);
     }
 

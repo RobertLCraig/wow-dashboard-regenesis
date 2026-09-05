@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\RateLimiter;
 class WowauditSyncController extends Controller
 {
     private const FRESH_TTL_SECONDS = 300;
+
     private const MUTEX_TTL_SECONDS = 180;
 
     public function store(): RedirectResponse
@@ -38,11 +39,12 @@ class WowauditSyncController extends Controller
 
         $guildKey = (string) config('grm.guild_key');
 
-        $key = 'wowaudit-sync:user:' . auth()->id();
+        $key = 'wowaudit-sync:user:'.auth()->id();
         if (RateLimiter::tooManyAttempts($key, maxAttempts: 1)) {
             $minutes = (int) ceil(RateLimiter::availableIn($key) / 60);
+
             return $back->withErrors([
-                'wowaudit' => "Manual wowaudit sync is limited to once per hour. Try again in {$minutes} minute" . ($minutes === 1 ? '' : 's') . '.',
+                'wowaudit' => "Manual wowaudit sync is limited to once per hour. Try again in {$minutes} minute".($minutes === 1 ? '' : 's').'.',
             ]);
         }
 

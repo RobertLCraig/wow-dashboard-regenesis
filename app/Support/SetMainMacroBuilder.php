@@ -32,7 +32,7 @@ class SetMainMacroBuilder
             if ($name === '') {
                 continue;
             }
-            $linesByName[$name] = '/run GRM.SetMain("' . self::escape($name) . '")';
+            $linesByName[$name] = '/run GRM.SetMain("'.self::escape($name).'")';
         }
 
         $packed = LineMacroBuilder::pack(array_values($linesByName));

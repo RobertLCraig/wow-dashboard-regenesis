@@ -35,9 +35,9 @@ it('persists each of the three valid display modes', function (string $mode) {
 
     expect($u->fresh()->display_mode)->toBe($mode);
 })->with([
-    'standard'      => User::DISPLAY_STANDARD,
-    'clear'         => User::DISPLAY_CLEAR,
-    'high_clarity'  => User::DISPLAY_HIGH_CLARITY,
+    'standard' => User::DISPLAY_STANDARD,
+    'clear' => User::DISPLAY_CLEAR,
+    'high_clarity' => User::DISPLAY_HIGH_CLARITY,
 ]);
 
 it('rejects an unknown display_mode value', function () {
@@ -64,8 +64,8 @@ it('renders the body with the right mode-* class for each pref', function (strin
     $response->assertOk();
     expect($response->getContent())->toContain($expectedClass);
 })->with([
-    'standard -> mode-standard'        => [User::DISPLAY_STANDARD,     'mode-standard'],
-    'clear -> mode-clear'              => [User::DISPLAY_CLEAR,        'mode-clear'],
+    'standard -> mode-standard' => [User::DISPLAY_STANDARD,     'mode-standard'],
+    'clear -> mode-clear' => [User::DISPLAY_CLEAR,        'mode-clear'],
     'high_clarity -> mode-high-clarity' => [User::DISPLAY_HIGH_CLARITY, 'mode-high-clarity'],
 ]);
 
@@ -153,7 +153,7 @@ it('clarity and theme are independent of each other', function () {
     $u = makePrefsOfficer();
     $u->forceFill([
         'display_mode' => User::DISPLAY_HIGH_CLARITY,
-        'theme'        => User::THEME_PHOENIX,
+        'theme' => User::THEME_PHOENIX,
     ])->save();
 
     $response = $this->actingAs($u)->get(route('dashboard'));
@@ -233,8 +233,8 @@ it('renders widgets in the user saved order', function () {
 
     $html = $response->getContent();
     $churnAt = strpos($html, 'data-widget-key="churn"');
-    $bansAt  = strpos($html, 'data-widget-key="bans"');
-    $aqAt    = strpos($html, 'data-widget-key="action-queue"');
+    $bansAt = strpos($html, 'data-widget-key="bans"');
+    $aqAt = strpos($html, 'data-widget-key="action-queue"');
 
     expect($churnAt)->not->toBeFalse();
     expect($bansAt)->not->toBeFalse();
@@ -242,4 +242,3 @@ it('renders widgets in the user saved order', function () {
     expect($churnAt)->toBeLessThan($bansAt);
     expect($bansAt)->toBeLessThan($aqAt);
 });
-

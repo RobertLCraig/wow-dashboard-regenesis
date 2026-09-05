@@ -10,7 +10,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
@@ -231,7 +230,7 @@ it('GRM upload deduplicates a second upload of the same file', function () {
     Storage::fake('local');
     Bus::fake();
 
-    $lua = "GRM_GuildMemberHistory_Save = { [\"Regenesis-Silvermoon\"] = {} };";
+    $lua = 'GRM_GuildMemberHistory_Save = { ["Regenesis-Silvermoon"] = {} };';
     $file = UploadedFile::fake()->createWithContent('GRM.lua', $lua);
 
     $u = syncOfficer();

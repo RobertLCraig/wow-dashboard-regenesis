@@ -106,14 +106,14 @@ class RosterAddAltMacroController extends Controller
             'reviewed_by_user_id' => auth()->id(),
             'action_type' => MemberAction::TYPE_ADD_ALT_MACRO,
             'decision' => MemberAction::DECISION_ACCEPTED,
-            'notes' => $validated['notes'] ? $auditPair . ' / ' . $validated['notes'] : $auditPair,
+            'notes' => $validated['notes'] ? $auditPair.' / '.$validated['notes'] : $auditPair,
         ]);
         MemberAction::query()->create([
             'member_id' => $target->id,
             'reviewed_by_user_id' => auth()->id(),
             'action_type' => MemberAction::TYPE_ADD_ALT_MACRO,
             'decision' => MemberAction::DECISION_ACCEPTED,
-            'notes' => sprintf('linked with %s', $source->name) . ($validated['notes'] ? ' / ' . $validated['notes'] : ''),
+            'notes' => sprintf('linked with %s', $source->name).($validated['notes'] ? ' / '.$validated['notes'] : ''),
         ]);
 
         return response()->json(['logged' => 2]);

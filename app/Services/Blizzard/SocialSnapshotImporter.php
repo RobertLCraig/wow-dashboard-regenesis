@@ -5,6 +5,7 @@ namespace App\Services\Blizzard;
 use App\Models\Member;
 use App\Models\MemberSocialSnapshot;
 use App\Models\Snapshot;
+use App\Services\Raiderio\RealmSlug;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Collection;
@@ -84,7 +85,7 @@ class SocialSnapshotImporter
         if (! $this->client->isConfigured()) {
             throw new \RuntimeException(
                 'Blizzard client credentials are not configured. '
-                . 'Set BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET.'
+                .'Set BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET.'
             );
         }
 
@@ -111,7 +112,7 @@ class SocialSnapshotImporter
             'guild_key' => $this->guildKey,
             'source' => Snapshot::SOURCE_BLIZZARD_SOCIAL,
             'captured_at' => $now,
-            'payload_hash' => hash('sha256', $now->toIso8601String() . bin2hex(random_bytes(8))),
+            'payload_hash' => hash('sha256', $now->toIso8601String().bin2hex(random_bytes(8))),
             'member_count' => 0,
         ]);
 
@@ -254,6 +255,7 @@ class SocialSnapshotImporter
                 'completed_timestamp' => is_numeric($ts) ? (int) $ts : null,
             ];
         }
+
         return [
             'achievements' => $slim,
             'total_quantity' => $this->intOrNull($body['total_quantity'] ?? null),
@@ -271,7 +273,7 @@ class SocialSnapshotImporter
      *
      * @param  array<string,mixed>|null  $body
      * @param  list<string>  $idPath
-     * @return array{0?:int}|null  shape is { $type: list<int> } when present
+     * @return array{0?:int}|null shape is { $type: list<int> } when present
      */
     public function slimCollection(?array $body, string $type, array $idPath): ?array
     {
@@ -292,6 +294,7 @@ class SocialSnapshotImporter
                 $ids[] = (int) $cursor;
             }
         }
+
         return [$type => $ids];
     }
 
@@ -310,17 +313,18 @@ class SocialSnapshotImporter
             }
             $slug = $member->realm_slug;
             if ($slug === null || $slug === '') {
-                $slug = \App\Services\Raiderio\RealmSlug::slugifyCanonical($member->realm);
+                $slug = RealmSlug::slugifyCanonical($member->realm);
             }
             if ($slug === null || $slug === '') {
-                $collapsed = \App\Services\Raiderio\RealmSlug::realmFromMemberName($member->name);
-                $slug = \App\Services\Raiderio\RealmSlug::slugify($collapsed);
+                $collapsed = RealmSlug::realmFromMemberName($member->name);
+                $slug = RealmSlug::slugify($collapsed);
             }
             if ($slug === '') {
                 continue;
             }
             $jobs[$member->id] = $maker($slug, $charName) + ['member' => $member];
         }
+
         return $jobs;
     }
 
@@ -346,6 +350,7 @@ class SocialSnapshotImporter
                         ->withHeaders($job['headers'])
                         ->get($job['url'], $job['query']);
                 }
+
                 return $reqs;
             });
 
@@ -359,10 +364,12 @@ class SocialSnapshotImporter
                         'message' => $resp->getMessage(),
                     ]);
                     $errored++;
+
                     continue;
                 }
                 if ($resp === null) {
                     $errored++;
+
                     continue;
                 }
                 if ($resp->status() === 404) {
@@ -377,11 +384,13 @@ class SocialSnapshotImporter
                         'status' => $resp->status(),
                     ]);
                     $errored++;
+
                     continue;
                 }
                 $body = $resp->json();
                 if (! is_array($body)) {
                     $errored++;
+
                     continue;
                 }
                 $perMember[$memberId][$type] = $body;
@@ -421,6 +430,7 @@ class SocialSnapshotImporter
         if (isset($payload[$type]) && is_array($payload[$type])) {
             return count($payload[$type]);
         }
+
         return null;
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\IngestSnapshotJob;
 use App\Models\AltGroup;
 use App\Models\LogEvent;
 use App\Models\Member;
@@ -37,6 +38,7 @@ function lua(array $values): array
     foreach ($values as $i => $v) {
         $out[$i + 1] = $v;
     }
+
     return $out;
 }
 
@@ -202,7 +204,7 @@ it('accepts a fresh upload, persists the snapshot, and queues the job', function
     expect($snapshot->source)->toBe('grm');
     expect($snapshot->raw_path)->toContain('snapshots/Regenesis-Silvermoon/');
 
-    Bus::assertDispatched(\App\Jobs\IngestSnapshotJob::class);
+    Bus::assertDispatched(IngestSnapshotJob::class);
 });
 
 it('returns noop on a duplicate payload hash', function () {

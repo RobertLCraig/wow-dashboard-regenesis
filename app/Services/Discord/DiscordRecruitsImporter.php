@@ -53,6 +53,7 @@ class DiscordRecruitsImporter
             $title = $thread['name'] ?? null;
             if (! is_string($threadId) || $threadId === '' || ! is_string($title)) {
                 $skipped++;
+
                 continue;
             }
 
@@ -61,6 +62,7 @@ class DiscordRecruitsImporter
                 // Pinned / instructional / free-form threads. Not an
                 // error; just not a recruit form.
                 $skipped++;
+
                 continue;
             }
 
@@ -118,6 +120,7 @@ class DiscordRecruitsImporter
         if ($character === '' || $discord === '') {
             return null;
         }
+
         return ['character' => $character, 'discord' => $discord];
     }
 
@@ -137,8 +140,10 @@ class DiscordRecruitsImporter
         if (is_string($id) && ctype_digit($id)) {
             // Discord epoch is 2015-01-01T00:00:00Z = 1420070400000ms.
             $ms = ((int) $id >> 22) + 1420070400000;
+
             return CarbonImmutable::createFromTimestampMs($ms);
         }
+
         return null;
     }
 
@@ -159,6 +164,7 @@ class DiscordRecruitsImporter
             if (is_string($content) && $content !== '') {
                 return [null, ['content' => $content]];
             }
+
             return [null, null];
         }
         $embed = $embeds[0];
@@ -194,6 +200,7 @@ class DiscordRecruitsImporter
     {
         $name = strtolower(trim($name));
         $name = preg_replace('/[^a-z0-9]+/u', '_', $name) ?? $name;
+
         return trim($name, '_');
     }
 }

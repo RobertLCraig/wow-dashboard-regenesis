@@ -27,8 +27,9 @@ class Wowhead
     {
         $url = "https://www.wowhead.com/item={$itemId}";
         if ($bonusIds !== []) {
-            $url .= '?bonus=' . implode(':', $bonusIds);
+            $url .= '?bonus='.implode(':', $bonusIds);
         }
+
         return $url;
     }
 
@@ -47,14 +48,15 @@ class Wowhead
     ): string {
         $parts = ["item={$itemId}"];
         if ($bonusIds !== []) {
-            $parts[] = 'bonus=' . implode(':', $bonusIds);
+            $parts[] = 'bonus='.implode(':', $bonusIds);
         }
         if ($gemIds !== []) {
-            $parts[] = 'gems=' . implode(':', $gemIds);
+            $parts[] = 'gems='.implode(':', $gemIds);
         }
         if ($enchantId !== null) {
             $parts[] = "ench={$enchantId}";
         }
+
         return implode('&', $parts);
     }
 
@@ -68,6 +70,7 @@ class Wowhead
         if ($slug === null || trim($slug) === '') {
             return null;
         }
+
         return ucwords(str_replace('_', ' ', $slug));
     }
 }

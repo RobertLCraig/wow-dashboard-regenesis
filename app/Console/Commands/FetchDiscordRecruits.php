@@ -28,6 +28,7 @@ class FetchDiscordRecruits extends Command
         $client = DiscordRecruitsClient::fromConfig();
         if (! $client->isConfigured()) {
             $this->info('discord:fetch-recruits skipped (DISCORD_BOT_TOKEN / DISCORD_RECRUITS_CHANNEL_ID not set).');
+
             return self::SUCCESS;
         }
 
@@ -36,7 +37,8 @@ class FetchDiscordRecruits extends Command
         try {
             $result = (new DiscordRecruitsImporter($client))->pull($pages);
         } catch (\Throwable $e) {
-            $this->error('discord recruits pull failed: ' . $e->getMessage());
+            $this->error('discord recruits pull failed: '.$e->getMessage());
+
             return self::FAILURE;
         }
 

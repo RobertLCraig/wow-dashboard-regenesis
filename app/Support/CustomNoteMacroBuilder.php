@@ -22,6 +22,7 @@ namespace App\Support;
 class CustomNoteMacroBuilder
 {
     public const MAX_NOTE_LENGTH = 150;
+
     public const MACRO_BYTE_LIMIT = LineMacroBuilder::MACRO_BYTE_LIMIT;
 
     /**

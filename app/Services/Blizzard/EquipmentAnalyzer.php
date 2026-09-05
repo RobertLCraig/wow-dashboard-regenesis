@@ -69,6 +69,7 @@ class EquipmentAnalyzer
         $pieces = $snap->pieces;
         if (! is_array($pieces) || $pieces === []) {
             $empty['equipped_ilvl'] = $snap->equipped_ilvl;
+
             return $empty;
         }
 
@@ -108,6 +109,7 @@ class EquipmentAnalyzer
     private function slotType(array $piece): ?string
     {
         $type = $piece['slot']['type'] ?? null;
+
         return is_string($type) && $type !== '' ? $type : null;
     }
 
@@ -129,6 +131,7 @@ class EquipmentAnalyzer
                 return true;
             }
         }
+
         return false;
     }
 

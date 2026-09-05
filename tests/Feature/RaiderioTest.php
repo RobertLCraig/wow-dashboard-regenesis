@@ -333,8 +333,7 @@ it('uses the configured realm slug map when calling RIO', function () {
         requestDelayMs: 0,
     ))->pull();
 
-    Http::assertSent(fn ($req) =>
-        str_contains($req->url(), 'realm=pozzo-delleternita')
+    Http::assertSent(fn ($req) => str_contains($req->url(), 'realm=pozzo-delleternita')
         && str_contains($req->url(), 'name=Argus')
     );
 });

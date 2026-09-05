@@ -10,7 +10,7 @@ it('builds a single macro for a small list', function () {
 
 it('splits across multiple macros at the 255-byte boundary', function () {
     // Generate enough names that one macro overflows.
-    $names = array_map(fn ($i) => 'Player' . str_pad((string) $i, 3, '0', STR_PAD_LEFT), range(1, 30));
+    $names = array_map(fn ($i) => 'Player'.str_pad((string) $i, 3, '0', STR_PAD_LEFT), range(1, 30));
     $result = InviteMacroBuilder::build($names);
 
     foreach ($result['macros'] as $macro) {
@@ -20,7 +20,7 @@ it('splits across multiple macros at the 255-byte boundary', function () {
 });
 
 it('preserves input order across macros', function () {
-    $names = array_map(fn ($i) => 'PlayerNumber' . $i, range(1, 30));
+    $names = array_map(fn ($i) => 'PlayerNumber'.$i, range(1, 30));
     $result = InviteMacroBuilder::build($names);
     $joined = implode("\n", $result['macros']);
     $lastPos = -1;

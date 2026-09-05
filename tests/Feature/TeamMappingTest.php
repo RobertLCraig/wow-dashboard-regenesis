@@ -2,6 +2,7 @@
 
 use App\Models\Member;
 use App\Models\MemberTeam;
+use App\Models\Snapshot;
 use App\Models\TeamMapping;
 use App\Models\User;
 use App\Services\Discord\RoleVerifier;
@@ -22,9 +23,12 @@ use Illuminate\Support\Facades\Http;
 function teamsFor(string $name): array
 {
     $member = Member::query()->where('name', $name)->first();
-    if (! $member) return [];
+    if (! $member) {
+        return [];
+    }
     $teams = MemberTeam::query()->where('member_id', $member->id)->pluck('team')->all();
     sort($teams);
+
     return $teams;
 }
 
@@ -117,10 +121,10 @@ it('GrmNormalizer sets members.team from rank_name on upsert', function () {
         ],
     ];
 
-    $snapshot = \App\Models\Snapshot::query()->create([
+    $snapshot = Snapshot::query()->create([
         'guild_key' => 'Regenesis-Silvermoon',
         'captured_at' => now(),
-        'source' => \App\Models\Snapshot::SOURCE_GRM,
+        'source' => Snapshot::SOURCE_GRM,
         'payload_hash' => hash('sha256', 'x'),
     ]);
 

@@ -35,11 +35,12 @@ class ScanWowDictionary extends Command
         $gemIds = $referenced['gems'];
 
         $this->line('');
-        $this->info('BiS profiles reference ' . count($enchantIds) . ' unique enchant IDs and ' . count($gemIds) . ' unique gem IDs.');
+        $this->info('BiS profiles reference '.count($enchantIds).' unique enchant IDs and '.count($gemIds).' unique gem IDs.');
 
         $this->reportBucket('Enchants', $enchantIds, fn (int $id) => $dict->enchant($id), function (int $id) use ($dict) {
             $entry = $dict->enchant($id);
             $spell = is_int($entry['spell_id'] ?? null) ? $entry['spell_id'] : null;
+
             return $spell
                 ? "https://www.wowhead.com/spell={$spell}"
                 : "https://www.wowhead.com/item-enchantment/{$id}";
@@ -91,6 +92,7 @@ class ScanWowDictionary extends Command
         $gemList = array_keys($gems);
         sort($enchantList);
         sort($gemList);
+
         return ['enchants' => $enchantList, 'gems' => $gemList];
     }
 
@@ -117,11 +119,12 @@ class ScanWowDictionary extends Command
         $this->line(str_repeat('-', strlen($title)));
 
         if ($missing === []) {
-            $this->line('  All ' . count($known) . ' IDs have names.');
+            $this->line('  All '.count($known).' IDs have names.');
+
             return;
         }
 
-        $this->line('  ' . count($known) . ' filled, ' . count($missing) . ' missing names:');
+        $this->line('  '.count($known).' filled, '.count($missing).' missing names:');
         foreach ($missing as $row) {
             $this->line(sprintf('    %-8d %s', $row['id'], $row['wowhead']));
         }
@@ -135,11 +138,13 @@ class ScanWowDictionary extends Command
     {
         if (! is_file($path)) {
             $this->warn("Dictionary file not found: {$path}");
+
             return false;
         }
         $decoded = json_decode((string) file_get_contents($path), true);
         if (! is_array($decoded)) {
             $this->warn("Dictionary file is not valid JSON: {$path}");
+
             return false;
         }
 
@@ -165,8 +170,9 @@ class ScanWowDictionary extends Command
 
         file_put_contents(
             $path,
-            json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n",
+            json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n",
         );
+
         return true;
     }
 }

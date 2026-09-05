@@ -21,7 +21,7 @@ class EventUpserter
 {
     /**
      * @param  array<string,mixed>  $payload  The Raid-Helper event object
-     *                                         (id, channelId, title, etc.)
+     *                                        (id, channelId, title, etc.)
      */
     public function upsert(array $payload): RaidEvent
     {
@@ -53,7 +53,7 @@ class EventUpserter
             $event = RaidEvent::query()->withTrashed()->firstOrCreate(
                 ['raidhelper_event_id' => $eventId],
                 [
-                    'ics_uid' => 'regenesis-' . Str::ulid()->toBase32() . '@regenesis-silvermoon.eu',
+                    'ics_uid' => 'regenesis-'.Str::ulid()->toBase32().'@regenesis-silvermoon.eu',
                     'ics_sequence' => 0,
                     'server_id' => $serverId,
                     'channel_id' => $channelId,

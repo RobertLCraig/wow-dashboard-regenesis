@@ -84,6 +84,7 @@ class BlizzardClient
     public function profile(string $realmSlug, string $name): Response
     {
         ['url' => $url, 'headers' => $headers, 'query' => $query] = $this->profileEndpoint($realmSlug, $name);
+
         return Http::acceptJson()
             ->timeout($this->timeoutSeconds)
             ->withHeaders($headers)
@@ -114,6 +115,7 @@ class BlizzardClient
     public function status(string $realmSlug, string $name): Response
     {
         ['url' => $url, 'headers' => $headers, 'query' => $query] = $this->statusEndpoint($realmSlug, $name);
+
         return Http::acceptJson()
             ->timeout($this->timeoutSeconds)
             ->withHeaders($headers)
@@ -126,7 +128,7 @@ class BlizzardClient
     public function statusEndpoint(string $realmSlug, string $name): array
     {
         return [
-            'url' => $this->characterUrl($realmSlug, $name) . '/status',
+            'url' => $this->characterUrl($realmSlug, $name).'/status',
             'headers' => $this->profileHeaders(),
             'query' => ['locale' => $this->locale],
         ];
@@ -141,6 +143,7 @@ class BlizzardClient
     public function equipment(string $realmSlug, string $name): Response
     {
         ['url' => $url, 'headers' => $headers, 'query' => $query] = $this->equipmentEndpoint($realmSlug, $name);
+
         return Http::acceptJson()
             ->timeout($this->timeoutSeconds)
             ->withHeaders($headers)
@@ -153,7 +156,7 @@ class BlizzardClient
     public function equipmentEndpoint(string $realmSlug, string $name): array
     {
         return [
-            'url' => $this->characterUrl($realmSlug, $name) . '/equipment',
+            'url' => $this->characterUrl($realmSlug, $name).'/equipment',
             'headers' => $this->profileHeaders(),
             'query' => ['locale' => $this->locale],
         ];
@@ -169,7 +172,7 @@ class BlizzardClient
     public function characterMediaEndpoint(string $realmSlug, string $name): array
     {
         return [
-            'url' => $this->characterUrl($realmSlug, $name) . '/character-media',
+            'url' => $this->characterUrl($realmSlug, $name).'/character-media',
             'headers' => $this->profileHeaders(),
             'query' => ['locale' => $this->locale],
         ];
@@ -185,7 +188,7 @@ class BlizzardClient
     public function achievementsEndpoint(string $realmSlug, string $name): array
     {
         return [
-            'url' => $this->characterUrl($realmSlug, $name) . '/achievements',
+            'url' => $this->characterUrl($realmSlug, $name).'/achievements',
             'headers' => $this->profileHeaders(),
             'query' => ['locale' => $this->locale],
         ];
@@ -200,7 +203,7 @@ class BlizzardClient
     public function collectionsEndpoint(string $realmSlug, string $name, string $collection): array
     {
         return [
-            'url' => $this->characterUrl($realmSlug, $name) . '/collections/' . rawurlencode($collection),
+            'url' => $this->characterUrl($realmSlug, $name).'/collections/'.rawurlencode($collection),
             'headers' => $this->profileHeaders(),
             'query' => ['locale' => $this->locale],
         ];
@@ -215,6 +218,7 @@ class BlizzardClient
     public function raidEncounters(string $realmSlug, string $name): Response
     {
         ['url' => $url, 'headers' => $headers, 'query' => $query] = $this->raidEncountersEndpoint($realmSlug, $name);
+
         return Http::acceptJson()
             ->timeout($this->timeoutSeconds)
             ->withHeaders($headers)
@@ -227,7 +231,7 @@ class BlizzardClient
     public function raidEncountersEndpoint(string $realmSlug, string $name): array
     {
         return [
-            'url' => $this->characterUrl($realmSlug, $name) . '/encounters/raids',
+            'url' => $this->characterUrl($realmSlug, $name).'/encounters/raids',
             'headers' => $this->profileHeaders(),
             'query' => ['locale' => $this->locale],
         ];
@@ -242,6 +246,7 @@ class BlizzardClient
     public function mythicKeystoneProfile(string $realmSlug, string $name): Response
     {
         ['url' => $url, 'headers' => $headers, 'query' => $query] = $this->mythicKeystoneProfileEndpoint($realmSlug, $name);
+
         return Http::acceptJson()
             ->timeout($this->timeoutSeconds)
             ->withHeaders($headers)
@@ -254,7 +259,7 @@ class BlizzardClient
     public function mythicKeystoneProfileEndpoint(string $realmSlug, string $name): array
     {
         return [
-            'url' => $this->characterUrl($realmSlug, $name) . '/mythic-keystone-profile',
+            'url' => $this->characterUrl($realmSlug, $name).'/mythic-keystone-profile',
             'headers' => $this->profileHeaders(),
             'query' => ['locale' => $this->locale],
         ];
@@ -341,7 +346,7 @@ class BlizzardClient
     private function profileHeaders(): array
     {
         return [
-            'Authorization' => 'Bearer ' . $this->accessToken(),
+            'Authorization' => 'Bearer '.$this->accessToken(),
             'Battlenet-Namespace' => $this->namespace,
         ];
     }
@@ -350,7 +355,7 @@ class BlizzardClient
     private function dynamicHeaders(): array
     {
         return [
-            'Authorization' => 'Bearer ' . $this->accessToken(),
+            'Authorization' => 'Bearer '.$this->accessToken(),
             'Battlenet-Namespace' => $this->dynamicNamespace,
         ];
     }
@@ -359,7 +364,7 @@ class BlizzardClient
     private function staticHeaders(): array
     {
         return [
-            'Authorization' => 'Bearer ' . $this->accessToken(),
+            'Authorization' => 'Bearer '.$this->accessToken(),
             'Battlenet-Namespace' => $this->staticNamespace,
         ];
     }
@@ -378,7 +383,7 @@ class BlizzardClient
         if (! $this->isConfigured()) {
             throw new \RuntimeException(
                 'Battle.net client credentials are not configured. '
-                . 'Set BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET.'
+                .'Set BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET.'
             );
         }
 
@@ -399,6 +404,7 @@ class BlizzardClient
         if (! is_string($token) || $token === '') {
             throw new \RuntimeException('Battle.net OAuth returned no access_token');
         }
+
         return $token;
     }
 
@@ -409,6 +415,6 @@ class BlizzardClient
      */
     private function cacheKey(): string
     {
-        return 'blizzard.access_token.' . sha1($this->clientId . '|' . $this->oauthTokenUrl);
+        return 'blizzard.access_token.'.sha1($this->clientId.'|'.$this->oauthTokenUrl);
     }
 }

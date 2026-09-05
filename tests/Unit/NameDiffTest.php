@@ -26,7 +26,9 @@ it('marks every position that differs across a fold-collision cohort', function 
     $out = NameDiff::annotate('Ñýxx-Draenor', ['Ñyxx-Draenor', 'Nýxx-Draenor']);
     $marked = [];
     foreach ($out as $i => [$char, $diff]) {
-        if ($diff) $marked[$i] = $char;
+        if ($diff) {
+            $marked[$i] = $char;
+        }
     }
     expect($marked)->toBe([0 => 'Ñ', 1 => 'ý']);
 });
@@ -45,7 +47,9 @@ it('does not mark itself when the sibling list contains the input', function () 
     $out = NameDiff::annotate('Ñýxx-Draenor', ['Ñýxx-Draenor', 'Ñyxx-Draenor']);
     $marked = [];
     foreach ($out as $i => [$char, $diff]) {
-        if ($diff) $marked[] = $i;
+        if ($diff) {
+            $marked[] = $i;
+        }
     }
     expect($marked)->toBe([1]);
 });

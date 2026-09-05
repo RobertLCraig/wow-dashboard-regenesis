@@ -40,6 +40,7 @@ function rioSnapshotFor(Member $m, array $rawJson): MemberSnapshot
         'source' => Snapshot::SOURCE_RAIDERIO,
         'payload_hash' => bin2hex(random_bytes(8)),
     ]);
+
     return MemberSnapshot::query()->create([
         'snapshot_id' => $snap->id,
         'member_id' => $m->id,
@@ -54,7 +55,7 @@ function bisProfileFor(string $class, string $spec, array $gear, ?string $heroTa
         'class' => $class,
         'spec' => $spec,
         'hero_talent' => $heroTalent,
-        'profile_name' => "MID1_{$class}_{$spec}" . ($heroTalent ? "_{$heroTalent}" : ''),
+        'profile_name' => "MID1_{$class}_{$spec}".($heroTalent ? "_{$heroTalent}" : ''),
         'source_path' => '/fixture/path.simc',
         'parsed_data' => [
             'class' => $class,
@@ -72,7 +73,7 @@ it('returns null when the member has no Raider.IO snapshot', function () {
     $m = bisMember();
     bisProfileFor('death_knight', 'frost', []);
 
-    expect((new BisComparisonService())->compareForMember($m))->toBeNull();
+    expect((new BisComparisonService)->compareForMember($m))->toBeNull();
 });
 
 it('returns null when the RIO payload has no active_spec_name', function () {
@@ -80,7 +81,7 @@ it('returns null when the RIO payload has no active_spec_name', function () {
     bisProfileFor('death_knight', 'frost', []);
     rioSnapshotFor($m, ['gear' => ['items' => []]]);  // no active_spec_name
 
-    expect((new BisComparisonService())->compareForMember($m))->toBeNull();
+    expect((new BisComparisonService)->compareForMember($m))->toBeNull();
 });
 
 it('returns null when no BiS profile matches the class+spec', function () {
@@ -88,7 +89,7 @@ it('returns null when no BiS profile matches the class+spec', function () {
     rioSnapshotFor($m, ['active_spec_name' => 'Frost', 'gear' => ['items' => []]]);
     // No bis_profiles row created.
 
-    expect((new BisComparisonService())->compareForMember($m))->toBeNull();
+    expect((new BisComparisonService)->compareForMember($m))->toBeNull();
 });
 
 it('matches enchant when actual array contains the BiS enchant id', function () {
@@ -103,7 +104,7 @@ it('matches enchant when actual array contains the BiS enchant id', function () 
         ]],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result['slots']['chest']['enchant_status'])->toBe('matched');
     expect($result['slots']['chest']['item_match'])->toBeTrue();
 });
@@ -118,7 +119,7 @@ it('flags a slot as missing when BiS expects an enchant but the player has none'
         'gear' => ['items' => ['chest' => ['item_id' => 200, 'name' => 'real', 'enchants' => [], 'gems' => []]]],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result['slots']['chest']['enchant_status'])->toBe('missing');
 });
 
@@ -132,7 +133,7 @@ it('flags a slot as different when the player has a non-BiS enchant', function (
         'gear' => ['items' => ['chest' => ['item_id' => 200, 'name' => 'real', 'enchants' => [9999], 'gems' => []]]],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result['slots']['chest']['enchant_status'])->toBe('different');
 });
 
@@ -146,7 +147,7 @@ it('returns none_required when neither BiS nor actual has an enchant', function 
         'gear' => ['items' => ['head' => ['item_id' => 100, 'name' => 'real', 'enchants' => [], 'gems' => []]]],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result['slots']['head']['enchant_status'])->toBe('none_required');
 });
 
@@ -160,7 +161,7 @@ it('flags gems as missing when BiS expects N but the player has zero', function 
         'gear' => ['items' => ['neck' => ['item_id' => 100, 'name' => 'real', 'enchants' => [], 'gems' => []]]],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result['slots']['neck']['gems_status'])->toBe('missing');
 });
 
@@ -174,7 +175,7 @@ it('flags gems as count_mismatch when one socket is filled but BiS expects two',
         'gear' => ['items' => ['neck' => ['item_id' => 100, 'name' => 'real', 'enchants' => [], 'gems' => [240908]]]],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result['slots']['neck']['gems_status'])->toBe('count_mismatch');
 });
 
@@ -188,7 +189,7 @@ it('matches gems regardless of order', function () {
         'gear' => ['items' => ['neck' => ['item_id' => 100, 'name' => 'real', 'enchants' => [], 'gems' => [202, 101]]]],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result['slots']['neck']['gems_status'])->toBe('matched');
 });
 
@@ -196,19 +197,19 @@ it('translates RIO singular slot names to SimC plural ones', function () {
     $m = bisMember();
     bisProfileFor('death_knight', 'frost', [
         'shoulders' => ['slot' => 'shoulders', 'name' => 'bis', 'item_id' => 100, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
-        'wrists'    => ['slot' => 'wrists',    'name' => 'bis', 'item_id' => 200, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+        'wrists' => ['slot' => 'wrists',    'name' => 'bis', 'item_id' => 200, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
         'main_hand' => ['slot' => 'main_hand', 'name' => 'bis', 'item_id' => 300, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
     ]);
     rioSnapshotFor($m, [
         'active_spec_name' => 'Frost',
         'gear' => ['items' => [
             'shoulder' => ['item_id' => 100, 'name' => 'rio_shoulder', 'enchants' => [], 'gems' => []],
-            'wrist'    => ['item_id' => 200, 'name' => 'rio_wrist',    'enchants' => [], 'gems' => []],
+            'wrist' => ['item_id' => 200, 'name' => 'rio_wrist',    'enchants' => [], 'gems' => []],
             'mainhand' => ['item_id' => 300, 'name' => 'rio_mh',       'enchants' => [], 'gems' => []],
         ]],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result['slots']['shoulders']['actual_item_id'])->toBe(100);
     expect($result['slots']['wrists']['actual_item_id'])->toBe(200);
     expect($result['slots']['main_hand']['actual_item_id'])->toBe(300);
@@ -234,7 +235,7 @@ it('picks the hero-talent variant when its BiS gear overlaps the player more tha
         ]],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result['profile_name'])->toBe('MID1_death_knight_frost_rider');
     expect($result['slots']['head']['bis_item_name'])->toBe('rider_head');
 });
@@ -253,7 +254,7 @@ it('falls back to default profile (hero_talent IS NULL) when the player matches 
         'gear' => ['items' => ['head' => ['item_id' => 100, 'name' => 'rio', 'enchants' => [], 'gems' => []]]],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result['profile_name'])->toBe('MID1_death_knight_frost');
     expect($result['slots']['head']['bis_item_name'])->toBe('default_head');
 });
@@ -268,7 +269,7 @@ it('normalises multi-word spec names to underscore form', function () {
         'gear' => ['items' => ['head' => ['item_id' => 1, 'name' => 'real', 'enchants' => [], 'gems' => []]]],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result)->not->toBeNull();
     expect($result['spec'])->toBe('beast_mastery');
 });
@@ -288,7 +289,7 @@ it('breaks ties by preferring the default profile over variants', function () {
         'gear' => ['items' => ['head' => ['item_id' => 1, 'name' => 'rio', 'enchants' => [], 'gems' => []]]],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result['profile_name'])->toBe('MID1_death_knight_frost');
 });
 
@@ -305,18 +306,18 @@ it('falls back to default when the player has no actual gear data to score again
         'gear' => ['items' => []],  // empty gear - no scoring signal
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result['profile_name'])->toBe('MID1_death_knight_frost');
 });
 
 it('countIssues totals missing and wrong enchants + gems separately', function () {
-    $service = new BisComparisonService();
+    $service = new BisComparisonService;
     $comparison = [
         'slots' => [
-            'head'  => ['enchant_status' => 'matched',        'gems_status' => 'matched'],
-            'neck'  => ['enchant_status' => 'missing',        'gems_status' => 'missing'],
+            'head' => ['enchant_status' => 'matched',        'gems_status' => 'matched'],
+            'neck' => ['enchant_status' => 'missing',        'gems_status' => 'missing'],
             'chest' => ['enchant_status' => 'different',      'gems_status' => 'count_mismatch'],
-            'feet'  => ['enchant_status' => 'none_required',  'gems_status' => 'none_required'],
+            'feet' => ['enchant_status' => 'none_required',  'gems_status' => 'none_required'],
             'waist' => ['enchant_status' => 'missing',        'gems_status' => 'different'],
         ],
     ];
@@ -341,6 +342,7 @@ function blizzardEquipmentFor(Member $m, array $pieces): MemberEquipmentSnapshot
         'source' => Snapshot::SOURCE_BLIZZARD_EQUIPMENT,
         'payload_hash' => bin2hex(random_bytes(8)),
     ]);
+
     return MemberEquipmentSnapshot::query()->create([
         'snapshot_id' => $snap->id,
         'member_id' => $m->id,
@@ -357,6 +359,7 @@ function blizzardProfileFor(Member $m, array $rawJson): MemberSnapshot
         'source' => Snapshot::SOURCE_BLIZZARD,
         'payload_hash' => bin2hex(random_bytes(8)),
     ]);
+
     return MemberSnapshot::query()->create([
         'snapshot_id' => $snap->id,
         'member_id' => $m->id,
@@ -385,6 +388,7 @@ function wclParseFor(Member $m, string $actorSpec, array $gear): WclActorParse
         'start_time' => now()->subHour(),
         'end_time' => now(),
     ]);
+
     return WclActorParse::query()->create([
         'wcl_fight_id' => $fight->id,
         'member_id' => $m->id,
@@ -398,7 +402,7 @@ function wclParseFor(Member $m, string $actorSpec, array $gear): WclActorParse
 }
 
 it('extracts gear from Blizzard equipment pieces (slot type + enchantments + sockets)', function () {
-    $service = new BisComparisonService();
+    $service = new BisComparisonService;
     $gear = $service->extractFromBlizzardEquipment([
         [
             'slot' => ['type' => 'HEAD'],
@@ -434,7 +438,7 @@ it('extracts gear from Blizzard equipment pieces (slot type + enchantments + soc
 it('skips Blizzard pieces whose enchantment row carries no enchantment_id', function () {
     // Blizzard sometimes returns a slot-level enchantment row with the
     // id field absent (slot is enchant-aware but currently unenchanted).
-    $service = new BisComparisonService();
+    $service = new BisComparisonService;
     $gear = $service->extractFromBlizzardEquipment([
         [
             'slot' => ['type' => 'CHEST'],
@@ -461,7 +465,7 @@ it('prefers Blizzard equipment over RIO when both exist', function () {
         'gear' => ['items' => ['head' => ['item_id' => 999, 'name' => 'rio', 'enchants' => [], 'gems' => []]]],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result['source'])->toBe('blizzard');
     expect($result['slots']['head']['actual_item_id'])->toBe(100);
     expect($result['slots']['head']['item_match'])->toBeTrue();
@@ -477,7 +481,7 @@ it('falls back to Raider.IO when Blizzard equipment is missing', function () {
         'gear' => ['items' => ['head' => ['item_id' => 100, 'name' => 'rio', 'enchants' => [], 'gems' => []]]],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result['source'])->toBe('raiderio');
     expect($result['slots']['head']['item_match'])->toBeTrue();
 });
@@ -491,7 +495,7 @@ it('falls back to WCL parse when Blizzard and RIO are both missing', function ()
         ['slot' => 0, 'id' => 100, 'name' => 'wcl_head', 'permanentEnchant' => 7987],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result['source'])->toBe('wcl');
     expect($result['slots']['head']['actual_item_id'])->toBe(100);
     expect($result['slots']['head']['enchant_status'])->toBe('matched');
@@ -509,7 +513,7 @@ it('resolves spec from Blizzard active_spec.name when RIO has no spec field', fu
         ['slot' => ['type' => 'HEAD'], 'item' => ['id' => 100], 'enchantments' => [], 'sockets' => []],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result)->not->toBeNull();
     expect($result['spec'])->toBe('restoration');
 });
@@ -526,14 +530,14 @@ it('resolves spec from WCL actor_spec when nothing else has it', function () {
     ]);
     wclParseFor($m, 'Shaman-Restoration', []);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect($result['spec'])->toBe('restoration');
 });
 
 it('returns null when no source has any data', function () {
     $m = bisMember();
     bisProfileFor('death_knight', 'frost', []);
-    expect((new BisComparisonService())->compareForMember($m))->toBeNull();
+    expect((new BisComparisonService)->compareForMember($m))->toBeNull();
 });
 
 it('skips slots where neither BiS nor actual data exists', function () {
@@ -546,6 +550,6 @@ it('skips slots where neither BiS nor actual data exists', function () {
         'gear' => ['items' => ['head' => ['item_id' => 100, 'name' => 'real', 'enchants' => [], 'gems' => []]]],
     ]);
 
-    $result = (new BisComparisonService())->compareForMember($m);
+    $result = (new BisComparisonService)->compareForMember($m);
     expect(array_keys($result['slots']))->toBe(['head']);
 });

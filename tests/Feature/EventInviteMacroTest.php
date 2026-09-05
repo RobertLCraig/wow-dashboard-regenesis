@@ -39,7 +39,7 @@ function addSignup(RaidEvent $e, string $name, string $bucket, int $position): E
 {
     return EventSignup::query()->create([
         'raid_event_id' => $e->id,
-        'raidhelper_signup_id' => 'sig-' . $position . '-' . $name,
+        'raidhelper_signup_id' => 'sig-'.$position.'-'.$name,
         'name' => $name,
         'class_name' => $bucket,
         'spec_name' => null,
@@ -51,12 +51,12 @@ function addSignup(RaidEvent $e, string $name, string $bucket, int $position): E
 
 it('renders an /invite line for each signed-up player and excludes Absence / Bench / Declined', function () {
     $e = inviteEvent();
-    addSignup($e, 'Sheday',     'Healer',   1);
-    addSignup($e, 'Tute',       'Ranged',   2);
-    addSignup($e, 'Aakervik',   'Tank',     3);
-    addSignup($e, 'GhostRider', 'Absence',  4);   // excluded
-    addSignup($e, 'BenchSitter','Bench',    5);   // excluded
-    addSignup($e, 'NoThanks',   'Declined', 6);   // excluded
+    addSignup($e, 'Sheday', 'Healer', 1);
+    addSignup($e, 'Tute', 'Ranged', 2);
+    addSignup($e, 'Aakervik', 'Tank', 3);
+    addSignup($e, 'GhostRider', 'Absence', 4);   // excluded
+    addSignup($e, 'BenchSitter', 'Bench', 5);   // excluded
+    addSignup($e, 'NoThanks', 'Declined', 6);   // excluded
 
     $resp = $this->actingAs(inviteOfficer())->get("/events/{$e->id}");
     $resp->assertOk()
@@ -71,8 +71,8 @@ it('renders an /invite line for each signed-up player and excludes Absence / Ben
 it('cleans up parenthetical alts and slash-separated nicknames before invite', function () {
     $e = inviteEvent();
     addSignup($e, 'Rohan,drawmedomes(Larasala)', 'Ranged', 1);
-    addSignup($e, 'Arianne/Allie',                'Healer', 2);
-    addSignup($e, 'Knicksier',                    'Melee',  3);
+    addSignup($e, 'Arianne/Allie', 'Healer', 2);
+    addSignup($e, 'Knicksier', 'Melee', 3);
 
     $resp = $this->actingAs(inviteOfficer())->get("/events/{$e->id}");
     $resp->assertOk()
@@ -83,10 +83,10 @@ it('cleans up parenthetical alts and slash-separated nicknames before invite', f
 
 it('shows the excluded counts in the header', function () {
     $e = inviteEvent();
-    addSignup($e, 'A', 'Healer',   1);
-    addSignup($e, 'B', 'Absence',  2);
-    addSignup($e, 'C', 'Absence',  3);
-    addSignup($e, 'D', 'Bench',    4);
+    addSignup($e, 'A', 'Healer', 1);
+    addSignup($e, 'B', 'Absence', 2);
+    addSignup($e, 'C', 'Absence', 3);
+    addSignup($e, 'D', 'Bench', 4);
 
     $resp = $this->actingAs(inviteOfficer())->get("/events/{$e->id}");
     $resp->assertOk()
@@ -108,4 +108,3 @@ it('excluded-bucket labels are absent from the header when that bucket has no si
     expect($body)->not->toContain('Bench 0');
     expect($body)->not->toContain('Declined 0');
 });
-

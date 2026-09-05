@@ -8,12 +8,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Snapshot extends Model
 {
     public const SOURCE_GRM = 'grm';
+
     public const SOURCE_WOWAUDIT = 'wowaudit';
+
     public const SOURCE_RAIDERIO = 'raiderio';
+
     public const SOURCE_BLIZZARD = 'blizzard';
+
     public const SOURCE_BLIZZARD_EQUIPMENT = 'blizzard_equipment';
+
     public const SOURCE_BLIZZARD_MPLUS = 'blizzard_mplus';
+
     public const SOURCE_BLIZZARD_RAIDS = 'blizzard_raids';
+
     public const SOURCE_BLIZZARD_SOCIAL = 'blizzard_social';
 
     protected $fillable = [

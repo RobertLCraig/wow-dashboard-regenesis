@@ -34,6 +34,7 @@ class DiscordController extends Controller
             $discordUser = Socialite::driver('discord')->user();
         } catch (\Throwable $e) {
             Log::warning('Discord OAuth callback failed', ['message' => $e->getMessage()]);
+
             return redirect()->route('auth.discord.failed');
         }
 
@@ -63,6 +64,7 @@ class DiscordController extends Controller
             Log::warning('Discord login blocked: user row could not be created', [
                 'discord_id' => $discordUser->getId(),
             ]);
+
             return redirect()->route('auth.discord.failed');
         }
 
@@ -71,6 +73,7 @@ class DiscordController extends Controller
         $tier = RoleVerifier::fromConfig()->tierFor($user, force: true);
         if ($tier === null) {
             Auth::logout();
+
             return redirect()->route('auth.discord.unauthorised');
         }
 
@@ -91,6 +94,7 @@ class DiscordController extends Controller
         Auth::logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
+
         return redirect('/');
     }
 }

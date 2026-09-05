@@ -36,7 +36,9 @@ use Illuminate\Support\Collection;
 class RaidProgressionAnalyzer
 {
     public const DIFFICULTY_NORMAL = 'NORMAL';
+
     public const DIFFICULTY_HEROIC = 'HEROIC';
+
     public const DIFFICULTY_MYTHIC = 'MYTHIC';
 
     /**
@@ -131,11 +133,14 @@ class RaidProgressionAnalyzer
                     }
                     $completed = $this->intOrNull($progress['completed_count'] ?? null) ?? 0;
                     $total = $this->intOrNull($progress['total_count'] ?? null) ?? 0;
+
                     return $total > 0 && $completed >= $total;
                 }
+
                 return false;
             }
         }
+
         return false;
     }
 
@@ -328,7 +333,7 @@ class RaidProgressionAnalyzer
             'mythic' => [self::DIFFICULTY_MYTHIC, self::DIFFICULTY_HEROIC],
             'heroic' => [self::DIFFICULTY_HEROIC, self::DIFFICULTY_NORMAL],
             'normal' => [self::DIFFICULTY_NORMAL],
-            default  => [self::DIFFICULTY_MYTHIC, self::DIFFICULTY_HEROIC],
+            default => [self::DIFFICULTY_MYTHIC, self::DIFFICULTY_HEROIC],
         };
     }
 

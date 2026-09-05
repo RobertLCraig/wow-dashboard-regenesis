@@ -24,7 +24,7 @@ class GrmSnapshotIngester
 {
     /**
      * @param  array<string,mixed>  $payload  The full parsed GRM table
-     *         (i.e. ['GRM_GuildMemberHistory_Save' => [...], ...]).
+     *                                        (i.e. ['GRM_GuildMemberHistory_Save' => [...], ...]).
      * @return array{snapshot_id:int, was_duplicate:bool, captured_at:string}
      */
     public function ingest(

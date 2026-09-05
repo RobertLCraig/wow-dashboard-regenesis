@@ -139,5 +139,5 @@ it('throws when credentials are missing', function () {
     makeRaidMember('Sheday-Silvermoon');
 
     expect(fn () => makeRaidsImporter()->pull())
-        ->toThrow(\RuntimeException::class, 'not configured');
+        ->toThrow(RuntimeException::class, 'not configured');
 });

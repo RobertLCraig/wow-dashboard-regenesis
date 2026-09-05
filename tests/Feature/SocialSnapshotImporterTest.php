@@ -205,5 +205,5 @@ it('throws when credentials are missing', function () {
     makeSocialMember('Sheday-Silvermoon');
 
     expect(fn () => makeSocialImporter()->pull())
-        ->toThrow(\RuntimeException::class, 'not configured');
+        ->toThrow(RuntimeException::class, 'not configured');
 });

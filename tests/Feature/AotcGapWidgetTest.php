@@ -89,4 +89,3 @@ it('renders the AOTC gap widget with correct has-AOTC and missing-AOTC counts', 
     // Cleared-Silvermoon has AOTC so is NOT in the missing list
     expect($body)->not->toContain('Cleared-Silvermoon');
 });
-

@@ -153,8 +153,7 @@ it('falls back to the legacy realm-slug derivation when realm_slug is null', fun
     $result = makeEqImporter()->pull();
 
     expect($result['matched'])->toBe(1);
-    Http::assertSent(fn ($req) =>
-        str_contains($req->url(), '/profile/wow/character/twisting-nether/argus/equipment'));
+    Http::assertSent(fn ($req) => str_contains($req->url(), '/profile/wow/character/twisting-nether/argus/equipment'));
 });
 
 it('throws when credentials are missing', function () {
@@ -162,7 +161,7 @@ it('throws when credentials are missing', function () {
     makeEqMember('Sheday-Silvermoon');
 
     expect(fn () => makeEqImporter()->pull())
-        ->toThrow(\RuntimeException::class, 'not configured');
+        ->toThrow(RuntimeException::class, 'not configured');
 });
 
 /*

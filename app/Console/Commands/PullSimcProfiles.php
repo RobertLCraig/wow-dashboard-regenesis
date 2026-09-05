@@ -32,6 +32,7 @@ class PullSimcProfiles extends Command
         $path = (string) ($this->option('path') ?? config('simc.profiles_path'));
         if ($path === '') {
             $this->info('simc:pull skipped (SIMC_PROFILES_PATH not set).');
+
             return self::SUCCESS;
         }
 
@@ -39,7 +40,8 @@ class PullSimcProfiles extends Command
             try {
                 $fetch = SimcGithubFetcher::fromConfig()->fetchInto($path);
             } catch (\Throwable $e) {
-                $this->error('simc fetch failed: ' . $e->getMessage());
+                $this->error('simc fetch failed: '.$e->getMessage());
+
                 return self::FAILURE;
             }
             $this->info(sprintf(
@@ -56,7 +58,8 @@ class PullSimcProfiles extends Command
         try {
             $result = $loader->loadFromDirectory($path);
         } catch (\Throwable $e) {
-            $this->error('simc:pull failed: ' . $e->getMessage());
+            $this->error('simc:pull failed: '.$e->getMessage());
+
             return self::FAILURE;
         }
 

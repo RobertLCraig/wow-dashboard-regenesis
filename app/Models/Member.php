@@ -15,11 +15,15 @@ class Member extends Model
     use SoftDeletes;
 
     public const STATUS_ACTIVE = 'active';
+
     public const STATUS_LEFT = 'left';
+
     public const STATUS_BANNED = 'banned';
 
     public const DISCORD_LINK_MANUAL = 'manual';
+
     public const DISCORD_LINK_RECRUIT_FORM = 'recruit_form';
+
     public const DISCORD_LINK_SELF_CLAIM = 'self_claim';
 
     protected $guarded = ['id'];
@@ -105,6 +109,7 @@ class Member extends Model
             // Empty filter is a contradiction: matches nothing.
             return $query->whereRaw('1 = 0');
         }
+
         return $query->whereExists(function ($q) use ($teams) {
             $q->select(DB::raw(1))
                 ->from('member_teams')
@@ -150,6 +155,7 @@ class Member extends Model
     {
         $teams = $this->teams->pluck('team')->all();
         usort($teams, fn ($a, $b) => (self::TEAM_PRIORITY[$b] ?? 0) <=> (self::TEAM_PRIORITY[$a] ?? 0));
+
         return array_values($teams);
     }
 
@@ -196,6 +202,7 @@ class Member extends Model
                 $out[$team]->push($member);
             }
         }
+
         return $out;
     }
 
@@ -211,6 +218,7 @@ class Member extends Model
         if (! is_string($raw) || $raw === '') {
             return null;
         }
+
         return match (strtoupper($raw)) {
             'DEATHKNIGHT' => 'Death Knight',
             'DEMONHUNTER' => 'Demon Hunter',

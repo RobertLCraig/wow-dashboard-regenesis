@@ -27,6 +27,7 @@ class FetchDiscordAnnouncements extends Command
         $client = DiscordAnnouncementsClient::fromConfig();
         if (! $client->isConfigured()) {
             $this->info('discord:fetch-announcements skipped (DISCORD_BOT_TOKEN / DISCORD_ANNOUNCEMENTS_CHANNEL_ID not set).');
+
             return self::SUCCESS;
         }
 
@@ -35,7 +36,8 @@ class FetchDiscordAnnouncements extends Command
         try {
             $result = (new DiscordAnnouncementsImporter($client))->pull($limit);
         } catch (\Throwable $e) {
-            $this->error('discord announcements pull failed: ' . $e->getMessage());
+            $this->error('discord announcements pull failed: '.$e->getMessage());
+
             return self::FAILURE;
         }
 

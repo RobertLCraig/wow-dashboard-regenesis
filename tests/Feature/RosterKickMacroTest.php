@@ -67,7 +67,7 @@ it('preview joins multiple members into one macro', function () {
 
 it('preview skips members who have already left or are banned', function () {
     $active = kickMember('Active-Silvermoon');
-    $left   = kickMember('Departed-Silvermoon', ['status' => Member::STATUS_LEFT]);
+    $left = kickMember('Departed-Silvermoon', ['status' => Member::STATUS_LEFT]);
     $banned = kickMember('Outlaw-Silvermoon', ['status' => Member::STATUS_BANNED]);
 
     $resp = $this->actingAs(kickOfficer())

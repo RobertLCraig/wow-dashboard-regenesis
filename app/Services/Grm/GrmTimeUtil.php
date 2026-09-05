@@ -43,6 +43,7 @@ class GrmTimeUtil
         if (is_int($hours) && $hours >= 0) {
             return $capturedAt->subHours($hours);
         }
+
         return null;
     }
 
@@ -107,6 +108,7 @@ class GrmTimeUtil
                 'Europe/London',
             )->startOfDay() ?: null;
         }
+
         return null;
     }
 }

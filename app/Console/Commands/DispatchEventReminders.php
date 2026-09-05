@@ -34,6 +34,7 @@ class DispatchEventReminders extends Command
             $stats['skipped_already_logged'],
             $stats['errored'],
         ));
+
         return $stats['errored'] > 0 ? self::FAILURE : self::SUCCESS;
     }
 }

@@ -103,6 +103,7 @@ function fakeBestGear(int $base = 220): array
     ] as $slot) {
         $gear[$slot] = ['ilvl' => $base, 'id' => 1, 'name' => 'item', 'quality' => 4];
     }
+
     return $gear;
 }
 
@@ -192,8 +193,8 @@ it('equipped ilvl is the average across all configured slots', function () {
     $gear = [];
     $i = 0;
     foreach (['head', 'neck', 'shoulder', 'back', 'chest', 'wrist', 'hands',
-              'waist', 'legs', 'feet', 'finger_1', 'finger_2', 'trinket_1',
-              'trinket_2', 'main_hand', 'off_hand'] as $slot) {
+        'waist', 'legs', 'feet', 'finger_1', 'finger_2', 'trinket_1',
+        'trinket_2', 'main_hand', 'off_hand'] as $slot) {
         $gear[$slot] = ['ilvl' => $i++ < 8 ? 220 : 210, 'id' => 1, 'name' => 'x', 'quality' => 4];
     }
 

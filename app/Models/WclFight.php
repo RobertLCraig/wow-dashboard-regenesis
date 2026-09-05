@@ -8,10 +8,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WclFight extends Model
 {
-    public const DIFFICULTY_LFR     = 1;
-    public const DIFFICULTY_NORMAL  = 3;
-    public const DIFFICULTY_HEROIC  = 4;
-    public const DIFFICULTY_MYTHIC  = 5;
+    public const DIFFICULTY_LFR = 1;
+
+    public const DIFFICULTY_NORMAL = 3;
+
+    public const DIFFICULTY_HEROIC = 4;
+
+    public const DIFFICULTY_MYTHIC = 5;
 
     protected $guarded = ['id'];
 
@@ -39,7 +42,7 @@ class WclFight extends Model
     public static function difficultyLabel(?int $d): string
     {
         return match ($d) {
-            self::DIFFICULTY_LFR    => 'LFR',
+            self::DIFFICULTY_LFR => 'LFR',
             self::DIFFICULTY_NORMAL => 'Normal',
             self::DIFFICULTY_HEROIC => 'Heroic',
             self::DIFFICULTY_MYTHIC => 'Mythic',

@@ -86,13 +86,14 @@ class BackfillMplusRuns extends Command
                         $normalized = $this->normalizeRun($raw, $sourceTag, $row->member_id, $snapshot->id, $seasonSlug, $capturedAt);
                         if ($normalized === null) {
                             $skipped++;
+
                             continue;
                         }
                         // PHP-side dedupe within this snapshot pass so the
                         // upsert payload doesn't carry duplicate primary
                         // keys (the unique index on the table protects us
                         // anyway; this just keeps the batch clean).
-                        $key = $normalized['member_id'] . '|' . $normalized['completed_at'];
+                        $key = $normalized['member_id'].'|'.$normalized['completed_at'];
                         if (isset($batch[$key]) && $batch[$key]['score'] !== null) {
                             continue;
                         }
@@ -224,6 +225,7 @@ class BackfillMplusRuns extends Command
             return null;
         }
         $slug = $seasons[0]['season'] ?? null;
+
         return is_string($slug) && $slug !== '' ? mb_substr($slug, 0, 32) : null;
     }
 }

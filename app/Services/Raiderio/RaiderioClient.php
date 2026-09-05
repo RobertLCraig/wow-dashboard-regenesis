@@ -45,6 +45,7 @@ class RaiderioClient
     public function profile(string $realmSlug, string $name, ?array $fields = null): Response
     {
         ['url' => $url, 'query' => $query] = $this->profileEndpoint($realmSlug, $name, $fields);
+
         return Http::acceptJson()
             ->timeout($this->timeoutSeconds)
             ->get($url, $query);
@@ -61,6 +62,7 @@ class RaiderioClient
     public function profileEndpoint(string $realmSlug, string $name, ?array $fields = null): array
     {
         $f = $fields ?? $this->defaultFields;
+
         return [
             'url' => "{$this->baseUrl}/characters/profile",
             'query' => [

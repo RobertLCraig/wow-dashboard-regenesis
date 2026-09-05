@@ -115,6 +115,7 @@ class MemberDiscordLinkController extends Controller
             return null;
         }
         $trimmed = trim($value);
+
         return $trimmed === '' ? null : $trimmed;
     }
 }

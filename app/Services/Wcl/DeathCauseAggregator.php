@@ -19,9 +19,7 @@ use Illuminate\Support\Collection;
  */
 class DeathCauseAggregator
 {
-    public function __construct(private readonly string $guildKey)
-    {
-    }
+    public function __construct(private readonly string $guildKey) {}
 
     /**
      * Top killing abilities per encounter across the most recent N

@@ -1,7 +1,38 @@
 <?php
 
+use App\Http\Controllers\Admin\BlizzardSyncController;
+use App\Http\Controllers\Admin\DiscordRoleConfigController;
+use App\Http\Controllers\Admin\DiscordWebhookController;
+use App\Http\Controllers\Admin\GoogleCalendarSettingsController;
+use App\Http\Controllers\Admin\RaiderioSyncController;
+use App\Http\Controllers\Admin\SyncDashboardController;
+use App\Http\Controllers\Admin\TeamMappingController;
+use App\Http\Controllers\Admin\TeamScheduleController;
+use App\Http\Controllers\Admin\WclSyncController;
+use App\Http\Controllers\Admin\WowauditSyncController;
 use App\Http\Controllers\Auth\DiscordController;
 use App\Http\Controllers\Auth\GoogleCalendarController;
+use App\Http\Controllers\Calendar\IcsController;
+use App\Http\Controllers\Dashboard\CharacterController;
+use App\Http\Controllers\Dashboard\CharacterTeamOverrideController;
+use App\Http\Controllers\Dashboard\CompositionController;
+use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\Dashboard\FarmPlannerController;
+use App\Http\Controllers\Dashboard\KeynightController;
+use App\Http\Controllers\Dashboard\MemberActionController;
+use App\Http\Controllers\Dashboard\MemberDiscordLinkController;
+use App\Http\Controllers\Dashboard\ReportsController;
+use App\Http\Controllers\Dashboard\RosterAddAltMacroController;
+use App\Http\Controllers\Dashboard\RosterController;
+use App\Http\Controllers\Dashboard\RosterCustomNoteMacroController;
+use App\Http\Controllers\Dashboard\RosterKickMacroController;
+use App\Http\Controllers\Dashboard\RosterRankMacroController;
+use App\Http\Controllers\Dashboard\RosterSetMainMacroController;
+use App\Http\Controllers\Dashboard\RosterUnlinkAltMacroController;
+use App\Http\Controllers\Dashboard\SocialController;
+use App\Http\Controllers\Dashboard\TeamDashboardController;
+use App\Http\Controllers\Events\EventController;
+use App\Http\Controllers\PreferencesController;
 use App\Http\Middleware\RequireTier;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -25,13 +56,13 @@ Route::middleware(['auth', RequireTier::class.':'.User::TIER_MEMBER])->group(fun
     // Social hub: guild-wide events calendar. Aggregates Raid-Helper
     // events with computed world events (Darkmoon Faire, holidays).
     // Read-only - event creation lives on /events for officers.
-    Route::get('/dashboard/social', [\App\Http\Controllers\Dashboard\SocialController::class, 'index'])->name('dashboard.social');
+    Route::get('/dashboard/social', [SocialController::class, 'index'])->name('dashboard.social');
 
     // Searchable + filterable consolidated roster. Read-only: the kick /
     // rank / note macro endpoints below stay officer-only, and the page
     // hides those controls behind the roster.kick gate.
-    Route::get('/roster', [\App\Http\Controllers\Dashboard\RosterController::class, 'index'])->name('roster.index');
-    Route::get('/roster.csv', [\App\Http\Controllers\Dashboard\RosterController::class, 'csv'])->name('roster.csv');
+    Route::get('/roster', [RosterController::class, 'index'])->name('roster.index');
+    Route::get('/roster.csv', [RosterController::class, 'csv'])->name('roster.csv');
 });
 
 // Officer-only application surface. Every other dashboard route lives
@@ -39,82 +70,82 @@ Route::middleware(['auth', RequireTier::class.':'.User::TIER_MEMBER])->group(fun
 // role takes effect within the configured cache TTL without requiring a
 // re-login.
 Route::middleware(['auth', RequireTier::class])->group(function () {
-    Route::get('/dashboard', [\App\Http\Controllers\Dashboard\DashboardController::class, 'index'])->name('dashboard');
-    Route::post('/dashboard/members/{member}/actions', [\App\Http\Controllers\Dashboard\MemberActionController::class, 'store'])->name('dashboard.member.actions.store');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/dashboard/members/{member}/actions', [MemberActionController::class, 'store'])->name('dashboard.member.actions.store');
 
     // Team-scoped dashboards. Same widgets as /dashboard but filtered to
     // the team's members + the team's raid signup channel, plus a
     // quick-create panel for raid leaders.
-    Route::get('/dashboard/heroic', [\App\Http\Controllers\Dashboard\TeamDashboardController::class, 'heroic'])->name('dashboard.team.heroic');
-    Route::get('/dashboard/mythic', [\App\Http\Controllers\Dashboard\TeamDashboardController::class, 'mythic'])->name('dashboard.team.mythic');
+    Route::get('/dashboard/heroic', [TeamDashboardController::class, 'heroic'])->name('dashboard.team.heroic');
+    Route::get('/dashboard/mythic', [TeamDashboardController::class, 'mythic'])->name('dashboard.team.mythic');
 
     // Keynight (organised M+) is its own activity, not a raid team page.
     // Standalone page so heroic + mythic raiders both find it in one place.
-    Route::get('/dashboard/keynight', [\App\Http\Controllers\Dashboard\KeynightController::class, 'index'])->name('dashboard.keynight');
+    Route::get('/dashboard/keynight', [KeynightController::class, 'index'])->name('dashboard.keynight');
 
     // Composition planner per team. Aggregates the WCL parse data into
     // a role-grouped view (tank / healer / melee / ranged) so a raid
     // lead can see who their strongest at each role over a window.
-    Route::get('/composition/{team}', [\App\Http\Controllers\Dashboard\CompositionController::class, 'show'])
+    Route::get('/composition/{team}', [CompositionController::class, 'show'])
         ->where('team', 'heroic|mythic')->name('composition.show');
 
     // Farm-event planner. Pick a mount/pet/toy by Blizzard id and see
     // who already has it. Reads the latest member_social_snapshots
     // (refreshed weekly by blizzard:pull-social).
-    Route::get('/farm-planner', [\App\Http\Controllers\Dashboard\FarmPlannerController::class, 'index'])->name('farm-planner.index');
+    Route::get('/farm-planner', [FarmPlannerController::class, 'index'])->name('farm-planner.index');
 
     // Kick + alts macro generator. preview() returns the JSON the modal
     // renders; confirm() logs MemberAction rows for the audit trail
     // after the officer says they ran the macro in-game.
-    Route::post('/roster/kick-macro', [\App\Http\Controllers\Dashboard\RosterKickMacroController::class, 'preview'])->name('roster.kick-macro.preview');
-    Route::post('/roster/kick-macro/confirm', [\App\Http\Controllers\Dashboard\RosterKickMacroController::class, 'confirm'])->name('roster.kick-macro.confirm');
+    Route::post('/roster/kick-macro', [RosterKickMacroController::class, 'preview'])->name('roster.kick-macro.preview');
+    Route::post('/roster/kick-macro/confirm', [RosterKickMacroController::class, 'confirm'])->name('roster.kick-macro.confirm');
 
     // /run GRM.SetMain(...) macro generator. Fixes drifted "main"
     // designations that the dashboard can't mutate directly because
     // GRM data lives in the WoW client. Same preview / confirm shape
     // as the kick-macro flow.
-    Route::post('/roster/set-main', [\App\Http\Controllers\Dashboard\RosterSetMainMacroController::class, 'preview'])->name('roster.set-main.preview');
-    Route::post('/roster/set-main/confirm', [\App\Http\Controllers\Dashboard\RosterSetMainMacroController::class, 'confirm'])->name('roster.set-main.confirm');
+    Route::post('/roster/set-main', [RosterSetMainMacroController::class, 'preview'])->name('roster.set-main.preview');
+    Route::post('/roster/set-main/confirm', [RosterSetMainMacroController::class, 'confirm'])->name('roster.set-main.confirm');
 
     // /gpromote and /gdemote macro generator. Single endpoint, the
     // op is in the request body so the modal can swap between the
     // two without re-routing.
-    Route::post('/roster/rank-macro', [\App\Http\Controllers\Dashboard\RosterRankMacroController::class, 'preview'])->name('roster.rank-macro.preview');
-    Route::post('/roster/rank-macro/confirm', [\App\Http\Controllers\Dashboard\RosterRankMacroController::class, 'confirm'])->name('roster.rank-macro.confirm');
+    Route::post('/roster/rank-macro', [RosterRankMacroController::class, 'preview'])->name('roster.rank-macro.preview');
+    Route::post('/roster/rank-macro/confirm', [RosterRankMacroController::class, 'confirm'])->name('roster.rank-macro.confirm');
 
     // /run GRM_API.EditCustomNote(...) macro generator. Targets GRM's
     // own custom-note slot, never the Blizzard Public/Officer notes.
     // Per-member; the modal sends the typed note + replace flag and
     // gets back a single macro line + the current note for context.
-    Route::post('/roster/custom-note', [\App\Http\Controllers\Dashboard\RosterCustomNoteMacroController::class, 'preview'])->name('roster.custom-note.preview');
-    Route::post('/roster/custom-note/confirm', [\App\Http\Controllers\Dashboard\RosterCustomNoteMacroController::class, 'confirm'])->name('roster.custom-note.confirm');
+    Route::post('/roster/custom-note', [RosterCustomNoteMacroController::class, 'preview'])->name('roster.custom-note.preview');
+    Route::post('/roster/custom-note/confirm', [RosterCustomNoteMacroController::class, 'confirm'])->name('roster.custom-note.confirm');
 
     // /run GRM.RemovePlayerFromAltGroup(...) macro generator. Used to
     // break a wrong alt link, e.g. if GRM has linked someone to the
     // wrong group.
-    Route::post('/roster/unlink-alt', [\App\Http\Controllers\Dashboard\RosterUnlinkAltMacroController::class, 'preview'])->name('roster.unlink-alt.preview');
-    Route::post('/roster/unlink-alt/confirm', [\App\Http\Controllers\Dashboard\RosterUnlinkAltMacroController::class, 'confirm'])->name('roster.unlink-alt.confirm');
+    Route::post('/roster/unlink-alt', [RosterUnlinkAltMacroController::class, 'preview'])->name('roster.unlink-alt.preview');
+    Route::post('/roster/unlink-alt/confirm', [RosterUnlinkAltMacroController::class, 'confirm'])->name('roster.unlink-alt.confirm');
 
     // Discord linkage on a member row. Pure dashboard state (no GRM
     // round-trip), so this writes the columns directly. PUT updates,
     // DELETE clears. Officers fill these in by hand for now; a future
     // resolver will translate username-only entries into snowflakes.
-    Route::put('/roster/{member}/discord-link', [\App\Http\Controllers\Dashboard\MemberDiscordLinkController::class, 'update'])
+    Route::put('/roster/{member}/discord-link', [MemberDiscordLinkController::class, 'update'])
         ->whereNumber('member')->name('roster.discord-link.update');
-    Route::delete('/roster/{member}/discord-link', [\App\Http\Controllers\Dashboard\MemberDiscordLinkController::class, 'destroy'])
+    Route::delete('/roster/{member}/discord-link', [MemberDiscordLinkController::class, 'destroy'])
         ->whereNumber('member')->name('roster.discord-link.destroy');
 
     // /run GRM.AddAlt(...) macro generator. Officer picks a target
     // member (datalist autocomplete on the page) and the macro links
     // the source row + target as alts of each other. GRM handles the
     // four "neither linked / one linked / both linked" combinations.
-    Route::post('/roster/add-alt', [\App\Http\Controllers\Dashboard\RosterAddAltMacroController::class, 'preview'])->name('roster.add-alt.preview');
-    Route::post('/roster/add-alt/confirm', [\App\Http\Controllers\Dashboard\RosterAddAltMacroController::class, 'confirm'])->name('roster.add-alt.confirm');
+    Route::post('/roster/add-alt', [RosterAddAltMacroController::class, 'preview'])->name('roster.add-alt.preview');
+    Route::post('/roster/add-alt/confirm', [RosterAddAltMacroController::class, 'confirm'])->name('roster.add-alt.confirm');
 
     // Warcraft Logs reports browser. /reports lists the recent reports;
     // /reports/{code} expands one report into fights + per-actor parses.
-    Route::get('/reports', [\App\Http\Controllers\Dashboard\ReportsController::class, 'index'])->name('reports.index');
-    Route::get('/reports/{code}', [\App\Http\Controllers\Dashboard\ReportsController::class, 'show'])
+    Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
+    Route::get('/reports/{code}', [ReportsController::class, 'show'])
         ->where('code', '[A-Za-z0-9]+')->name('reports.show');
 
     // Character drilldown. Member name format is "Char-Realm" (the GRM
@@ -125,36 +156,36 @@ Route::middleware(['auth', RequireTier::class])->group(function () {
     // Aggra(Português), Drak'thul, Sha'tar - anything with parens,
     // apostrophes, accents - route correctly. The controller's
     // firstOrFail() handles unknown names with a clean 404.
-    Route::get('/character/{nameRealm}', [\App\Http\Controllers\Dashboard\CharacterController::class, 'show'])
+    Route::get('/character/{nameRealm}', [CharacterController::class, 'show'])
         ->where('nameRealm', '[^/]+')->name('character.show');
 
     // Per-member team override. Officers tick which teams a character
     // belongs to from the character page; the resolver keeps the rank-
     // derived team for everyone else. Empty selection reverts to rank.
-    Route::post('/character/{nameRealm}/teams', [\App\Http\Controllers\Dashboard\CharacterTeamOverrideController::class, 'update'])
+    Route::post('/character/{nameRealm}/teams', [CharacterTeamOverrideController::class, 'update'])
         ->where('nameRealm', '[^/]+')->name('character.teams.update');
 
-    Route::get('/events', [\App\Http\Controllers\Events\EventController::class, 'index'])->name('events.index');
-    Route::get('/events/new', [\App\Http\Controllers\Events\EventController::class, 'create'])->name('events.create');
-    Route::post('/events', [\App\Http\Controllers\Events\EventController::class, 'store'])->name('events.store');
-    Route::post('/events/sync', [\App\Http\Controllers\Events\EventController::class, 'sync'])->name('events.sync');
-    Route::get('/events/{event}', [\App\Http\Controllers\Events\EventController::class, 'show'])
+    Route::get('/events', [EventController::class, 'index'])->name('events.index');
+    Route::get('/events/new', [EventController::class, 'create'])->name('events.create');
+    Route::post('/events', [EventController::class, 'store'])->name('events.store');
+    Route::post('/events/sync', [EventController::class, 'sync'])->name('events.sync');
+    Route::get('/events/{event}', [EventController::class, 'show'])
         ->where('event', '[0-9]+')->name('events.show');
-    Route::delete('/events/{event}', [\App\Http\Controllers\Events\EventController::class, 'destroy'])
+    Route::delete('/events/{event}', [EventController::class, 'destroy'])
         ->where('event', '[0-9]+')->name('events.destroy');
 
     // Team mapping admin: officers configure which in-game ranks and
     // Discord role IDs map to which raid team. Drives members.team and
     // users.team (set on next GRM ingest / next role check respectively).
-    Route::get('/admin/teams', [\App\Http\Controllers\Admin\TeamMappingController::class, 'index'])->name('admin.teams.index');
-    Route::post('/admin/teams', [\App\Http\Controllers\Admin\TeamMappingController::class, 'update'])->name('admin.teams.update');
+    Route::get('/admin/teams', [TeamMappingController::class, 'index'])->name('admin.teams.index');
+    Route::post('/admin/teams', [TeamMappingController::class, 'update'])->name('admin.teams.update');
 
     // Per-team raid schedule (days + time). Overrides config defaults so
     // raid leads can change Heroic from Tue/Thu to Mon/Wed without a
     // redeploy. Empty table is fine; pages fall back to config.
-    Route::get('/admin/teams/schedule', [\App\Http\Controllers\Admin\TeamScheduleController::class, 'index'])->name('admin.teams.schedule.index');
-    Route::post('/admin/teams/schedule', [\App\Http\Controllers\Admin\TeamScheduleController::class, 'update'])->name('admin.teams.schedule.update');
-    Route::post('/admin/teams/schedule/{slug}/reset', [\App\Http\Controllers\Admin\TeamScheduleController::class, 'reset'])
+    Route::get('/admin/teams/schedule', [TeamScheduleController::class, 'index'])->name('admin.teams.schedule.index');
+    Route::post('/admin/teams/schedule', [TeamScheduleController::class, 'update'])->name('admin.teams.schedule.update');
+    Route::post('/admin/teams/schedule/{slug}/reset', [TeamScheduleController::class, 'reset'])
         ->where('slug', '[a-z_]+')->name('admin.teams.schedule.reset');
 
     // Discord role mentions: which @roles get pinged on each team's
@@ -162,43 +193,43 @@ Route::middleware(['auth', RequireTier::class])->group(function () {
     // without a redeploy. EventController reads via
     // DiscordRoleMentionResolver, so changes take effect on the next
     // event creation.
-    Route::get('/admin/discord-roles', [\App\Http\Controllers\Admin\DiscordRoleConfigController::class, 'index'])->name('admin.discord-roles.index');
-    Route::post('/admin/discord-roles', [\App\Http\Controllers\Admin\DiscordRoleConfigController::class, 'update'])->name('admin.discord-roles.update');
+    Route::get('/admin/discord-roles', [DiscordRoleConfigController::class, 'index'])->name('admin.discord-roles.index');
+    Route::post('/admin/discord-roles', [DiscordRoleConfigController::class, 'update'])->name('admin.discord-roles.update');
 
     // On-demand Raider.IO refresh. Same logic as the scheduled
     // raiderio:pull command; rate-limited per officer.
-    Route::post('/admin/raiderio/sync', [\App\Http\Controllers\Admin\RaiderioSyncController::class, 'store'])->name('admin.raiderio.sync');
+    Route::post('/admin/raiderio/sync', [RaiderioSyncController::class, 'store'])->name('admin.raiderio.sync');
 
     // On-demand wowaudit refresh. Same shape as raiderio.sync.
-    Route::post('/admin/wowaudit/sync', [\App\Http\Controllers\Admin\WowauditSyncController::class, 'store'])->name('admin.wowaudit.sync');
+    Route::post('/admin/wowaudit/sync', [WowauditSyncController::class, 'store'])->name('admin.wowaudit.sync');
 
     // On-demand Warcraft Logs pull. Same shape as raiderio.sync.
-    Route::post('/admin/wcl/sync', [\App\Http\Controllers\Admin\WclSyncController::class, 'store'])->name('admin.wcl.sync');
+    Route::post('/admin/wcl/sync', [WclSyncController::class, 'store'])->name('admin.wcl.sync');
 
     // On-demand Blizzard profile pull. Same shape as raiderio.sync.
-    Route::post('/admin/blizzard/sync', [\App\Http\Controllers\Admin\BlizzardSyncController::class, 'store'])->name('admin.blizzard.sync');
+    Route::post('/admin/blizzard/sync', [BlizzardSyncController::class, 'store'])->name('admin.blizzard.sync');
 
     // Dedicated sync dashboard: per-source status panels + GRM file
     // upload + on-demand sync triggers. Auto-refreshes while a sync
     // is in progress so officers can see results without reloading.
-    Route::get('/admin/sync', [\App\Http\Controllers\Admin\SyncDashboardController::class, 'index'])->name('admin.sync.index');
-    Route::post('/admin/sync/grm', [\App\Http\Controllers\Admin\SyncDashboardController::class, 'uploadGrm'])->name('admin.sync.grm.upload');
+    Route::get('/admin/sync', [SyncDashboardController::class, 'index'])->name('admin.sync.index');
+    Route::post('/admin/sync/grm', [SyncDashboardController::class, 'uploadGrm'])->name('admin.sync.grm.upload');
 
     // Per-user display preferences (clarity dial, theme picker).
     // Single POST endpoint per pref keeps the surface tiny and
     // JS-free; each toggle in the UI is its own form.
-    Route::post('/preferences/display', [\App\Http\Controllers\PreferencesController::class, 'display'])->name('preferences.display');
-    Route::post('/preferences/theme',   [\App\Http\Controllers\PreferencesController::class, 'theme'])->name('preferences.theme');
-    Route::post('/preferences/dashboard-layout', [\App\Http\Controllers\PreferencesController::class, 'dashboardLayout'])->name('preferences.dashboard-layout');
+    Route::post('/preferences/display', [PreferencesController::class, 'display'])->name('preferences.display');
+    Route::post('/preferences/theme', [PreferencesController::class, 'theme'])->name('preferences.theme');
+    Route::post('/preferences/dashboard-layout', [PreferencesController::class, 'dashboardLayout'])->name('preferences.dashboard-layout');
 
     // Officer-managed Discord webhook table. Used by the digest sender
     // and any future webhook-based sender (event reminders etc).
-    Route::get('/admin/webhooks',                 [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'index'])->name('admin.webhooks.index');
-    Route::post('/admin/webhooks',                [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'store'])->name('admin.webhooks.store');
-    Route::put('/admin/webhooks/{webhook}',       [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'update'])->name('admin.webhooks.update');
-    Route::delete('/admin/webhooks/{webhook}',    [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'destroy'])->name('admin.webhooks.destroy');
-    Route::post('/admin/webhooks/{webhook}/test', [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'test'])->name('admin.webhooks.test');
-    Route::post('/admin/webhooks/test-all',        [\App\Http\Controllers\Admin\DiscordWebhookController::class, 'testAll'])->name('admin.webhooks.test-all');
+    Route::get('/admin/webhooks', [DiscordWebhookController::class, 'index'])->name('admin.webhooks.index');
+    Route::post('/admin/webhooks', [DiscordWebhookController::class, 'store'])->name('admin.webhooks.store');
+    Route::put('/admin/webhooks/{webhook}', [DiscordWebhookController::class, 'update'])->name('admin.webhooks.update');
+    Route::delete('/admin/webhooks/{webhook}', [DiscordWebhookController::class, 'destroy'])->name('admin.webhooks.destroy');
+    Route::post('/admin/webhooks/{webhook}/test', [DiscordWebhookController::class, 'test'])->name('admin.webhooks.test');
+    Route::post('/admin/webhooks/test-all', [DiscordWebhookController::class, 'testAll'])->name('admin.webhooks.test-all');
 
     // Shared "Regenesis Officers" Google Calendar push integration.
     // One officer authorises here; the dashboard creates a dedicated
@@ -206,8 +237,8 @@ Route::middleware(['auth', RequireTier::class])->group(function () {
     // are created/edited/deleted. Connect/disconnect/test live in this
     // page; the OAuth handshake itself is the auth.google-calendar.*
     // route group below.
-    Route::get('/admin/google-calendar', [\App\Http\Controllers\Admin\GoogleCalendarSettingsController::class, 'index'])->name('admin.google-calendar.index');
-    Route::post('/admin/google-calendar/test', [\App\Http\Controllers\Admin\GoogleCalendarSettingsController::class, 'test'])->name('admin.google-calendar.test');
+    Route::get('/admin/google-calendar', [GoogleCalendarSettingsController::class, 'index'])->name('admin.google-calendar.index');
+    Route::post('/admin/google-calendar/test', [GoogleCalendarSettingsController::class, 'test'])->name('admin.google-calendar.test');
 
     Route::get('/auth/google-calendar', [GoogleCalendarController::class, 'start'])->name('auth.google-calendar.start');
     Route::get('/auth/google-calendar/callback', [GoogleCalendarController::class, 'callback'])->name('auth.google-calendar.callback');
@@ -219,7 +250,7 @@ Route::middleware(['auth', RequireTier::class])->group(function () {
 // the link can be DM'd around or embedded; signature is the only key.
 // {event} constrained to numeric so /events/1.ics doesn't match the
 // auth-protected /events/{event} route as event=`1.ics`.
-Route::get('/events/{event}.ics', [\App\Http\Controllers\Calendar\IcsController::class, 'show'])
+Route::get('/events/{event}.ics', [IcsController::class, 'show'])
     ->where('event', '[0-9]+')->name('event.ics');
 
 // Public world-events feed: Darkmoon Faire, holidays, Trading Post
@@ -227,19 +258,19 @@ Route::get('/events/{event}.ics', [\App\Http\Controllers\Calendar\IcsController:
 // subscribe. Cached for a day (these dates barely shift). Listed
 // before the generic /calendar/{token}.ics route below so the
 // literal "world" segment isn't captured as a token.
-Route::get('/calendar/world.ics', [\App\Http\Controllers\Calendar\IcsController::class, 'worldFeed'])
+Route::get('/calendar/world.ics', [IcsController::class, 'worldFeed'])
     ->name('calendar.world');
 
 // Combined Social feed: raid events plus computed world events. Same
 // per-user token as the raid-only subscription above; users can pick
 // whichever one they want in their calendar app. Tokens are bound to
 // User rows; rotation is identical to the raid feed.
-Route::get('/calendar/social/{token}.ics', [\App\Http\Controllers\Calendar\IcsController::class, 'socialSubscription'])
+Route::get('/calendar/social/{token}.ics', [IcsController::class, 'socialSubscription'])
     ->name('calendar.social.subscription');
 
 // Per-user webcal:// subscription feed. Token is a random column on the
 // User row; rotate from the settings page if leaked. Returns rolling
 // 90-day window (subset includes recent past so calendar clients can
 // show 'what was today').
-Route::get('/calendar/{token}.ics', [\App\Http\Controllers\Calendar\IcsController::class, 'subscription'])
+Route::get('/calendar/{token}.ics', [IcsController::class, 'subscription'])
     ->name('calendar.subscription');

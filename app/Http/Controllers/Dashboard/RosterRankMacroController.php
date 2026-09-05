@@ -59,6 +59,7 @@ class RosterRankMacroController extends Controller
                     'name' => $m->name,
                     'reason' => $m->status === Member::STATUS_BANNED ? 'banned' : 'no longer in guild',
                 ];
+
                 continue;
             }
             $charName = explode('-', $m->name, 2)[0];

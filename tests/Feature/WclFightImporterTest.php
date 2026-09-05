@@ -30,7 +30,7 @@ function deepReportResponse(): array
     // the real WCL response.
     $damage = json_encode(['data' => ['entries' => [
         ['name' => 'Sheday', 'type' => 'PALADIN', 'icon' => 'Paladin-Retribution', 'total' => 1_500_000, 'itemLevel' => 645],
-        ['name' => 'Bruiser', 'type' => 'WARRIOR', 'icon' => 'Warrior-Arms',      'total' =>   500_000, 'itemLevel' => 640],
+        ['name' => 'Bruiser', 'type' => 'WARRIOR', 'icon' => 'Warrior-Arms',      'total' => 500_000, 'itemLevel' => 640],
     ]]]);
     $healing = json_encode(['data' => ['entries' => [
         ['name' => 'Healer', 'type' => 'PRIEST', 'icon' => 'Priest-Holy', 'total' => 800_000, 'itemLevel' => 642],
@@ -57,13 +57,13 @@ function deepReportResponse(): array
     $deaths = json_encode(['data' => ['entries' => [
         ['name' => 'Bruiser', 'type' => 'WARRIOR', 'icon' => 'Warrior-Arms', 'events' => [
             ['timestamp' => 250_000, 'amount' => 1_500_000, 'overkill' => 50_000,
-             'ability' => ['guid' => 999111, 'name' => 'Devastating Blow', 'icon' => 'ability_warrior_devastate']],
+                'ability' => ['guid' => 999111, 'name' => 'Devastating Blow', 'icon' => 'ability_warrior_devastate']],
         ]],
         ['name' => 'Healer', 'type' => 'PRIEST', 'icon' => 'Priest-Holy', 'events' => [
-            ['timestamp' => 700_000, 'amount' =>   850_000, 'overkill' => 10_000,
-             'ability' => ['guid' => 999222, 'name' => 'Ground Wave', 'icon' => 'spell_nature_earthquake']],
-            ['timestamp' => 850_000, 'amount' =>   600_000, 'overkill' =>      0,
-             'ability' => ['guid' => 999333, 'name' => 'Spike',       'icon' => 'spell_shadow_shadowbolt']],
+            ['timestamp' => 700_000, 'amount' => 850_000, 'overkill' => 10_000,
+                'ability' => ['guid' => 999222, 'name' => 'Ground Wave', 'icon' => 'spell_nature_earthquake']],
+            ['timestamp' => 850_000, 'amount' => 600_000, 'overkill' => 0,
+                'ability' => ['guid' => 999333, 'name' => 'Spike',       'icon' => 'spell_shadow_shadowbolt']],
         ]],
     ]]]);
 
@@ -72,9 +72,9 @@ function deepReportResponse(): array
         'title' => 'Tuesday Heroic',
         'fights' => [
             // Real boss kill: encounterID > 0, kill = true.
-            ['id' => 1, 'encounterID' => 2900, 'name' => 'Plexus Sentinel', 'difficulty' => 4, 'kill' => true,  'fightPercentage' => 0,    'startTime' =>      0, 'endTime' =>  300_000],
+            ['id' => 1, 'encounterID' => 2900, 'name' => 'Plexus Sentinel', 'difficulty' => 4, 'kill' => true,  'fightPercentage' => 0,    'startTime' => 0, 'endTime' => 300_000],
             // Wipe at 30%.
-            ['id' => 2, 'encounterID' => 2900, 'name' => 'Plexus Sentinel', 'difficulty' => 4, 'kill' => false, 'fightPercentage' => 3000, 'startTime' => 600_000, 'endTime' =>  900_000],
+            ['id' => 2, 'encounterID' => 2900, 'name' => 'Plexus Sentinel', 'difficulty' => 4, 'kill' => false, 'fightPercentage' => 3000, 'startTime' => 600_000, 'endTime' => 900_000],
             // Trash pull (encounterID = 0): should be filtered out.
             ['id' => 3, 'encounterID' => 0,    'name' => 'trash',           'difficulty' => 4, 'kill' => false, 'fightPercentage' => null, 'startTime' => 950_000, 'endTime' => 1_000_000],
         ],
@@ -88,7 +88,7 @@ function deepReportResponse(): array
 
 it('imports fights and parses for a report and marks fights_imported_at', function () {
     Http::fake([
-        'wcl.test/oauth/token'   => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
+        'wcl.test/oauth/token' => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
         'wcl.test/api/v2/client' => Http::response(deepReportResponse(), 200),
     ]);
     $report = WclReport::query()->create([
@@ -123,7 +123,7 @@ it('imports fights and parses for a report and marks fights_imported_at', functi
 
 it('matches the parse to a local member when names align (case-insensitive)', function () {
     Http::fake([
-        'wcl.test/oauth/token'   => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
+        'wcl.test/oauth/token' => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
         'wcl.test/api/v2/client' => Http::response(deepReportResponse(), 200),
     ]);
     $local = Member::query()->create([
@@ -150,7 +150,7 @@ it('matches the parse to a local member when names align (case-insensitive)', fu
 
 it('fills parse_percentile + bracket_percentile from the rankings blobs on the kill', function () {
     Http::fake([
-        'wcl.test/oauth/token'   => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
+        'wcl.test/oauth/token' => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
         'wcl.test/api/v2/client' => Http::response(deepReportResponse(), 200),
     ]);
     $report = WclReport::query()->create([
@@ -177,7 +177,7 @@ it('fills parse_percentile + bracket_percentile from the rankings blobs on the k
 
 it('leaves percentile null on fights with no rankings entry (e.g. wipes)', function () {
     Http::fake([
-        'wcl.test/oauth/token'   => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
+        'wcl.test/oauth/token' => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
         'wcl.test/api/v2/client' => Http::response(deepReportResponse(), 200),
     ]);
     $report = WclReport::query()->create([
@@ -199,7 +199,7 @@ it('leaves percentile null on fights with no rankings entry (e.g. wipes)', funct
 
 it('skips reports that already have fights_imported_at set unless forced', function () {
     Http::fake([
-        'wcl.test/oauth/token'   => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
+        'wcl.test/oauth/token' => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
         'wcl.test/api/v2/client' => Http::response(deepReportResponse(), 200),
     ]);
     WclReport::query()->create([
@@ -221,7 +221,7 @@ it('skips reports that already have fights_imported_at set unless forced', funct
 
 it('imports deaths with killer ability, time and overkill from the deaths table', function () {
     Http::fake([
-        'wcl.test/oauth/token'   => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
+        'wcl.test/oauth/token' => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
         'wcl.test/api/v2/client' => Http::response(deepReportResponse(), 200),
     ]);
     $report = WclReport::query()->create([
@@ -264,7 +264,7 @@ it('imports deaths with killer ability, time and overkill from the deaths table'
 
 it('matches the death to a local member when the actor name lines up', function () {
     Http::fake([
-        'wcl.test/oauth/token'   => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
+        'wcl.test/oauth/token' => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
         'wcl.test/api/v2/client' => Http::response(deepReportResponse(), 200),
     ]);
     $local = Member::query()->create([
@@ -291,7 +291,7 @@ it('matches the death to a local member when the actor name lines up', function 
 
 it('replaces deaths on re-import so a corrected report does not duplicate rows', function () {
     Http::fake([
-        'wcl.test/oauth/token'   => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
+        'wcl.test/oauth/token' => Http::response(['access_token' => 'tok', 'expires_in' => 3600], 200),
         'wcl.test/api/v2/client' => Http::response(deepReportResponse(), 200),
     ]);
     WclReport::query()->create([

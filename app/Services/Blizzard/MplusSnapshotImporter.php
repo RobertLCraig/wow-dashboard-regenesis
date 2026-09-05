@@ -5,6 +5,7 @@ namespace App\Services\Blizzard;
 use App\Models\Member;
 use App\Models\MemberMplusSnapshot;
 use App\Models\Snapshot;
+use App\Services\Raiderio\RealmSlug;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Facades\DB;
@@ -49,7 +50,7 @@ class MplusSnapshotImporter
         if (! $this->client->isConfigured()) {
             throw new \RuntimeException(
                 'Blizzard client credentials are not configured. '
-                . 'Set BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET.'
+                .'Set BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET.'
             );
         }
 
@@ -71,6 +72,7 @@ class MplusSnapshotImporter
             $endpoint = $this->resolveEndpoint($member);
             if ($endpoint === null) {
                 $errored++;
+
                 continue;
             }
             $jobs[$member->id] = $endpoint + ['member' => $member];
@@ -91,6 +93,7 @@ class MplusSnapshotImporter
                         ->withHeaders($job['headers'])
                         ->get($job['url'], $job['query']);
                 }
+
                 return $reqs;
             });
 
@@ -103,10 +106,12 @@ class MplusSnapshotImporter
                         'message' => $resp->getMessage(),
                     ]);
                     $errored++;
+
                     continue;
                 }
                 if ($resp === null) {
                     $errored++;
+
                     continue;
                 }
 
@@ -114,6 +119,7 @@ class MplusSnapshotImporter
                     // No runs ever, or character never logged in. Not
                     // an error - just nothing to record.
                     $missing++;
+
                     continue;
                 }
 
@@ -124,12 +130,14 @@ class MplusSnapshotImporter
                         'body' => mb_substr((string) $resp->body(), 0, 200),
                     ]);
                     $errored++;
+
                     continue;
                 }
 
                 $body = $resp->json();
                 if (! is_array($body)) {
                     $errored++;
+
                     continue;
                 }
 
@@ -199,11 +207,11 @@ class MplusSnapshotImporter
 
         $slug = $member->realm_slug;
         if ($slug === null || $slug === '') {
-            $slug = \App\Services\Raiderio\RealmSlug::slugifyCanonical($member->realm);
+            $slug = RealmSlug::slugifyCanonical($member->realm);
         }
         if ($slug === null || $slug === '') {
-            $collapsed = \App\Services\Raiderio\RealmSlug::realmFromMemberName($member->name);
-            $slug = \App\Services\Raiderio\RealmSlug::slugify($collapsed);
+            $collapsed = RealmSlug::realmFromMemberName($member->name);
+            $slug = RealmSlug::slugify($collapsed);
         }
         if ($slug === '') {
             return null;
@@ -221,6 +229,7 @@ class MplusSnapshotImporter
         if (! is_numeric($raw)) {
             return null;
         }
+
         return round((float) $raw, 1);
     }
 
@@ -231,6 +240,7 @@ class MplusSnapshotImporter
     private function extractCurrentPeriodRuns(array $body): ?array
     {
         $runs = $body['current_period']['best_runs'] ?? null;
+
         return is_array($runs) ? $runs : null;
     }
 
@@ -241,6 +251,7 @@ class MplusSnapshotImporter
     private function extractSeasons(array $body): ?array
     {
         $seasons = $body['seasons'] ?? null;
+
         return is_array($seasons) ? $seasons : null;
     }
 }

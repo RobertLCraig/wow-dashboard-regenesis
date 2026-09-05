@@ -25,17 +25,26 @@ use Illuminate\Support\Facades\Cache;
 class SyncStatus
 {
     public const SOURCE_RAIDERIO = 'raiderio';
-    public const SOURCE_GRM      = 'grm';
+
+    public const SOURCE_GRM = 'grm';
+
     public const SOURCE_WOWAUDIT = 'wowaudit';
+
     public const SOURCE_RAIDHELPER = 'raidhelper';
-    public const SOURCE_WCL      = 'wcl';
+
+    public const SOURCE_WCL = 'wcl';
+
     public const SOURCE_BLIZZARD = 'blizzard';
+
     public const SOURCE_GOOGLE_CAL = 'google_calendar';
 
-    public const QUEUED  = 'queued';
+    public const QUEUED = 'queued';
+
     public const RUNNING = 'running';
-    public const DONE    = 'done';
-    public const FAILED  = 'failed';
+
+    public const DONE = 'done';
+
+    public const FAILED = 'failed';
 
     private const TTL_SECONDS = 3600;
 
@@ -70,6 +79,7 @@ class SyncStatus
     public static function get(string $source): ?array
     {
         $v = Cache::get(self::key($source));
+
         return is_array($v) ? $v : null;
     }
 

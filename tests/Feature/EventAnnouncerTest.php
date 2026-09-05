@@ -16,8 +16,8 @@ beforeEach(function () {
         'raidhelper.server_id' => '1247256415542841416',
         'raidhelper.timezone' => 'Europe/Paris',
         'raidhelper.teams' => [
-            'heroic'   => ['label' => 'Heroic Raid',   'channel_id' => 'CH-HEROIC',   'raid_days' => [2, 4]],
-            'mythic'   => ['label' => 'Mythic Raid',   'channel_id' => 'CH-MYTHIC',   'raid_days' => [3, 7]],
+            'heroic' => ['label' => 'Heroic Raid',   'channel_id' => 'CH-HEROIC',   'raid_days' => [2, 4]],
+            'mythic' => ['label' => 'Mythic Raid',   'channel_id' => 'CH-MYTHIC',   'raid_days' => [3, 7]],
             'keynight' => ['label' => 'Keynight (M+)', 'channel_id' => 'CH-KEYNIGHT', 'raid_days' => [1]],
         ],
     ]);
@@ -50,7 +50,7 @@ function announcerEvent(array $overrides = []): RaidEvent
 
 function newAnnouncer(): EventAnnouncer
 {
-    return new EventAnnouncer(new WebhookRouter());
+    return new EventAnnouncer(new WebhookRouter);
 }
 
 // --- service ----------------------------------------------------------
@@ -63,8 +63,7 @@ it('posts to a team-scoped webhook when the channel matches', function () {
     $r = newAnnouncer()->announceNew($event);
 
     expect($r)->toMatchArray(['posted_to' => 1, 'team_slug' => 'heroic', 'error' => null]);
-    Http::assertSent(fn ($req) =>
-        $req->url() === 'https://discord.com/api/webhooks/200/heroic'
+    Http::assertSent(fn ($req) => $req->url() === 'https://discord.com/api/webhooks/200/heroic'
         && str_contains($req['content'], 'Heroic Tuesday')
         && str_contains($req['content'], 'New Heroic event')
         && str_contains($req['content'], 'Sign up: https://discord.com/channels/')
@@ -91,8 +90,7 @@ it('uses the generic heading for events in a channel that maps to no team', func
 
     newAnnouncer()->announceNew($event);
 
-    Http::assertSent(fn ($req) =>
-        str_contains($req['content'], '**New event**: Random hangout')
+    Http::assertSent(fn ($req) => str_contains($req['content'], '**New event**: Random hangout')
         && ! str_contains($req['content'], 'New Heroic')
     );
 });
@@ -143,7 +141,7 @@ it('webhook handler announces a brand-new event then stays silent on subsequent 
         'leaderName' => 'Officer',
         'title' => 'Heroic Tuesday',
         'startTime' => time() + 86400,
-        'endTime'   => time() + 86400 + 7200,
+        'endTime' => time() + 86400 + 7200,
         'closingTime' => time() + 86400 + 7200,
         'signUps' => [],
     ];

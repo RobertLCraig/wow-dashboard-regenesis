@@ -9,7 +9,7 @@ use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use App\Models\WclActorParse;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * Compares a member's actual gear against their class+spec BiS profile.
@@ -45,17 +45,17 @@ class BisComparisonService
     private const CLASS_NORMALISE = [
         'DEATHKNIGHT' => 'death_knight',
         'DEMONHUNTER' => 'demon_hunter',
-        'DRUID'       => 'druid',
-        'EVOKER'      => 'evoker',
-        'HUNTER'      => 'hunter',
-        'MAGE'        => 'mage',
-        'MONK'        => 'monk',
-        'PALADIN'     => 'paladin',
-        'PRIEST'      => 'priest',
-        'ROGUE'       => 'rogue',
-        'SHAMAN'      => 'shaman',
-        'WARLOCK'     => 'warlock',
-        'WARRIOR'     => 'warrior',
+        'DRUID' => 'druid',
+        'EVOKER' => 'evoker',
+        'HUNTER' => 'hunter',
+        'MAGE' => 'mage',
+        'MONK' => 'monk',
+        'PALADIN' => 'paladin',
+        'PRIEST' => 'priest',
+        'ROGUE' => 'rogue',
+        'SHAMAN' => 'shaman',
+        'WARLOCK' => 'warlock',
+        'WARRIOR' => 'warrior',
     ];
 
     /**
@@ -64,22 +64,22 @@ class BisComparisonService
      * slot key drives the comparison rows.
      */
     private const RIO_TO_SIMC_SLOT = [
-        'head'     => 'head',
-        'neck'     => 'neck',
+        'head' => 'head',
+        'neck' => 'neck',
         'shoulder' => 'shoulders',
-        'back'     => 'back',
-        'chest'    => 'chest',
-        'wrist'    => 'wrists',
-        'hands'    => 'hands',
-        'waist'    => 'waist',
-        'legs'     => 'legs',
-        'feet'     => 'feet',
-        'finger1'  => 'finger1',
-        'finger2'  => 'finger2',
+        'back' => 'back',
+        'chest' => 'chest',
+        'wrist' => 'wrists',
+        'hands' => 'hands',
+        'waist' => 'waist',
+        'legs' => 'legs',
+        'feet' => 'feet',
+        'finger1' => 'finger1',
+        'finger2' => 'finger2',
         'trinket1' => 'trinket1',
         'trinket2' => 'trinket2',
         'mainhand' => 'main_hand',
-        'offhand'  => 'off_hand',
+        'offhand' => 'off_hand',
     ];
 
     /**
@@ -88,22 +88,22 @@ class BisComparisonService
      * SimC drops it.
      */
     private const BLIZZARD_TO_SIMC_SLOT = [
-        'HEAD'      => 'head',
-        'NECK'      => 'neck',
-        'SHOULDER'  => 'shoulders',
-        'BACK'      => 'back',
-        'CHEST'     => 'chest',
-        'WRIST'     => 'wrists',
-        'HANDS'     => 'hands',
-        'WAIST'     => 'waist',
-        'LEGS'      => 'legs',
-        'FEET'      => 'feet',
-        'FINGER_1'  => 'finger1',
-        'FINGER_2'  => 'finger2',
+        'HEAD' => 'head',
+        'NECK' => 'neck',
+        'SHOULDER' => 'shoulders',
+        'BACK' => 'back',
+        'CHEST' => 'chest',
+        'WRIST' => 'wrists',
+        'HANDS' => 'hands',
+        'WAIST' => 'waist',
+        'LEGS' => 'legs',
+        'FEET' => 'feet',
+        'FINGER_1' => 'finger1',
+        'FINGER_2' => 'finger2',
         'TRINKET_1' => 'trinket1',
         'TRINKET_2' => 'trinket2',
         'MAIN_HAND' => 'main_hand',
-        'OFF_HAND'  => 'off_hand',
+        'OFF_HAND' => 'off_hand',
     ];
 
     /**
@@ -114,16 +114,16 @@ class BisComparisonService
      * shirt and excluded.
      */
     private const WCL_SLOT_TO_SIMC = [
-        0  => 'head',
-        1  => 'neck',
-        2  => 'shoulders',
+        0 => 'head',
+        1 => 'neck',
+        2 => 'shoulders',
         14 => 'back',
-        4  => 'chest',
-        8  => 'wrists',
-        9  => 'hands',
-        5  => 'waist',
-        6  => 'legs',
-        7  => 'feet',
+        4 => 'chest',
+        8 => 'wrists',
+        9 => 'hands',
+        5 => 'waist',
+        6 => 'legs',
+        7 => 'feet',
         10 => 'finger1',
         11 => 'finger2',
         12 => 'trinket1',
@@ -204,6 +204,7 @@ class BisComparisonService
         if ($r = $this->readingFromWcl($member)) {
             return $r;
         }
+
         return null;
     }
 
@@ -252,10 +253,10 @@ class BisComparisonService
      * profile so a player with no clearly-aligned variant still gets a
      * sensible fallback.
      *
-     * @param  \Illuminate\Support\Collection<int,BisProfile>  $candidates
+     * @param  Collection<int,BisProfile>  $candidates
      * @param  array<string, array{item_id:int,name:?string,enchant_ids:list<int>,gem_ids:list<int>}>  $actualGear
      */
-    public function pickBestProfileFromGear(\Illuminate\Support\Collection $candidates, array $actualGear): ?BisProfile
+    public function pickBestProfileFromGear(Collection $candidates, array $actualGear): ?BisProfile
     {
         if ($candidates->isEmpty()) {
             return null;
@@ -285,6 +286,7 @@ class BisComparisonService
                 $best = $candidate;
             }
         }
+
         return $best;
     }
 
@@ -302,6 +304,7 @@ class BisComparisonService
         if (! is_string($value) || $value === '') {
             return null;
         }
+
         // 'Frost' -> 'frost', 'Beast Mastery' -> 'beast_mastery'.
         return strtolower(str_replace([' ', '-'], '_', trim($value)));
     }
@@ -322,16 +325,17 @@ class BisComparisonService
         $wrongGems = 0;
         foreach (($comparison['slots'] ?? []) as $slot) {
             match ($slot['enchant_status'] ?? null) {
-                'missing'   => $missingEnchants++,
+                'missing' => $missingEnchants++,
                 'different' => $wrongEnchants++,
-                default     => null,
+                default => null,
             };
             match ($slot['gems_status'] ?? null) {
-                'missing'                       => $missingGems++,
-                'different', 'count_mismatch'   => $wrongGems++,
-                default                         => null,
+                'missing' => $missingGems++,
+                'different', 'count_mismatch' => $wrongGems++,
+                default => null,
             };
         }
+
         return [
             'missing_enchants' => $missingEnchants,
             'wrong_enchants' => $wrongEnchants,
@@ -496,6 +500,7 @@ class BisComparisonService
                 'gem_ids' => $gems,
             ];
         }
+
         return $out;
     }
 
@@ -533,6 +538,7 @@ class BisComparisonService
                 'gem_ids' => $gems,
             ];
         }
+
         return $out;
     }
 
@@ -580,6 +586,7 @@ class BisComparisonService
                 'gem_ids' => $gems,
             ];
         }
+
         return $out;
     }
 
@@ -624,6 +631,7 @@ class BisComparisonService
         if (is_string($raw)) {
             $raw = json_decode($raw, true);
         }
+
         return is_array($raw) ? $raw : null;
     }
 
@@ -637,6 +645,7 @@ class BisComparisonService
             ->where('member_id', $member->id)
             ->orderByDesc('id')
             ->first();
+
         return $snap ? $this->rawArray($snap) : null;
     }
 
@@ -683,6 +692,7 @@ class BisComparisonService
         if ($actual === []) {
             return 'missing';
         }
+
         return in_array($bisEnchantId, $actual, true) ? 'matched' : 'different';
     }
 
@@ -701,8 +711,11 @@ class BisComparisonService
         if (count($actual) !== count($bis)) {
             return 'count_mismatch';
         }
-        $a = $actual; $b = $bis;
-        sort($a); sort($b);
+        $a = $actual;
+        $b = $bis;
+        sort($a);
+        sort($b);
+
         return $a === $b ? 'matched' : 'different';
     }
 }

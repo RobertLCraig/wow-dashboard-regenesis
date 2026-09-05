@@ -99,7 +99,7 @@ it('carries the same moving-holiday dates in the public feed as the in-app calen
     $this->travelTo(CarbonImmutable::parse('2026-10-01 09:00:00'));
 
     $now = CarbonImmutable::now();
-    $expected = collect((new WorldEventsCalendar())->eventsInRange($now, $now->addDays(365)))
+    $expected = collect((new WorldEventsCalendar)->eventsInRange($now, $now->addDays(365)))
         ->whereIn('name', ['Noblegarden', 'Lunar Festival', "Pilgrim's Bounty"]);
     expect($expected)->toHaveCount(3);
 

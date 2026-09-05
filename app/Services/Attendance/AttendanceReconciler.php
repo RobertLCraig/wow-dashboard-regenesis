@@ -118,6 +118,7 @@ class AttendanceReconciler
 
             if (isset($actorKeys[$key])) {
                 $showedUp++;
+
                 continue;
             }
 
@@ -132,6 +133,7 @@ class AttendanceReconciler
                             'signup_name' => $s->name,
                             'alt_name' => $actorKeys[$altKey],
                         ];
+
                         continue 2;
                     }
                 }
@@ -201,6 +203,7 @@ class AttendanceReconciler
                 $keys[$key] = (string) $n;
             }
         }
+
         return $keys;
     }
 
@@ -224,6 +227,7 @@ class AttendanceReconciler
             } else {
                 $cohort = collect([$m]);
             }
+
             return [$m->id => $cohort->pluck('name')->map(fn ($n) => $this->matchKey((string) $n))->values()->all()];
         });
     }

@@ -40,7 +40,8 @@ class PullRaiderioSnapshot extends Command
         try {
             $result = $importer->pull();
         } catch (\Throwable $e) {
-            $this->error('raiderio pull failed: ' . $e->getMessage());
+            $this->error('raiderio pull failed: '.$e->getMessage());
+
             return self::FAILURE;
         }
 

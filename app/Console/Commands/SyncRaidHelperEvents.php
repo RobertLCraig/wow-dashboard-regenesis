@@ -29,6 +29,7 @@ class SyncRaidHelperEvents extends Command
     {
         if (! config('raidhelper.api_key')) {
             $this->warn('RAID_HELPER_API_KEY not set; skipping.');
+
             return self::SUCCESS;
         }
 
@@ -40,7 +41,8 @@ class SyncRaidHelperEvents extends Command
         do {
             $resp = $client->listEvents(page: $page, includeSignUps: $includeSignups);
             if (! $resp->successful()) {
-                $this->error("Raid-Helper /events page {$page} returned {$resp->status()}: " . mb_substr($resp->body(), 0, 200));
+                $this->error("Raid-Helper /events page {$page} returned {$resp->status()}: ".mb_substr($resp->body(), 0, 200));
+
                 return self::FAILURE;
             }
 
@@ -61,15 +63,16 @@ class SyncRaidHelperEvents extends Command
                     $upserter->upsert($event);
                     $totalUpserted++;
                 } catch (\Throwable $e) {
-                    $this->warn('Failed to upsert event ' . ($event['id'] ?? '?') . ': ' . $e->getMessage());
+                    $this->warn('Failed to upsert event '.($event['id'] ?? '?').': '.$e->getMessage());
                 }
             }
 
-            $this->info("Page {$page}/{$totalPages}: " . count($events) . ' events.');
+            $this->info("Page {$page}/{$totalPages}: ".count($events).' events.');
             $page++;
         } while ($page <= $totalPages);
 
         $this->info("Upserted {$totalUpserted} events total.");
+
         return self::SUCCESS;
     }
 }

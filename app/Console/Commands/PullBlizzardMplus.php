@@ -26,6 +26,7 @@ class PullBlizzardMplus extends Command
         $client = BlizzardClient::fromConfig();
         if (! $client->isConfigured()) {
             $this->info('blizzard:pull-mplus skipped (BLIZZARD_CLIENT_ID / BLIZZARD_CLIENT_SECRET not set).');
+
             return self::SUCCESS;
         }
 
@@ -40,7 +41,8 @@ class PullBlizzardMplus extends Command
         try {
             $result = $importer->pull();
         } catch (\Throwable $e) {
-            $this->error('blizzard:pull-mplus failed: ' . $e->getMessage());
+            $this->error('blizzard:pull-mplus failed: '.$e->getMessage());
+
             return self::FAILURE;
         }
 

@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\RateLimiter;
 class BlizzardSyncController extends Controller
 {
     private const FRESH_TTL_SECONDS = 60;
+
     private const MUTEX_TTL_SECONDS = 300;
 
     public function store(): RedirectResponse
@@ -34,11 +35,12 @@ class BlizzardSyncController extends Controller
             ]);
         }
 
-        $key = 'blizzard-sync:user:' . auth()->id();
+        $key = 'blizzard-sync:user:'.auth()->id();
         if (RateLimiter::tooManyAttempts($key, maxAttempts: 1)) {
             $minutes = (int) ceil(RateLimiter::availableIn($key) / 60);
+
             return $back->withErrors([
-                'blizzard' => "Manual Blizzard sync is limited to once per hour. Try again in {$minutes} minute" . ($minutes === 1 ? '' : 's') . '.',
+                'blizzard' => "Manual Blizzard sync is limited to once per hour. Try again in {$minutes} minute".($minutes === 1 ? '' : 's').'.',
             ]);
         }
 

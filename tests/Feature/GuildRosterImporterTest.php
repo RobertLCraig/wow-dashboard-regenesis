@@ -74,8 +74,7 @@ it('hits the profile namespace guild roster endpoint', function () {
 
     importer()->pull();
 
-    Http::assertSent(fn ($req) =>
-        str_contains($req->url(), 'eu.api.blizzard.test/data/wow/guild/silvermoon/regenesis/roster')
+    Http::assertSent(fn ($req) => str_contains($req->url(), 'eu.api.blizzard.test/data/wow/guild/silvermoon/regenesis/roster')
         && $req->hasHeader('Battlenet-Namespace', 'profile-eu')
         && $req->hasHeader('Authorization', 'Bearer tok'));
 });
@@ -201,7 +200,7 @@ it('throws when credentials are missing', function () {
     config(['blizzard.client_id' => '', 'blizzard.client_secret' => '']);
 
     expect(fn () => importer()->pull())
-        ->toThrow(\RuntimeException::class, 'not configured');
+        ->toThrow(RuntimeException::class, 'not configured');
 });
 
 it('throws when guild slugs are missing', function () {
@@ -213,7 +212,7 @@ it('throws when guild slugs are missing', function () {
     );
 
     expect(fn () => $imp->pull())
-        ->toThrow(\RuntimeException::class, 'guild identity is not configured');
+        ->toThrow(RuntimeException::class, 'guild identity is not configured');
 });
 
 it('throws when the roster fetch returns a non-2xx', function () {
@@ -223,5 +222,5 @@ it('throws when the roster fetch returns a non-2xx', function () {
     ]);
 
     expect(fn () => importer()->pull())
-        ->toThrow(\RuntimeException::class, 'guild roster fetch failed: 404');
+        ->toThrow(RuntimeException::class, 'guild roster fetch failed: 404');
 });

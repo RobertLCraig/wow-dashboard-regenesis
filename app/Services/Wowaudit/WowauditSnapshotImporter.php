@@ -92,12 +92,14 @@ class WowauditSnapshotImporter
                 $realm = $char['realm'] ?? null;
                 if (! $name || ! $realm) {
                     $skipped++;
+
                     continue;
                 }
                 $member = $this->matchMember($name, $realm);
                 if (! $member) {
                     Log::debug('wowaudit char with no GRM match', ['name' => $name, 'realm' => $realm]);
                     $skipped++;
+
                     continue;
                 }
 
@@ -144,6 +146,7 @@ class WowauditSnapshotImporter
     private function matchMember(string $name, string $realm): ?Member
     {
         $normalised = $this->charKey($name, $realm);
+
         return Member::query()
             ->forGuild($this->guildKey)
             ->whereRaw("lower(replace(replace(name, ' ', ''), \"'\", '')) = ?", [$normalised])
@@ -153,7 +156,8 @@ class WowauditSnapshotImporter
     private function charKey(string $name, string $realm): string
     {
         $clean = static fn (string $s) => str_replace([' ', "'"], '', mb_strtolower($s));
-        return $clean($name) . '-' . $clean($realm);
+
+        return $clean($name).'-'.$clean($realm);
     }
 
     /**
@@ -165,6 +169,7 @@ class WowauditSnapshotImporter
             return null;
         }
         $levels = array_filter(array_map(fn ($d) => is_array($d) ? ($d['level'] ?? null) : null, $dungeons));
+
         return $levels ? max($levels) : null;
     }
 
@@ -189,9 +194,11 @@ class WowauditSnapshotImporter
         $resp = $this->client->characterHistory($characterId);
         if (! $resp->successful()) {
             $this->gearCache[$characterId] = null;
+
             return null;
         }
         $gear = $resp->json('best_gear');
+
         return $this->gearCache[$characterId] = is_array($gear) ? $gear : null;
     }
 
@@ -211,6 +218,7 @@ class WowauditSnapshotImporter
         if (empty($ilvls)) {
             return null;
         }
+
         return (int) round(array_sum($ilvls) / count($ilvls));
     }
 }

@@ -42,6 +42,7 @@ class DiscordRecruitForm extends Model
                 $this->discord_thread_id,
             );
         }
+
         return "https://discord.com/channels/@me/{$this->discord_thread_id}";
     }
 }

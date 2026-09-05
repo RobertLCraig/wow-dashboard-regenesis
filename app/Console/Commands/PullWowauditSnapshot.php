@@ -26,6 +26,7 @@ class PullWowauditSnapshot extends Command
         $client = WowauditClient::fromConfig();
         if (! $client->isConfigured()) {
             $this->warn('WOWAUDIT_API_KEY not set; skipping.');
+
             return self::SUCCESS;
         }
 
@@ -37,7 +38,8 @@ class PullWowauditSnapshot extends Command
         try {
             $result = $importer->pullCurrentPeriod();
         } catch (\Throwable $e) {
-            $this->error('wowaudit pull failed: ' . $e->getMessage());
+            $this->error('wowaudit pull failed: '.$e->getMessage());
+
             return self::FAILURE;
         }
 

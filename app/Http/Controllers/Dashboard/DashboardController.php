@@ -18,7 +18,9 @@ use App\Services\Blizzard\RaidProgressionAnalyzer;
 use App\Services\Dashboard\WidgetOrderResolver;
 use App\Services\Wcl\DeathCauseAggregator;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -82,8 +84,8 @@ class DashboardController extends Controller
      * snapshots), so old expansions don't bloat the panel.
      *
      * @return array{
-     *   captured_at: ?\Carbon\CarbonInterface,
-     *   breakdown_captured_at: ?\Carbon\CarbonInterface,
+     *   captured_at: ?CarbonInterface,
+     *   breakdown_captured_at: ?CarbonInterface,
      *   current_tier: ?array{expansion_id:int, expansion_name:string, instance_id:int, instance_name:string},
      *   summary: array{team_count:int, raider_count:int, top_kills:array<string,array{killed:int,total:int,team:?string}>},
      *   teams: array<string,array{label:string,count:int,with_data:int,max_difficulty:string,best_raid_summary:?string,best_raid_key:?string,avg_ilvl:?int,top_rio:?float,top_key:?int}>,
@@ -133,7 +135,7 @@ class DashboardController extends Controller
                 ->get()
                 ->keyBy('member_id');
         }
-        $analyzer = new RaidProgressionAnalyzer();
+        $analyzer = new RaidProgressionAnalyzer;
 
         // Lock the boss-by-boss breakdown to the current tier (latest
         // expansion seen across the whole guild's raid snapshots). Older
@@ -197,7 +199,7 @@ class DashboardController extends Controller
                 $bestM > 0 => "{$bestM}/{$bestTotal} M",
                 $bestH > 0 => "{$bestH}/{$bestTotal} H",
                 $bestN > 0 => "{$bestN}/{$bestTotal} N",
-                default    => null,
+                default => null,
             };
 
             $ilvls = $snaps->pluck('ilvl')->filter()->all();
@@ -401,7 +403,7 @@ class DashboardController extends Controller
                     if ($diff['type'] === 'MYTHIC' && $row['killed'] > 0 && $row['killed'] < $row['total']) {
                         $remaining = $row['total'] - $row['killed'];
                         $out[] = "{$row['team_label']} has {$remaining}/{$row['total']} Mythic boss"
-                            . ($remaining === 1 ? '' : 'es') . " left to Cutting Edge in {$activeRaid['name']}.";
+                            .($remaining === 1 ? '' : 'es')." left to Cutting Edge in {$activeRaid['name']}.";
                     }
                 }
             }
@@ -411,9 +413,9 @@ class DashboardController extends Controller
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, RaidEvent>
+     * @return Collection<int, RaidEvent>
      */
-    private function upcomingEvents(): \Illuminate\Support\Collection
+    private function upcomingEvents(): Collection
     {
         return RaidEvent::query()
             ->upcoming()
@@ -474,7 +476,7 @@ class DashboardController extends Controller
         ];
     }
 
-    private function recentLogTimeline(string $guildKey): \Illuminate\Support\Collection
+    private function recentLogTimeline(string $guildKey): Collection
     {
         return LogEvent::query()
             ->where('guild_key', $guildKey)
@@ -493,7 +495,7 @@ class DashboardController extends Controller
             ->whereIn('decision', [MemberAction::DECISION_ACCEPTED, MemberAction::DECISION_DISMISSED])
             ->orWhere(function (Builder $q) {
                 $q->where('decision', MemberAction::DECISION_SNOOZED)
-                  ->where('snooze_until', '>', now());
+                    ->where('snooze_until', '>', now());
             })
             ->pluck('action_type', 'member_id');
 
@@ -521,7 +523,7 @@ class DashboardController extends Controller
         ];
     }
 
-    private function bans(string $guildKey): \Illuminate\Support\Collection
+    private function bans(string $guildKey): Collection
     {
         return Member::query()
             ->forGuild($guildKey)
@@ -530,7 +532,7 @@ class DashboardController extends Controller
             ->get();
     }
 
-    private function anniversaries(string $guildKey): \Illuminate\Support\Collection
+    private function anniversaries(string $guildKey): Collection
     {
         $weekStart = CarbonImmutable::now()->startOfWeek();
         $weekEnd = $weekStart->endOfWeek();
@@ -615,7 +617,7 @@ class DashboardController extends Controller
      *   has_aotc: list<array{name:string, class:?string, alts:list<string>}>,
      *   missing_aotc: list<array{name:string, class:?string, alts:list<string>}>,
      *   has_ce: list<array{name:string, class:?string, alts:list<string>}>,
-     *   captured_at: ?\Carbon\CarbonInterface,
+     *   captured_at: ?CarbonInterface,
      * }
      */
     private function aotcGap(string $guildKey): ?array
@@ -646,7 +648,7 @@ class DashboardController extends Controller
             return null;
         }
 
-        $built = (new AotcCohortGapBuilder(new RaidProgressionAnalyzer()))->build($members, $rows);
+        $built = (new AotcCohortGapBuilder(new RaidProgressionAnalyzer))->build($members, $rows);
         if ($built === null) {
             return null;
         }

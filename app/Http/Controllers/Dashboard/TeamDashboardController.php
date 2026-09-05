@@ -11,6 +11,7 @@ use App\Models\TeamMapping;
 use App\Models\WclActorParse;
 use App\Services\Teams\TeamScheduleResolver;
 use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
@@ -72,7 +73,7 @@ class TeamDashboardController extends Controller
      * back to the fight + report so the widget can show what / when /
      * where. Members with no parses in the window are dropped.
      *
-     * @param  \Illuminate\Support\Collection<int, Member>  $members
+     * @param  Collection<int, Member>  $members
      * @return Collection<int, array{member: Member, parse: WclActorParse}>
      */
     private function topParses($members, int $days): Collection
@@ -110,8 +111,8 @@ class TeamDashboardController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, Member>  $members
-     * @return array{captured_at: ?\Carbon\CarbonInterface, rows: \Illuminate\Support\Collection}
+     * @param  Collection<int, Member>  $members
+     * @return array{captured_at: ?CarbonInterface, rows: Collection}
      */
     private function teamRoster(string $guildKey, $members): array
     {
@@ -122,6 +123,7 @@ class TeamDashboardController extends Controller
 
         $rows = $members->map(function (Member $m) use ($snapsByMember) {
             $snap = $snapsByMember->get($m->id);
+
             return [
                 'member' => $m,
                 'snap' => $snap,
@@ -142,7 +144,7 @@ class TeamDashboardController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, Member>  $members
+     * @param  Collection<int, Member>  $members
      * @return array{count:int, with_data:int, best_summary:?string, best_key:?string, avg_ilvl:?int, top_rio:?float, top_key:?int}
      */
     private function teamRaidSummary(string $guildKey, $members): array
@@ -167,7 +169,9 @@ class TeamDashboardController extends Controller
         $bestH = -1;
         foreach ($snaps as $snap) {
             foreach ((array) ($snap->raid_progression_json ?? []) as $instanceKey => $p) {
-                if (! is_array($p)) continue;
+                if (! is_array($p)) {
+                    continue;
+                }
                 $m = (int) ($p['mythic_bosses_killed'] ?? 0);
                 $h = (int) ($p['heroic_bosses_killed'] ?? 0);
                 if ($m > $bestM || ($m === $bestM && $h > $bestH)) {
@@ -195,13 +199,14 @@ class TeamDashboardController extends Controller
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, RaidEvent>
+     * @return Collection<int, RaidEvent>
      */
-    private function teamUpcomingEvents(?string $channelId): \Illuminate\Support\Collection
+    private function teamUpcomingEvents(?string $channelId): Collection
     {
         if (! $channelId) {
             return collect();
         }
+
         return RaidEvent::query()
             ->upcoming()
             ->where('channel_id', $channelId)
@@ -225,12 +230,16 @@ class TeamDashboardController extends Controller
      */
     private function bestRaidSummary(?MemberSnapshot $snap): ?string
     {
-        if (! $snap) return null;
+        if (! $snap) {
+            return null;
+        }
         $best = null;
         $bestM = -1;
         $bestH = -1;
         foreach ((array) ($snap->raid_progression_json ?? []) as $p) {
-            if (! is_array($p)) continue;
+            if (! is_array($p)) {
+                continue;
+            }
             $m = (int) ($p['mythic_bosses_killed'] ?? 0);
             $h = (int) ($p['heroic_bosses_killed'] ?? 0);
             if ($m > $bestM || ($m === $bestM && $h > $bestH)) {
@@ -239,6 +248,7 @@ class TeamDashboardController extends Controller
                 $best = is_string($p['summary'] ?? null) ? $p['summary'] : null;
             }
         }
+
         return $best;
     }
 }

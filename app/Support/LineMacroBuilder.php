@@ -35,9 +35,10 @@ class LineMacroBuilder
             }
             if (strlen($line) > self::MACRO_BYTE_LIMIT) {
                 $oversized[] = $line;
+
                 continue;
             }
-            $candidate = $current === '' ? $line : $current . "\n" . $line;
+            $candidate = $current === '' ? $line : $current."\n".$line;
             if (strlen($candidate) > self::MACRO_BYTE_LIMIT) {
                 $macros[] = $current;
                 $current = $line;

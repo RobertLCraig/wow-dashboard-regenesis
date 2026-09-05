@@ -8,6 +8,8 @@ use App\Models\MemberSnapshot;
 use App\Models\RaidEvent;
 use App\Models\Snapshot;
 use App\Services\Teams\TeamScheduleResolver;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 /**
@@ -46,7 +48,7 @@ class KeynightController extends Controller
     }
 
     /**
-     * @return array{captured_at: ?\Carbon\CarbonInterface, rows: \Illuminate\Support\Collection}
+     * @return array{captured_at: ?CarbonInterface, rows: Collection}
      */
     private function scoreboard(string $guildKey): array
     {
@@ -76,13 +78,14 @@ class KeynightController extends Controller
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, RaidEvent>
+     * @return Collection<int, RaidEvent>
      */
-    private function upcomingEvents(?string $channelId): \Illuminate\Support\Collection
+    private function upcomingEvents(?string $channelId): Collection
     {
         if (! $channelId) {
             return collect();
         }
+
         return RaidEvent::query()
             ->upcoming()
             ->where('channel_id', $channelId)

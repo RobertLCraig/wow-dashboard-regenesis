@@ -46,6 +46,7 @@ function fakeReportsResponse(?array $reports = null): array
         ['code' => 'aaaaaaaaaa', 'title' => 'Tuesday Heroic', 'startTime' => 1750000000000, 'endTime' => 1750010000000, 'zone' => ['id' => 50, 'name' => 'Manaforge Omega'], 'owner' => ['name' => 'OfficerOne']],
         ['code' => 'bbbbbbbbbb', 'title' => 'Wednesday Mythic', 'startTime' => 1750100000000, 'endTime' => 1750110000000, 'zone' => ['id' => 50, 'name' => 'Manaforge Omega'], 'owner' => ['name' => 'OfficerTwo']],
     ];
+
     return ['data' => ['reportData' => ['reports' => ['data' => $reports]]]];
 }
 
@@ -67,13 +68,13 @@ it('client throws a clean error when credentials are missing', function () {
     config(['wcl.client_id' => '', 'wcl.client_secret' => '']);
     $client = WclClient::fromConfig();
     expect($client->isConfigured())->toBeFalse();
-    expect(fn () => $client->accessToken())->toThrow(\RuntimeException::class, 'not configured');
+    expect(fn () => $client->accessToken())->toThrow(RuntimeException::class, 'not configured');
 });
 
 it('client throws when the token endpoint 4xxs', function () {
     Http::fake(['wcl.test/oauth/token' => Http::response('forbidden', 403)]);
     expect(fn () => WclClient::fromConfig()->accessToken())
-        ->toThrow(\RuntimeException::class, 'WCL token endpoint returned 403');
+        ->toThrow(RuntimeException::class, 'WCL token endpoint returned 403');
 });
 
 it('client posts the GraphQL query with the cached token as bearer', function () {
@@ -84,8 +85,7 @@ it('client posts the GraphQL query with the cached token as bearer', function ()
 
     WclClient::fromConfig()->query('query Foo { x }', ['x' => 1]);
 
-    Http::assertSent(fn ($req) =>
-        $req->url() === 'https://wcl.test/api/v2/client'
+    Http::assertSent(fn ($req) => $req->url() === 'https://wcl.test/api/v2/client'
         && $req->hasHeader('Authorization', 'Bearer tok-X')
         && $req['query'] === 'query Foo { x }'
         && $req['variables']->x === 1
@@ -135,7 +135,7 @@ it('importer surfaces a GraphQL errors envelope as a runtime exception', functio
     ]);
 
     expect(fn () => WclReportImporter::fromConfig()->pull())
-        ->toThrow(\RuntimeException::class, 'guild not found');
+        ->toThrow(RuntimeException::class, 'guild not found');
 });
 
 it('importer retries once with a fresh token on 401', function () {
@@ -144,6 +144,7 @@ it('importer retries once with a fresh token on 401', function () {
     Http::fake([
         'wcl.test/oauth/token' => function () use (&$authCalls) {
             $authCalls++;
+
             return Http::response(['access_token' => 'fresh-tok', 'expires_in' => 3600], 200);
         },
         'wcl.test/api/v2/client' => Http::sequence()

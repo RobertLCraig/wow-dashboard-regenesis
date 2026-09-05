@@ -167,10 +167,14 @@ class WclFightImporter
                 continue;
             }
             $fightRow = $this->upsertFight($report, $f);
-            if ($fightRow->wasRecentlyCreated) $fightsInserted++;
+            if ($fightRow->wasRecentlyCreated) {
+                $fightsInserted++;
+            }
 
             $deep = $this->fetchPerFight($report->code, (int) $f['id']);
-            if ($deep === null) continue;
+            if ($deep === null) {
+                continue;
+            }
 
             $damage = $this->extractActors($deep['damage'] ?? null);
             $healing = $this->extractActors($deep['healing'] ?? null);
@@ -220,18 +224,19 @@ class WclFightImporter
         $body = $resp->json();
         if (isset($body['errors'])) {
             throw new \RuntimeException(
-                "WCL report {$code}: " . ($body['errors'][0]['message'] ?? 'unknown GraphQL error')
+                "WCL report {$code}: ".($body['errors'][0]['message'] ?? 'unknown GraphQL error')
             );
         }
         $node = $body['data']['reportData']['report'] ?? null;
         if (! is_array($node)) {
             throw new \RuntimeException("WCL report {$code}: empty response");
         }
+
         return $node;
     }
 
     /**
-     * @return array<string, mixed>|null  null on error - caller skips this fight.
+     * @return array<string, mixed>|null null on error - caller skips this fight.
      */
     private function fetchPerFight(string $code, int $fightId): ?array
     {
@@ -249,6 +254,7 @@ class WclFightImporter
                 Log::warning('WclFightImporter: per-fight query failed', [
                     'code' => $code, 'fight_id' => $fightId, 'status' => $resp->status(),
                 ]);
+
                 return null;
             }
             $body = $resp->json();
@@ -257,14 +263,17 @@ class WclFightImporter
                     'code' => $code, 'fight_id' => $fightId,
                     'message' => $body['errors'][0]['message'] ?? 'unknown',
                 ]);
+
                 return null;
             }
             $node = $body['data']['reportData']['report'] ?? null;
+
             return is_array($node) ? $node : null;
         } catch (\Throwable $e) {
             Log::warning('WclFightImporter: per-fight fetch threw', [
                 'code' => $code, 'fight_id' => $fightId, 'message' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -352,7 +361,9 @@ class WclFightImporter
                 $damageActor = $damageByName[$lowered] ?? null;
                 $healingActor = $healingByName[$lowered] ?? null;
                 $name = (string) (($damageActor['name'] ?? null) ?? ($healingActor['name'] ?? ''));
-                if ($name === '') continue;
+                if ($name === '') {
+                    continue;
+                }
 
                 $role = $this->resolveRole(
                     $lowered, $damageActor, $healingActor, $fight->duration_ms, $rankings['role_for'],
@@ -362,9 +373,11 @@ class WclFightImporter
                 // use the damage table since we don't track healing-as-tank.
                 $primary = match ($role) {
                     WclActorParse::ROLE_HEALER => $healingActor ?? $damageActor,
-                    default                     => $damageActor ?? $healingActor,
+                    default => $damageActor ?? $healingActor,
                 };
-                if (! is_array($primary)) continue;
+                if (! is_array($primary)) {
+                    continue;
+                }
 
                 $rankingRow = $rankings['by_role'][$role][$lowered] ?? null;
 
@@ -382,7 +395,9 @@ class WclFightImporter
                         'raw_json' => $primary,
                     ]
                 );
-                if ($parse->wasRecentlyCreated) $inserted++;
+                if ($parse->wasRecentlyCreated) {
+                    $inserted++;
+                }
             }
         });
 
@@ -402,19 +417,19 @@ class WclFightImporter
      * @var array<string, list<string>>
      */
     private const CLASS_ROLES = [
-        'Druid'       => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER, WclActorParse::ROLE_TANK],
-        'Paladin'     => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER, WclActorParse::ROLE_TANK],
-        'Monk'        => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER, WclActorParse::ROLE_TANK],
-        'Priest'      => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER],
-        'Shaman'      => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER],
-        'Evoker'      => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER],
+        'Druid' => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER, WclActorParse::ROLE_TANK],
+        'Paladin' => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER, WclActorParse::ROLE_TANK],
+        'Monk' => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER, WclActorParse::ROLE_TANK],
+        'Priest' => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER],
+        'Shaman' => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER],
+        'Evoker' => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_HEALER],
         'DeathKnight' => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_TANK],
-        'Warrior'     => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_TANK],
+        'Warrior' => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_TANK],
         'DemonHunter' => [WclActorParse::ROLE_DPS, WclActorParse::ROLE_TANK],
-        'Mage'        => [WclActorParse::ROLE_DPS],
-        'Warlock'     => [WclActorParse::ROLE_DPS],
-        'Rogue'       => [WclActorParse::ROLE_DPS],
-        'Hunter'      => [WclActorParse::ROLE_DPS],
+        'Mage' => [WclActorParse::ROLE_DPS],
+        'Warlock' => [WclActorParse::ROLE_DPS],
+        'Rogue' => [WclActorParse::ROLE_DPS],
+        'Hunter' => [WclActorParse::ROLE_DPS],
     ];
 
     /**
@@ -426,7 +441,7 @@ class WclFightImporter
      *
      * @param  array<string,mixed>|null  $damageActor
      * @param  array<string,mixed>|null  $healingActor
-     * @param  array<string, string>     $rankingRoleFor  lower-name => role
+     * @param  array<string, string>  $rankingRoleFor  lower-name => role
      */
     private function resolveRole(
         string $loweredName,
@@ -454,6 +469,7 @@ class WclFightImporter
         if (in_array($magnitudeRole, $allowed, true)) {
             return $magnitudeRole;
         }
+
         // Magnitude said a role the class can't fill - fall back to the
         // first role the class CAN fill, which is always dps in the map.
         return $allowed[0];
@@ -501,18 +517,26 @@ class WclFightImporter
             $entries = is_array($decoded['data'] ?? null) ? $decoded['data'] : [];
 
             foreach ($entries as $entry) {
-                if (! is_array($entry)) continue;
-                if ((int) ($entry['fightID'] ?? 0) !== $fightId) continue;
+                if (! is_array($entry)) {
+                    continue;
+                }
+                if ((int) ($entry['fightID'] ?? 0) !== $fightId) {
+                    continue;
+                }
                 $roleNode = $entry['roles'][$source['pickRole']] ?? null;
                 $characters = is_array($roleNode['characters'] ?? null) ? $roleNode['characters'] : [];
                 foreach ($characters as $c) {
-                    if (! is_array($c) || empty($c['name'])) continue;
+                    if (! is_array($c) || empty($c['name'])) {
+                        continue;
+                    }
                     $key = mb_strtolower((string) $c['name']);
                     $rank = isset($c['rankPercent']) ? (int) round((float) $c['rankPercent']) : null;
                     $bracket = isset($c['bracketPercent']) ? (int) round((float) $c['bracketPercent']) : null;
                     $byRole[$source['role']][$key] = ['rank' => $rank, 'bracket' => $bracket];
                     $roleFor[$key] = $source['role'];
-                    if ($rank !== null) $ranked++;
+                    if ($rank !== null) {
+                        $ranked++;
+                    }
                 }
             }
         }
@@ -522,8 +546,12 @@ class WclFightImporter
 
     private function decodeMaybeJson(mixed $blob): array
     {
-        if (is_array($blob)) return $blob;
-        if (! is_string($blob)) return [];
+        if (is_array($blob)) {
+            return $blob;
+        }
+        if (! is_string($blob)) {
+            return [];
+        }
         try {
             return json_decode($blob, true, 512, JSON_THROW_ON_ERROR) ?: [];
         } catch (\JsonException) {
@@ -550,6 +578,7 @@ class WclFightImporter
             }
         }
         $entries = $decoded['data']['entries'] ?? $decoded['entries'] ?? [];
+
         return is_array($entries) ? array_values($entries) : [];
     }
 
@@ -567,6 +596,7 @@ class WclFightImporter
                 return round(((float) $v) / 100, 2);
             }
         }
+
         return null;
     }
 
@@ -579,6 +609,7 @@ class WclFightImporter
         if (! is_numeric($total) || ! $durationMs || $durationMs <= 0) {
             return null;
         }
+
         return round((float) $total / ($durationMs / 1000), 1);
     }
 
@@ -591,7 +622,7 @@ class WclFightImporter
      * report versions, so the killer-ability lookup probes a few
      * places and falls back gracefully when nothing is present.
      *
-     * @param  list<array<string,mixed>>  $entries Decoded `data.entries[]` from the deaths table.
+     * @param  list<array<string,mixed>>  $entries  Decoded `data.entries[]` from the deaths table.
      * @param  EloquentCollection<int, Member>  $members
      */
     private function writeDeathsForFight(
@@ -671,7 +702,9 @@ class WclFightImporter
         $events = is_array($entry['events'] ?? null) ? $entry['events'] : [];
         $out = [];
         foreach ($events as $ev) {
-            if (! is_array($ev)) continue;
+            if (! is_array($ev)) {
+                continue;
+            }
             $abilityNode = is_array($ev['ability'] ?? null) ? $ev['ability'] : [];
             $out[] = [
                 'ability_id' => $this->intOrNull($abilityNode['guid'] ?? $ev['abilityGuid'] ?? null),
@@ -695,6 +728,7 @@ class WclFightImporter
         if ($time === null) {
             return [];
         }
+
         return [[
             'ability_id' => $this->intOrNull($entry['abilityGuid'] ?? null),
             'ability_name' => $this->stringOrNull($entry['abilityName'] ?? null),

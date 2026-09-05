@@ -5,9 +5,10 @@ namespace App\Services\Blizzard;
 use App\Models\Member;
 use App\Models\MemberEquipmentSnapshot;
 use App\Models\Snapshot;
+use App\Services\Raiderio\RealmSlug;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Client\Pool;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -61,7 +62,7 @@ class EquipmentSnapshotImporter
         if (! $this->client->isConfigured()) {
             throw new \RuntimeException(
                 'Blizzard client credentials are not configured. '
-                . 'Set BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET.'
+                .'Set BLIZZARD_CLIENT_ID and BLIZZARD_CLIENT_SECRET.'
             );
         }
 
@@ -78,6 +79,7 @@ class EquipmentSnapshotImporter
             $endpoint = $this->resolveEndpoint($member);
             if ($endpoint === null) {
                 $errored++;
+
                 continue;
             }
             $jobs[$member->id] = $endpoint + ['member' => $member];
@@ -98,6 +100,7 @@ class EquipmentSnapshotImporter
                         ->withHeaders($job['headers'])
                         ->get($job['url'], $job['query']);
                 }
+
                 return $reqs;
             });
 
@@ -110,15 +113,18 @@ class EquipmentSnapshotImporter
                         'message' => $resp->getMessage(),
                     ]);
                     $errored++;
+
                     continue;
                 }
                 if ($resp === null) {
                     $errored++;
+
                     continue;
                 }
 
                 if ($resp->status() === 404) {
                     $missing++;
+
                     continue;
                 }
 
@@ -129,12 +135,14 @@ class EquipmentSnapshotImporter
                         'body' => mb_substr((string) $resp->body(), 0, 200),
                     ]);
                     $errored++;
+
                     continue;
                 }
 
                 $body = $resp->json();
                 if (! is_array($body)) {
                     $errored++;
+
                     continue;
                 }
 
@@ -212,6 +220,7 @@ class EquipmentSnapshotImporter
                         $previous->update(['snapshot_id' => $snapshot->id]);
                     }
                     $unchanged++;
+
                     continue;
                 }
 
@@ -248,9 +257,9 @@ class EquipmentSnapshotImporter
      * back into memory on every sweep.
      *
      * @param  list<int>  $memberIds
-     * @return \Illuminate\Support\Collection<int, MemberEquipmentSnapshot>
+     * @return Collection<int, MemberEquipmentSnapshot>
      */
-    private function latestRowsFor(array $memberIds): \Illuminate\Support\Collection
+    private function latestRowsFor(array $memberIds): Collection
     {
         if ($memberIds === []) {
             return collect();
@@ -321,11 +330,11 @@ class EquipmentSnapshotImporter
 
         $slug = $member->realm_slug;
         if ($slug === null || $slug === '') {
-            $slug = \App\Services\Raiderio\RealmSlug::slugifyCanonical($member->realm);
+            $slug = RealmSlug::slugifyCanonical($member->realm);
         }
         if ($slug === null || $slug === '') {
-            $collapsed = \App\Services\Raiderio\RealmSlug::realmFromMemberName($member->name);
-            $slug = \App\Services\Raiderio\RealmSlug::slugify($collapsed);
+            $collapsed = RealmSlug::realmFromMemberName($member->name);
+            $slug = RealmSlug::slugify($collapsed);
         }
         if ($slug === '') {
             return null;
@@ -339,6 +348,7 @@ class EquipmentSnapshotImporter
         if (! is_numeric($v) || $v <= 0) {
             return null;
         }
+
         return (int) round((float) $v);
     }
 }

@@ -38,6 +38,7 @@ class WebhookRouter
         if ($teamScoped->isNotEmpty()) {
             return $teamScoped;
         }
+
         return $matches->where('team_slug', null)->values();
     }
 }

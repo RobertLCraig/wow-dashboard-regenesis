@@ -52,6 +52,7 @@ class RosterUnlinkAltMacroController extends Controller
                     'name' => $m->name,
                     'reason' => $m->status === Member::STATUS_BANNED ? 'banned' : 'no longer in guild',
                 ];
+
                 continue;
             }
             if ($m->alt_group_id === null) {
@@ -60,6 +61,7 @@ class RosterUnlinkAltMacroController extends Controller
                     'name' => $m->name,
                     'reason' => 'not linked to an alt group in GRM',
                 ];
+
                 continue;
             }
             $characters[] = [

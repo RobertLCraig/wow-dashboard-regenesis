@@ -36,7 +36,7 @@ class GrmSnapshotController extends Controller
         try {
             $envelope = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
-            return response()->json(['error' => 'invalid json: ' . $e->getMessage()], 400);
+            return response()->json(['error' => 'invalid json: '.$e->getMessage()], 400);
         }
 
         $guildKey = $envelope['guild_key'] ?? null;
@@ -53,7 +53,7 @@ class GrmSnapshotController extends Controller
             : null;
         $grmVersion = is_string($envelope['grm_version'] ?? null) ? $envelope['grm_version'] : null;
 
-        $result = (new GrmSnapshotIngester())->ingest(
+        $result = (new GrmSnapshotIngester)->ingest(
             guildKey: $guildKey,
             payload: $payload,
             capturedAt: $capturedAt,

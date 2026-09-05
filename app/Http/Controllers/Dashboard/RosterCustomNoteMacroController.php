@@ -32,7 +32,7 @@ class RosterCustomNoteMacroController extends Controller
 
         $validated = $request->validate([
             'member_id' => ['required', 'integer'],
-            'note' => ['required', 'string', 'max:' . CustomNoteMacroBuilder::MAX_NOTE_LENGTH],
+            'note' => ['required', 'string', 'max:'.CustomNoteMacroBuilder::MAX_NOTE_LENGTH],
             'replace' => ['required', 'boolean'],
         ]);
 
@@ -73,7 +73,7 @@ class RosterCustomNoteMacroController extends Controller
 
         $validated = $request->validate([
             'member_id' => ['required', 'integer'],
-            'note' => ['required', 'string', 'max:' . CustomNoteMacroBuilder::MAX_NOTE_LENGTH],
+            'note' => ['required', 'string', 'max:'.CustomNoteMacroBuilder::MAX_NOTE_LENGTH],
             'replace' => ['required', 'boolean'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
@@ -97,7 +97,7 @@ class RosterCustomNoteMacroController extends Controller
             mb_strimwidth($validated['note'], 0, 80, '...'),
         );
         $auditNotes = $validated['notes']
-            ? $auditPrefix . ' ' . $validated['notes']
+            ? $auditPrefix.' '.$validated['notes']
             : $auditPrefix;
 
         MemberAction::query()->create([

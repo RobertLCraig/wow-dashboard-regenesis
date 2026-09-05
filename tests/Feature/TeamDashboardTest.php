@@ -2,12 +2,15 @@
 
 use App\Models\Member;
 use App\Models\MemberSnapshot;
+use App\Models\MemberTeam;
 use App\Models\RaidEvent;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
 use App\Models\User;
+use App\Models\WclActorParse;
+use App\Models\WclFight;
+use App\Models\WclReport;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Carbon;
 
 uses(RefreshDatabase::class);
 
@@ -55,7 +58,7 @@ function teamMember(string $name, ?string $team, array $overrides = []): Member
     ], $overrides));
 
     if ($effectiveTeam !== null) {
-        \App\Models\MemberTeam::query()->create([
+        MemberTeam::query()->create([
             'member_id' => $member->id,
             'team' => $effectiveTeam,
             'is_override' => false,
@@ -78,6 +81,7 @@ function rioSnapshotWith(array $rows): Snapshot
             'snapshot_id' => $snapshot->id,
         ], $row));
     }
+
     return $snapshot;
 }
 
@@ -93,9 +97,9 @@ it('renders the heroic team page with roster + raid summary', function () {
 
     rioSnapshotWith([
         ['member_id' => $h1->id, 'ilvl' => 645, 'mplus_score' => 1100, 'mplus_keystone' => 12,
-         'raid_progression_json' => ['manaforge-omega' => ['summary' => '8/8 H 2/8 M', 'mythic_bosses_killed' => 2, 'heroic_bosses_killed' => 8]]],
+            'raid_progression_json' => ['manaforge-omega' => ['summary' => '8/8 H 2/8 M', 'mythic_bosses_killed' => 2, 'heroic_bosses_killed' => 8]]],
         ['member_id' => $h2->id, 'ilvl' => 638, 'mplus_score' => 850, 'mplus_keystone' => 10,
-         'raid_progression_json' => ['manaforge-omega' => ['summary' => '8/8 H', 'mythic_bosses_killed' => 0, 'heroic_bosses_killed' => 8]]],
+            'raid_progression_json' => ['manaforge-omega' => ['summary' => '8/8 H', 'mythic_bosses_killed' => 0, 'heroic_bosses_killed' => 8]]],
     ]);
 
     $resp = $this->actingAs(teamOfficer())->get('/dashboard/heroic');
@@ -196,35 +200,34 @@ it('non-officer is 403d from each team page + keynight', function () {
     $this->actingAs($u)->get('/dashboard/keynight')->assertStatus(403);
 });
 
-
 it('team page shows top parses (last 14 days) sorted by percentile desc', function () {
     $h1 = teamMember('Healer-Silvermoon', TeamMapping::TEAM_HEROIC);
     $h2 = teamMember('Tank-Silvermoon', TeamMapping::TEAM_HEROIC);
     $h3 = teamMember('Dps-Silvermoon', TeamMapping::TEAM_HEROIC);
     teamMember('Ignored-Silvermoon', TeamMapping::TEAM_MYTHIC); // off-team, must not appear
 
-    $report = \App\Models\WclReport::query()->create([
+    $report = WclReport::query()->create([
         'guild_key' => 'Regenesis-Silvermoon',
         'code' => 'rrrrrr', 'title' => 'Tuesday Heroic',
         'start_time' => now()->subDays(2),
         'captured_at' => now(),
     ]);
-    $fight = \App\Models\WclFight::query()->create([
+    $fight = WclFight::query()->create([
         'wcl_report_id' => $report->id, 'fight_id' => 1,
         'encounter_id' => 100, 'name' => 'Plexus Sentinel',
-        'difficulty' => \App\Models\WclFight::DIFFICULTY_HEROIC,
+        'difficulty' => WclFight::DIFFICULTY_HEROIC,
         'kill' => true, 'best_percentage' => 0,
         'start_time' => now()->subDays(2),
     ]);
-    \App\Models\WclActorParse::query()->create([
+    WclActorParse::query()->create([
         'wcl_fight_id' => $fight->id, 'member_id' => $h1->id,
         'actor_name' => 'Healer', 'role' => 'healer', 'parse_percentile' => 99,
     ]);
-    \App\Models\WclActorParse::query()->create([
+    WclActorParse::query()->create([
         'wcl_fight_id' => $fight->id, 'member_id' => $h2->id,
         'actor_name' => 'Tank', 'role' => 'dps', 'parse_percentile' => 80,
     ]);
-    \App\Models\WclActorParse::query()->create([
+    WclActorParse::query()->create([
         'wcl_fight_id' => $fight->id, 'member_id' => $h3->id,
         'actor_name' => 'Dps', 'role' => 'dps', 'parse_percentile' => null,  // unranked dropped
     ]);
@@ -247,23 +250,22 @@ it('team page shows top parses (last 14 days) sorted by percentile desc', functi
     expect(strpos($parsesSection, 'Healer-Silvermoon'))->toBeLessThan(strpos($parsesSection, 'Tank-Silvermoon'));
 });
 
-
 it('team top-parses widget excludes parses older than 14 days', function () {
     $h = teamMember('Healer-Silvermoon', TeamMapping::TEAM_HEROIC);
 
-    $report = \App\Models\WclReport::query()->create([
+    $report = WclReport::query()->create([
         'guild_key' => 'Regenesis-Silvermoon',
         'code' => 'rrrrrr', 'title' => 'Old report',
         'start_time' => now()->subDays(30),
         'captured_at' => now(),
     ]);
-    $fight = \App\Models\WclFight::query()->create([
+    $fight = WclFight::query()->create([
         'wcl_report_id' => $report->id, 'fight_id' => 1,
         'encounter_id' => 100, 'name' => 'Plexus Sentinel',
         'difficulty' => 4, 'kill' => true,
         'start_time' => now()->subDays(30),
     ]);
-    \App\Models\WclActorParse::query()->create([
+    WclActorParse::query()->create([
         'wcl_fight_id' => $fight->id, 'member_id' => $h->id,
         'actor_name' => 'Healer', 'role' => 'healer', 'parse_percentile' => 99,
     ]);

@@ -17,7 +17,7 @@
 
 declare(strict_types=1);
 
-$root = realpath(__DIR__ . '/../public/img');
+$root = realpath(__DIR__.'/../public/img');
 if ($root === false) {
     fwrite(STDERR, "public/img not found\n");
     exit(1);
@@ -54,6 +54,7 @@ foreach ($it as $file) {
 
     if (is_file($out) && filemtime($out) >= filemtime($src)) {
         $skipped++;
+
         continue;
     }
 
@@ -72,6 +73,7 @@ foreach ($it as $file) {
         if ($orig === false) {
             fwrite(STDERR, "  ! failed to read $src\n");
             $errors++;
+
             continue;
         }
 
@@ -100,6 +102,7 @@ foreach ($it as $file) {
         if ($im === false) {
             fwrite(STDERR, "  ! failed to read $src\n");
             $errors++;
+
             continue;
         }
         if ($ext === 'png') {

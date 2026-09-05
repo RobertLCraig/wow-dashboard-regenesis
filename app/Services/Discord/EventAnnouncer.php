@@ -47,6 +47,7 @@ class EventAnnouncer
                     'webhook_id' => $hook->id, 'event_id' => $event->id, 'error' => $r['error'],
                 ]);
                 $lastError = $r['error'];
+
                 continue;
             }
             $hook->forceFill(['last_posted_at' => now()])->save();
@@ -71,6 +72,7 @@ class EventAnnouncer
                 return (string) $slug;
             }
         }
+
         return null;
     }
 
@@ -79,7 +81,7 @@ class EventAnnouncer
         $tz = config('raidhelper.timezone', 'Europe/London');
         $when = $event->starts_at?->setTimezone($tz)->format('D d M H:i T') ?? 'TBC';
         $heading = $teamSlug
-            ? '**New ' . ucfirst($teamSlug) . ' event**'
+            ? '**New '.ucfirst($teamSlug).' event**'
             : '**New event**';
 
         $lines = [
@@ -89,7 +91,7 @@ class EventAnnouncer
         if ($event->leader_name) {
             $lines[] = "Lead: {$event->leader_name}";
         }
-        $lines[] = 'Sign up: ' . $event->discordJumpUrl();
+        $lines[] = 'Sign up: '.$event->discordJumpUrl();
 
         return implode("\n", $lines);
     }

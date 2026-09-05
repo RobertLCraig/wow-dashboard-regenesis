@@ -91,6 +91,7 @@ class SimcGithubFetcher
                         ->timeout($this->timeoutSeconds)
                         ->get($this->rawUrl((string) $entry['name']));
                 }
+
                 return $reqs;
             });
 
@@ -102,6 +103,7 @@ class SimcGithubFetcher
                     $errored++;
                     $errors[] = ['file' => $name, 'message' => $resp->getMessage()];
                     Log::warning('simc raw download failed', ['file' => $name, 'message' => $resp->getMessage()]);
+
                     continue;
                 }
                 if ($resp === null || ! $resp->successful()) {
@@ -109,14 +111,16 @@ class SimcGithubFetcher
                     $status = $resp?->status() ?? 0;
                     $errors[] = ['file' => $name, 'message' => "HTTP {$status}"];
                     Log::warning('simc raw download non-2xx', ['file' => $name, 'status' => $status]);
+
                     continue;
                 }
 
                 $body = (string) $resp->body();
-                $bytes = @file_put_contents($targetDir . DIRECTORY_SEPARATOR . $name, $body);
+                $bytes = @file_put_contents($targetDir.DIRECTORY_SEPARATOR.$name, $body);
                 if ($bytes === false) {
                     $errored++;
                     $errors[] = ['file' => $name, 'message' => 'write failed'];
+
                     continue;
                 }
                 $downloaded++;
@@ -170,6 +174,7 @@ class SimcGithubFetcher
         if (! is_array($body)) {
             throw new \RuntimeException('GitHub Contents API returned a non-array body');
         }
+
         return $body;
     }
 

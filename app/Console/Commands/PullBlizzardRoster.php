@@ -28,6 +28,7 @@ class PullBlizzardRoster extends Command
         $client = BlizzardClient::fromConfig();
         if (! $client->isConfigured()) {
             $this->info('blizzard:pull-roster skipped (BLIZZARD_CLIENT_ID / BLIZZARD_CLIENT_SECRET not set).');
+
             return self::SUCCESS;
         }
 
@@ -35,6 +36,7 @@ class PullBlizzardRoster extends Command
         $nameSlug = (string) config('blizzard.guild_name_slug', '');
         if ($realmSlug === '' || $nameSlug === '') {
             $this->info('blizzard:pull-roster skipped (BLIZZARD_GUILD_REALM_SLUG / BLIZZARD_GUILD_NAME_SLUG not set).');
+
             return self::SUCCESS;
         }
 
@@ -48,7 +50,8 @@ class PullBlizzardRoster extends Command
         try {
             $result = $importer->pull();
         } catch (\Throwable $e) {
-            $this->error('blizzard:pull-roster failed: ' . $e->getMessage());
+            $this->error('blizzard:pull-roster failed: '.$e->getMessage());
+
             return self::FAILURE;
         }
 
