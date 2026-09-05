@@ -128,6 +128,9 @@ VERDICT: sound
 
 **scope: defect**
 
+
+**2026-09-05** The reviewer returned this card and its finding is the last review entry at the bottom of ## Direction. The loop moved it from todo/ to human-review/ because it has bounced 1 time between todo and ai-review, all 2 criteria ticked. THE BUILDER COULD NOT ACT ON THAT FINDING. A reviewer never unticks a criterion - it is forbidden from editing acceptance at all - so the card came back with 2 of 2 criteria still ticked, every session found nothing open to do, and the loop promoted it again on the boxes. Untick what the reviewer disproved and move it back to todo/, or say here why the finding is wrong.
+
 ## Scope review ÔÇö card 0015
 
 **Over the fence.** `## Not this card` says *"Changing the board. The lanes, the cards and `docs/board/README.md` are all correct and stay as they are."* The session added a new 92-line card, `docs/board/todo/0016-pint-with-no-path-checks-nothing-and-exits-clean.md`. That changes the board. It was declared (`OUT-OF-SCOPE: 0016`) and it follows the repo's own habit, so it did not grow quietly ÔÇö but it is still work the card did not ask for.
