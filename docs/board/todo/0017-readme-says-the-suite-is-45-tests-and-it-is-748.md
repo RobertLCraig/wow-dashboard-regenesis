@@ -93,3 +93,58 @@ document, and no test in this suite reads `README.md`. The check is the two pest
 against the line now in the file.
 
 **Still owed: nothing.** No browser check applies - this card changes no served surface.
+
+### 2026-09-05 review (v20260905073859-6a70)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 25s, run by this job rather than reported by the card.
+
+**acceptance: defect**
+
+**AC #1 ÔÇö traced, and it fails.**
+
+The fixed line is real. `README.md` under `## Useful commands` now reads `748 Pest tests, ~25-30s, sqlite in memory`, and `docs/HANDOVER.md` under `## How to pick up` carries the same phrase. The script's own run (exit 0, 25s) sits inside that range, and the 748 count is corroborated by the run records in `docs/board/human-review/0014-pint-is-not-clean-at-baseline.md`. For that one line, the criterion holds.
+
+But the criterion is a WHERE clause: *wherever* `README.md` states the size of the suite. It states it twice. `README.md` under `## Stack` still says:
+
+> Pest 3 for tests (40 covering parser, ingest pipeline, Discord auth, webhook, iCal)
+
+Forty. Untouched by commit `e6afd02`, which changed one line. So `README.md` now disagrees with itself: the Stack section says 40, the command block says 748. That is the exact fault the card exists to remove ÔÇö a reader comparing the document with a real run does not see the same number ÔÇö and it is now inside one file rather than across two.
+
+This is not "every other number in `README.md`" per *Not this card*. It is the same fact, already measured; no new audit is needed, only the count that is already in hand.
+
+VERDICT: defect
+
+**scope: defect**
+
+Two things in this build do not match the card.
+
+**1. Left half done ÔÇö a second suite size in `README.md`.**
+Under `## Stack`, `README.md` still says *"Pest 3 for tests (40 covering parser, ingest pipeline, Discord auth, webhook, iCal)"*. That is a statement of the size of the test suite, and it says 40. Criterion #1 says **WHERE** `README.md` states the size, it shall match what pest prints. So one place was fixed and one was missed. The `## Not this card` fence says "every other number", but its reason is "only this one was measured" ÔÇö the count *was* measured. 748 is now known, so this line is inside the job.
+
+**2. Grew past the card ÔÇö it edited the reference document.**
+The Task said: round the duration *the way `docs/HANDOVER.md` already does*. `docs/HANDOVER.md` under `## How to pick up` said "about 26s". The build instead invented "~25-30s" and rewrote `docs/HANDOVER.md` to match the new wording. The card named that file as the thing to copy, not the thing to change.
+
+The `## Current state` bookkeeping edit in `docs/HANDOVER.md` is normal here (card 0016 did the same) and I do not count it.
+
+VERDICT: defect
+
+**breakage: defect**
+
+**Finding ÔÇö the fix missed a second, closer statement of the same number.**
+
+`README.md`, under `## Stack`, reads:
+
+`- Pest 3 for tests (40 covering parser, ingest pipeline, Discord auth, webhook, iCal)`
+
+That line states the size of the test suite. The criterion says *"WHERE `README.md` states the size and duration of the test suite, IT SHALL match what `.\vendor\bin\pest.bat` prints"* ÔÇö not "where the `## Useful commands` block states it". So the criterion is not met.
+
+Worse, `README.md` now disagrees with itself: `## Stack` says 40, `## Useful commands` says 748, about 130 lines apart in one document. The card's Why names document-vs-document disagreement as the cost. The build turned that into document-vs-itself, which a reader hits sooner.
+
+"Not this card" does not shield it. It excludes *unmeasured* numbers; 748 was measured, twice, by this very card. No new work is needed ÔÇö only the same number written in the second place.
+
+Also on that line: it says **Pest 3**, but `composer.json` requires `pestphp/pest: ^4.6` and `docs/HANDOVER.md`, under `## Architecture`, says Pest 4. Same line, same staleness, adjacent fault.
+
+VERDICT: defect
+
