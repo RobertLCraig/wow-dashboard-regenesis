@@ -170,3 +170,50 @@ the fix: the reproduction above shows the mechanism is reachable regardless of w
 **Left alone on purpose.** `app/Services/Raiderio/RaiderioSnapshotImporter.php` is still dirty, per
 `## Not this card`. `.\vendor\bin\pint.bat --test` therefore exits 1 on this branch, which is the
 correct answer and is the evidence that criterion #1 holds. It is `0014`'s to fix.
+
+### 2026-09-05 review (v20260905064827-aff6)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 23s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+**Criterion #1 ÔÇö traced.**
+`pint.json` sets `cache-file` to `.pint.cache`. That key is real, not invented: `ConfigurationJsonRepository::cacheFile()` in the shipped phar (`vendor/laravel/pint/builds/pint`) reads it, and `ConfigurationResolverFactory::fromIO()` consumes it in the exact expression the card blames ÔÇö `$input->getOption('cache-file') ?? $localConfiguration->cacheFile() ?? <temp>/md5(implode('|', $path))`. The config now short-circuits the temp-dir-keyed-by-path-string branch before it is reached. One cache per checkout, shared by every spelling. `.gitignore` has `/.pint.cache`, root-anchored.
+
+The comment's side claim also checks out: `ConfigurationJsonRepository::$finderOptions` plus its other getters expose only `exclude`, `notPath`, `notName`, `rules`, `preset`, `cache-file`, `extend`. There is no key for scan paths, so `## Plan`'s guessed fix genuinely does not exist.
+
+**Criterion #2 ÔÇö traced.**
+`README.md` "Useful commands" and `docs/HANDOVER.md` "How to pick up" both now print the bare `--test` form. A repo-wide grep for `pint` finds no other place that instructs a reader: no composer lint script, no CI workflow.
+
+**Limit I hit:** I am read-only, so I confirmed #1 by mechanism in Pint's source, not by running the exit code myself.
+
+VERDICT: sound
+
+**scope: defect**
+
+**Fence: respected.** `app/Services/Raiderio/RaiderioSnapshotImporter.php` untouched. No ProgressBoard edit. The probe file and poisoned cache are gone; `git status` is clean. Raising `0017` matches existing practice (`0013` raised `0014` the same way), so that is not creep.
+
+**Grew past the task ÔÇö `docs/HANDOVER.md`, `## Current state`.** Task 3 scoped this file to "the command". The In-progress bullet also gained "`0016` (the Pint false clean) is built and awaiting review; it added `pint.json`, and `0017` was raised off it". That is the card writing its own lane status into a document whose stated split is that `docs/board/` holds what is moving. It becomes false the moment this review moves the card.
+
+**Left half done ÔÇö `README.md`, `## Useful commands`.** The new line is `vendor/bin/pint --test`. Everywhere else this repository documents the check ÔÇö `docs/HANDOVER.md`, `## How to pick up`, and `## Plan` on this card ÔÇö the form is `.\vendor\bin\pint.bat`, because the documented shell is PowerShell and PHP comes from Herd. `vendor/bin/pint` is the extensionless shebang script; PowerShell will not run it. So the two documents a reader is pointed at name different forms, and the README one errors instead of answering. `## Plan` asked for the opposite: a reader who copies it out of the README gets the honest answer.
+
+VERDICT: defect
+
+**breakage: sound**
+
+I tried to break it. I could not.
+
+**No caller was left behind.** There is no `.github/`, and `composer.json` `scripts` has no style entry. `README.md` and `docs/HANDOVER.md` are the only places that name the command, and both changed.
+
+**The key is real in the version actually installed** (Pint 1.29.1, not the 1.24 the comment names): `App\Repositories\ConfigurationJsonRepository::cacheFile` reads `cache-file`, and `App\Factories\ConfigurationResolverFactory::fromIO` prefers it over the temp-dir default.
+
+**Adding `pint.json` changes nothing else.** `ConfigurationJsonRepository::preset` still returns `laravel`, and `ConfigurationFactory::finder` keeps its own `exclude` and `notName` defaults, because the file names no finder key.
+
+**The cache file cannot poison the scan or the tree.** `ConfigurationFactory::finder` calls `ignoreDotFiles(true)`, the `.gitignore` entry is root-anchored where the file lands, and `deploy.ps1`'s `git status --porcelain` gate cannot see an ignored file.
+
+**The one hole the docs already close.** `App\Providers\RepositoriesServiceProvider::register` reads `Project::path().'/pint.json'`, and `App\Project::path` is `getcwd()`, so the fix is inactive from any other directory. `docs/HANDOVER.md` "How to pick up" says "in the repository root" directly above the command.
+
+VERDICT: sound
+
