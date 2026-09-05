@@ -161,3 +161,50 @@ this session never touched (121 `app/`, 49 `tests/`, 7 elsewhere). Five build se
 each reverted the reformat by hand, and each wrote "worth a card of its own" into a comment; no card
 carried it. Verified here rather than taken from those comments, and `pint.json` does not exist, so
 the default `laravel` preset is what is drifting from.
+
+### 2026-09-05 review (v20260905040001-e8bc)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 55s, run by this job rather than reported by the card.
+
+**acceptance: defect**
+
+Checked each criterion against the files and re-ran the board check.
+
+**#1** holds. `0001` and `0004` now put `## Why` above the narrative/fix. The ask sitting higher is required by `docs/board/README.md`, section "The one section a card in `human-review/` must have".
+**#2** is vacuous ÔÇö no decision card was rewritten. `0009`, `0010`, `0011` each carry `Why it needs you`.
+**#4** holds. `0004` frontmatter `needs: 0001` matches its `## Links` **Blocked by**; no other open card has either field.
+**#5** holds. `docs/ops-runbook.md`, "Follow-ups (not yet done)", items 2 and 3 confirm the "14 KB/row" figure; no `## Direction` or `## Decided` line changed.
+**#6** re-run now prints `Regenesis 0 13` ÔÇö zero failing, but 13 open, not the `0 12` the card records as taken "after the last" edit. That count predates `0014`, added in the same commit.
+
+**#3 is a defect.** `docs/board/human-review/0008-year-aware-holiday-lookup.md` was rewritten here. Its `## Links` names only `0006`. Its `## Comments` names `0005` and `0007` in sentences and nowhere else ÔÇö the bare-number-as-only-mention #3 forbids. Same fault in `docs/board/human-review/0002-db-size-alert-in-the-weekly-digest.md`, `## Not this card` ("Dedup-on-write is 0003 and the ballast removal is 0004"), which has no `## Links` at all and was asserted to pass.
+
+VERDICT: defect
+
+**scope: defect**
+
+**1. Left half done ÔÇö in the lane the card says to do first.** `docs/board/human-review/0002-db-size-alert-in-the-weekly-digest.md`, section `## Not this card`: "Dedup-on-write is 0003 and the ballast removal is 0004." Two bare card numbers, no `## Links` section, in `human-review/`. That is the exact fault 0013's `## Why` names. It survived because the checker only catches backticked numbers, so this pass fixed the checker's flags rather than the rule. The task "Rewrite `human-review/` first" is ticked with this card never checked against rule 3.
+
+**2. Over the fence.** `docs/board/todo/0014-pint-is-not-clean-at-baseline.md` is a new 68-line card about PHP formatting. Nothing in 0013 asks for a new card, and it adds an open card to the board 0013 is measured against.
+
+**3. The finish-line count is stale.** `docs/board/ai-review/0013-...md`, `## Comments`, entry "The count, before and after", records `Regenesis 0 12` after the last edit. 0014 makes 13. I re-ran it: `Regenesis 0 13 0015`. The zero still holds, but the card records a board state this commit did not produce.
+
+VERDICT: defect
+
+**breakage: defect**
+
+I read the four rewritten cards, the convention, and the checker itself.
+
+**One thing is broken, and the tool cannot see it.**
+
+`docs/board/human-review/0002-db-size-alert-in-the-weekly-digest.md`, section `## Not this card`, says "Dedup-on-write is 0003 and the ballast removal is 0004". It has no `## Links` section anywhere. That is the exact fault `docs/board/README.md`, section "Links: say what the relationship IS, never a bare card number", forbids, on an open card, in the one lane the `## Plan` says to do first.
+
+Why nobody saw it: `Reference::NOTATION` in `C:\Dev\ProgressBoard\app\Support\Board\Reference.php` only matches `project#0002` or `card 0002`. A bare `0003` in a sentence is not read as a reference, so `Card::conventionFlags()` check #1 never fires. The board honestly prints `Regenesis 0 12` while Rob still has to open two cards to find out why they matter.
+
+So the rewrite is right about the count and wrong about the board. The comment's claim that "the other eight open cards ... pass them already" holds for the tool, not for the rule.
+
+Everything else checked out: runbook items 2 and 3 exist as cited, `needs: 0001` and `Blocked by 0001` agree, no `## Direction` was touched.
+
+VERDICT: defect
+
