@@ -111,3 +111,55 @@ tree clean and `## Not this card` puts tooling outside this card.
 **What could not be settled from the repository.** `docs/HANDOVER.md` does not exist and never has,
 in any branch, although the session prompt sends every card here first. That is not this card's to
 fix, so it is `0015`.
+
+### 2026-09-05 review (v20260905043433-8391)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 28s, run by this job rather than reported by the card.
+
+**acceptance: defect**
+
+**AC #1 ÔÇö DEFECT.**
+`.\vendor\bin\pint.bat --test` still exits 1 at HEAD (`4950ab6`), on a clean tree. I ran it twice. Same result both times.
+
+One file fails: `app/Services/Raiderio/RaiderioSnapshotImporter.php`. Pint names these fixers: `fully_qualified_strict_types`, `unary_operator_spaces`, `braces_position`, `not_operator_with_successor_space`, `single_line_empty_body`, `ordered_imports`. The only empty body in the class is `RaiderioSnapshotImporter::__construct`.
+
+This is not a stale file. `git status` is clean, `pint.json` does not exist, and no `.pint.cache` exists. That file **was** in the reformat commit (`git show --stat 3e7ac11` lists it, 16 lines changed). So one Pint pass did not settle it, and the card's "exits 0" claim does not hold now.
+
+**AC #2 ÔÇö met.** `3e7ac11` holds 177 files and nothing else.
+
+**AC #3 ÔÇö met.** I ran the suite: 748 passed, 2353 assertions. Same as the before-count.
+
+Fix for the next session: run Pint again until `--test` exits 0, then commit that file.
+
+VERDICT: defect
+
+**scope: defect**
+
+**Scope check on card 0014.**
+
+Nothing went over the fence. Commit `3e7ac11` holds 177 `.php` files and nothing else ÔÇö no `pint.json`, no `.git-blame-ignore-revs`, no pre-commit hook, no CI file. I read every non-whitespace line of that diff: import ordering, dropped unused imports, FQCN shortened to its import, quote style, `new Foo()` ÔåÆ `new Foo`, blocks opened, nullable types. I found no behaviour change. Raising `0015` is board practice and was declared, not quiet growth.
+
+**What it left half done.** The card's whole point is not met. At `4950ab6`, with a clean tree, `.\vendor\bin\pint.bat --test` exits **1**. One file still fails: `app/Services/Raiderio/RaiderioSnapshotImporter.php`. The Pint run deleted its `use Illuminate\Support\Collection` in the same pass that would have imported `Illuminate\Database\Eloquent\Collection`, so `selectMembersToFetch()` still declares the fully qualified return type and Pint still wants `fully_qualified_strict_types` and `ordered_imports` on it. Pint is not always idempotent in one pass; a second run fixes it.
+
+The card ticks that check and its comment states exit 0. It was never re-run after the reformat. The next session must run Pint again and commit that one file.
+
+VERDICT: defect
+
+**breakage: defect**
+
+**What I found**
+
+The card's #1 does not hold on the committed tree.
+
+`.\vendor\bin\pint.bat --test` run now, on a clean checkout at `4950ab6`, exits **1**. It names one file:
+
+`app/Services/Raiderio/RaiderioSnapshotImporter.php` ÔÇö fixers `fully_qualified_strict_types`, `ordered_imports`, and four more. `.\vendor\bin\pint.bat --test app/Services/Wcl/WclFightImporter.php` exits 0, so this is one file, not the tool.
+
+**Why.** In that file, `selectMembersToFetch()` returns `\Illuminate\Database\Eloquent\Collection`. The same Pint pass deleted `use Illuminate\Support\Collection;` from the file. Once that name was free, `fully_qualified_strict_types` could shorten the return type ÔÇö but only on a **second** pass. One Pint run was not enough. The tree was committed one pass short.
+
+**What it breaks.** The next session runs the style step, gets exit 1, and has one unrelated file rewritten into its commit. That is the exact wall this card was written to remove. Fix: run Pint again and commit that file.
+
+VERDICT: defect
+
