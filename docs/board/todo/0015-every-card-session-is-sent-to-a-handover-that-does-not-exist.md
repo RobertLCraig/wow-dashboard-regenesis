@@ -101,3 +101,48 @@ card that wants one. This card wanted none.
 mechanism behind card `0014` shipping a false clean, and it is outside this card's fence, so it is a
 card and not a fix. The trap is also written into the handover's `How to pick up`, because a
 document that prints the broken form would be worse than no document.
+
+### 2026-09-05 review (v20260905050755-472a)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 27s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+I checked both criteria against the file and the code it describes.
+
+**Criterion #1** ÔÇö traced to `docs/HANDOVER.md`, sections `## Goal & success criteria`, `## Canonical data shape`, `## Decisions locked`, `## How to pick up`. All four things the criterion names are present, and the content is real, not plausible-sounding:
+
+- The identity claim matches `unique(['guild_key','name'])` in `create_members_table`, and the enum list matches the comment block in `create_member_events_table`.
+- The item-level order matches `RosterController::resolveIlvls` ("Blizzard -> Wowaudit -> RIO"); the BiS order matches `BisComparisonService::latestRawJson` callers.
+- `RequireTier::handle` defaults to `User::TIER_OFFICER`, as stated.
+- `PruneSnapshots::handle` does keep each member's latest per source.
+- `.\vendor\bin\pest.bat` and `pint.bat` both exist and run.
+
+**Criterion #2** ÔÇö every heading in the skill's canonical shape is present, and the four unsettled ones are marked loud (`## Sibling docs` MISSING rows, plus the GAP lines in `## Goal & success criteria` and `## Decisions locked`).
+
+One inaccuracy, not a criterion failure: the `## How to pick up` TRAP says the bare Pint form checks nothing "in this repository". At `C:\Dev\Regenesis` it exits 1 and names the offender. The trap is real only in the ProgressBoard worktree. The advice itself stays correct.
+
+VERDICT: sound
+
+**scope: defect**
+
+## Scope review ÔÇö card 0015
+
+**Over the fence.** `## Not this card` says *"Changing the board. The lanes, the cards and `docs/board/README.md` are all correct and stay as they are."* The session added a new 92-line card, `docs/board/todo/0016-pint-with-no-path-checks-nothing-and-exits-clean.md`. That changes the board. It was declared (`OUT-OF-SCOPE: 0016`) and it follows the repo's own habit, so it did not grow quietly ÔÇö but it is still work the card did not ask for.
+
+**Left half done, and this is the defect.** Having added 0016 to `todo/`, the session did not carry it into the document it was writing. In `docs/HANDOVER.md`, section `## What's next (in order)` lists only `0001`, `0010` and `0011`, and the same section counts "fourteen cards in work and person lanes" when the tree that commit left holds fifteen. `0016` is the only card in `todo/` an agent can actually build ÔÇö `0001` is a person's and `0010`/`0011` are decisions ÔÇö so the one section a picking-up session reads sends it past the single buildable card and tells it "mostly find things waiting on Rob". Criterion #1's "how to pick up work" is stale on the day it shipped.
+
+VERDICT: defect
+
+**breakage: defect**
+
+Checked the new file against the repo: board lanes, `TIER_RANK`, `resolveIlvls`, the migrations, the Pint trap (`pint --test .` does exit 1 and does name `RaiderioSnapshotImporter.php`). Most of it holds. Two things do not.
+
+**1. The queue sections hide card `0016`.** `docs/HANDOVER.md`, section "What's next (in order)", lists only `0001`, `0010` and `0011`, and says "`0001` blocks the only other card in a work lane". `0016` is in `docs/board/todo/`, is a work card, is not blocked, and was created by the same commit as this file. The same section's summary says "Of the fourteen cards in work and person lanes, two are in `todo/` as decisions and one is blocked" ÔÇö `todo/` holds four, and the lane total is fifteen. The file's own "How to pick up" section names `0016`, so it contradicts itself. A session that trusts "What's next" concludes nothing is buildable and skips the only card an agent can clear. That is the exact failure the card exists to stop.
+
+**2. Two lane pointers go to the wrong place.** In "What's next" and in "Blockers / open questions", the links reading `docs/board/todo/` and `docs/board/human-review/` both target `board/`, not the named lane.
+
+VERDICT: defect
+
