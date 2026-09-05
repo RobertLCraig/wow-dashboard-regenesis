@@ -32,17 +32,17 @@ they are.
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [ ] #1 WHEN a session opens `docs/HANDOVER.md`, IT SHALL find the project's goal, its data shape,
+- [x] #1 WHEN a session opens `docs/HANDOVER.md`, IT SHALL find the project's goal, its data shape,
       the decisions already taken, and how to run the suite and pick up work.
       proves: none - a document's content, which no test in this suite can read
-- [ ] #2 WHERE the repository does not settle something the handover asks for, IT SHALL say so in
+- [x] #2 WHERE the repository does not settle something the handover asks for, IT SHALL say so in
       the document rather than leave the heading out.
       proves: none - the same, and the point is that the gap is visible to a reader
 <!-- AC:END -->
 
 ## Tasks
-- [ ] Write `docs/HANDOVER.md` from what the repository already shows
-- [ ] Mark every heading the repository cannot answer as an open gap, in the document
+- [x] Write `docs/HANDOVER.md` from what the repository already shows
+- [x] Mark every heading the repository cannot answer as an open gap, in the document
 
 ## Plan
 **Where to stand.** This repository, on whatever branch the session was given, from the repository
@@ -58,3 +58,46 @@ actually is, and `docs/ops-runbook.md` for how it is run.
 
 **What "it worked" looks like:** a new session handed only this repository can say what the project
 is for and what to run, from that one file, without opening the code.
+
+## Comments
+
+**2026-09-05**
+RESULT: done
+TESTS: +0 new, all green (748 passed). Both criteria are `proves: none`, so there was no test to
+write and the test-first rule does not apply to this card. The suite was run to prove nothing broke.
+TOUCHED: docs/HANDOVER.md (new), docs/board/todo/0016-pint-with-no-path-checks-nothing-and-exits-clean.md (new), docs/board/in-progress/0015-every-card-session-is-sent-to-a-handover-that-does-not-exist.md (ticks and this entry)
+OUT-OF-SCOPE: 0016
+
+**What I built.** `docs/HANDOVER.md`, 15 KB, in the `handover` skill's canonical shape, every
+section present. Ran the skill as the Plan said. Two of its `save` steps were declined on this
+card's own scope fence, and both refusals are deliberate: step 0 copies the skill's
+`board-README.md` over `docs/board/README.md` and reconciles lanes, and `## Not this card` says the
+board and its README stay as they are. The skill's step 8 auto-checkpoint is the commit I was
+already making.
+
+**Where the content came from.** `README.md` for the surfaces and the flow, `routes/console.php` for
+what the app does over a day, the four core migrations for the data shape (their inline comments are
+the authority, not the column lists), `docs/ops-runbook.md` for the operational traps, and
+`docs/planning/next-session.md` for the decisions that were never logged anywhere else.
+
+**Gaps written into the document rather than guessed past**, which is criterion #2: there is no PRD,
+so the goal is read back off the code and marked interim, and the project's success criteria are
+marked `UNKNOWN, confirm with Rob` because nothing in the repository states them. There is no
+`DECISIONS.md`, so the decisions section says it recovered its contents from three separate files.
+There is no `DATA-MODEL.md` and no root `CLAUDE.md` orient tripwire. `docs/board/done/` is empty, so
+the Plan's instruction to read the decided cards had nothing to read, and the document says so.
+
+**What I could not settle from the repository.** What "done" would mean for this project as a whole.
+Every card carries acceptance; the project carries none, and no amount of reading produces one. It
+is marked as a gap and left to Rob.
+
+**Not proven, and it needs saying:** nothing here was checked in a browser. Herd serves this project
+from `C:\Dev\Regenesis` and not from the card worktree, so a browser check is still owed on any
+card that wants one. This card wanted none.
+
+**Why 0016 was raised.** Establishing the style baseline turned up a fault in the check itself:
+`.\vendor\bin\pint.bat --test` with no path exits 0 having scanned zero files, while
+`.\vendor\bin\pint.bat --test .` on the same tree exits 1 and names a real offender. That is the
+mechanism behind card `0014` shipping a false clean, and it is outside this card's fence, so it is a
+card and not a fix. The trap is also written into the handover's `How to pick up`, because a
+document that prints the broken form would be worse than no document.
