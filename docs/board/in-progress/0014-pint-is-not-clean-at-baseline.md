@@ -66,3 +66,14 @@ in `## Comments` before running Pint, not after.
 its default `laravel` preset, and this card adopts that preset rather than choosing one. If the
 reformat turns out to disagree with a house habit often enough to matter, say so in `## Comments`
 and leave it: pinning a preset is a decision with a cost, and it is not this card's to take.
+
+## Comments
+
+**2026-09-05** BEFORE-COUNTS, recorded before Pint was run over anything.
+
+    .\vendor\bin\pest.bat        748 passed, 2353 assertions, exit 0
+    .\vendor\bin\pint.bat --test 177 files, exit 1
+
+The 177 split by top folder: `app` 121, `tests` 49, `config` 3, `tools` 2, `database` 1, `routes` 1.
+That is the card's own count reproduced unchanged, so nothing drifted between the card being written
+and this session picking it up.
