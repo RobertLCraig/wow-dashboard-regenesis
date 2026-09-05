@@ -8,7 +8,7 @@
 **Status:** every surface in the README's "What's built" table is live. Open work is the board, and
 most of it is decisions owed rather than code.
 _Last updated: 2026-09-05 (first handover; written by card 0015, which existed because there was none.
-Pint section corrected by card 0016)_
+Pint section corrected by card 0016; suite duration re-measured by card 0017)_
 
 ## Goal & success criteria
 
@@ -136,7 +136,8 @@ a decision log is owed.
 - **In progress:** `0004` (reclaim the space the snapshot tables took) is parked in `in-progress/`
   carrying `not_for_the_loop:`, because the step left is an `OPTIMIZE TABLE` on the live host that
   only a person can run. `0015` is this document. `0016` (the Pint false clean) is built and awaiting
-  review; it added `pint.json`, and `0017` was raised off it.
+  review; it added `pint.json`, and `0017` was raised off it. `0017` (the stale test count in the
+  README) is built and awaiting review.
 - **Known bugs / broken:** production may still have no write grants, see Blockers. In this
   repository, `app/Services/Raiderio/RaiderioSnapshotImporter.php` fails Pint; that is card `0014`'s
   unfinished business and the card is in `human-review/` for it.
@@ -173,7 +174,7 @@ options and recommendation, so they are not restated here. Three things need say
 From PowerShell, in the repository root.
 
 ```powershell
-.\vendor\bin\pest.bat          # 748 tests, about 26s, sqlite in memory
+.\vendor\bin\pest.bat          # 748 tests, ~25-30s, sqlite in memory
 .\vendor\bin\pint.bat --test   # style. Any path argument, or none, gives the same answer
 php artisan serve --port=8000  # or use Herd at https://regenesis.test
 ```

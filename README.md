@@ -312,7 +312,7 @@ create/edit/delete. Status is on `/admin/sync` and `/admin/google-calendar`.
 ## Useful commands
 
 ```sh
-php artisan test                                # 45 Pest tests, ~2s
+php artisan test                                # 748 Pest tests, ~25-30s, sqlite in memory
 vendor/bin/pint --test                          # style check, exits 1 if anything is dirty
 vendor/bin/pint                                 # ...and the same run, fixing in place
 php artisan raidhelper:sync-attendance          # one-shot attendance pull
