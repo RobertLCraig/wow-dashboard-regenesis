@@ -313,6 +313,8 @@ create/edit/delete. Status is on `/admin/sync` and `/admin/google-calendar`.
 
 ```sh
 php artisan test                                # 45 Pest tests, ~2s
+vendor/bin/pint --test                          # style check, exits 1 if anything is dirty
+vendor/bin/pint                                 # ...and the same run, fixing in place
 php artisan raidhelper:sync-attendance          # one-shot attendance pull
 php artisan wowaudit:pull                       # one-shot wowaudit snapshot
 php artisan tinker
@@ -320,6 +322,14 @@ php artisan tinker
   > App\Models\Snapshot::latest()->first()
   > App\Models\MemberEvent::ofType('joined')->where('occurred_at', '>=', now()->subDays(7))->count()
 ```
+
+`pint.json` exists for one reason: it moves Pint's result cache to `.pint.cache`
+in this directory (gitignored). Pint's own default puts that cache in the OS temp
+directory under a name derived from the path you typed, so the answer depended on
+the spelling of the argument and survived branch switches and whole checkouts. It
+reported `passed` on a dirty tree for exactly that reason, and card `0014` shipped
+a file still dirty on the strength of it. Keep the file. If a result ever looks
+wrong, delete `.pint.cache` and run again.
 
 ## Repo layout
 

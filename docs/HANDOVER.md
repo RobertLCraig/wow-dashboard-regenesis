@@ -7,7 +7,8 @@
 **Stage:** shipped (live at `regenesis.enhanceify.co.uk`, still under active development)
 **Status:** every surface in the README's "What's built" table is live. Open work is the board, and
 most of it is decisions owed rather than code.
-_Last updated: 2026-09-05 (first handover; written by card 0015, which existed because there was none)_
+_Last updated: 2026-09-05 (first handover; written by card 0015, which existed because there was none.
+Pint section corrected by card 0016)_
 
 ## Goal & success criteria
 
@@ -134,7 +135,8 @@ a decision log is owed.
   covers the parsers, the importers, the auth gating, the webhook and the ICS output.
 - **In progress:** `0004` (reclaim the space the snapshot tables took) is parked in `in-progress/`
   carrying `not_for_the_loop:`, because the step left is an `OPTIMIZE TABLE` on the live host that
-  only a person can run. `0015` is this document.
+  only a person can run. `0015` is this document. `0016` (the Pint false clean) is built and awaiting
+  review; it added `pint.json`, and `0017` was raised off it.
 - **Known bugs / broken:** production may still have no write grants, see Blockers. In this
   repository, `app/Services/Raiderio/RaiderioSnapshotImporter.php` fails Pint; that is card `0014`'s
   unfinished business and the card is in `human-review/` for it.
@@ -172,17 +174,18 @@ From PowerShell, in the repository root.
 
 ```powershell
 .\vendor\bin\pest.bat          # 748 tests, about 26s, sqlite in memory
-.\vendor\bin\pint.bat --test . # style. THE TRAILING DOT IS NOT OPTIONAL, see below
+.\vendor\bin\pint.bat --test   # style. Any path argument, or none, gives the same answer
 php artisan serve --port=8000  # or use Herd at https://regenesis.test
 ```
 
-**TRAP: `.\vendor\bin\pint.bat --test` with no path exits 0 having checked nothing.** Reproduced on
-2026-09-05 in this repository: with no path argument Pint scans the working directory as an absolute
-path with no trailing separator, matches zero files, and reports clean. The same run as
-`pint --test .` exits 1 and names a real offender. Every spelling except the bare absolute root is
-correct, including `.`, `./` and even the absolute root with a trailing `\`. Card `0016` covers the
-fix; until it lands, **always pass the dot**. This is not theoretical: it is how card 0014 shipped a
-false clean, and the style step in every card session's instructions is the bare form.
+**The Pint false clean is fixed, and `pint.json` is what fixes it.** Card `0016` found that the
+discriminator was never the path argument: it was Pint's result cache. Pint puts that cache in the
+OS temp directory under a name derived from the path string you typed, so each spelling had its own
+cache, and a cache outlived the branch, the worktree and the tree's contents. One of them held stale
+hashes and Pint skipped the dirty file and printed `passed`. That is how card `0014` shipped a false
+clean. `pint.json` now names `.pint.cache` in the repository root instead, so the cache is per
+checkout, gitignored, and thrown away with the worktree. **Do not delete `pint.json`.** If a style
+result ever looks wrong, delete `.pint.cache` and run again.
 
 **TRAP: a browser check run from a git worktree proves nothing.** Herd serves this project from
 `C:\Dev\Regenesis` whatever worktree you are standing in, so `regenesis.test` will show Rob's tree
