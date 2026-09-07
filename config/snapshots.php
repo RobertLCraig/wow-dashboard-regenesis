@@ -23,11 +23,14 @@ return [
     | data no matter how short this window is. The window only governs how
     | much *superseded* history we retain for ad-hoc inspection.
     |
-    | 30 days is generous headroom on top of the "latest row is always kept"
-    | guarantee while bounding the snapshot tables to ~1.3 GB steady-state.
+    | 30 days was the original window and it does NOT fit. Measured on
+    | 2026-09-07: 30 days of retained history was 3066 MB on disk and had
+    | re-tripped the 3 GB cap for the third time. The write rate had climbed
+    | to ~8,700 member_snapshots rows a day, so the window has to be short.
+    | 7 days measures at ~1263 MB, which leaves 1.8 GB of headroom.
     | Set to 0 to disable pruning entirely (keep every row forever).
     */
-    'retention_days' => (int) env('SNAPSHOT_RETENTION_DAYS', 30),
+    'retention_days' => (int) env('SNAPSHOT_RETENTION_DAYS', 7),
 
     /*
     |--------------------------------------------------------------------------
