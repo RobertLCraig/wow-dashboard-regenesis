@@ -176,7 +176,7 @@ baseline for how long a restore takes.
 |---|---|---|
 | 2026-07-08 | 2026-07-09 | auto-restored within a day of the truncate |
 | ~2026-07-10 | **pending** | syncs refilled the tables and re-tripped the cap within a day; truncated again 2026-08-19, 3234 → 1468 MB (board card 0001) |
-| ~2026-09-06 | **pending** | 30-day window outgrew the cap; window cut to 7 days + rebuild, 3066 → 1263 MB on 2026-09-07, no data thrown away |
+| ~2026-09-06 | 2026-09-07 | 30-day window outgrew the cap; window cut to 7 days + rebuild, 3066 → 1263 MB, no data thrown away. `GRANT ALL` restored the same day, within hours — the fastest restore so far, and the first one confirmed by a "size is in order" email rather than by polling. |
 
 ---
 
