@@ -16,6 +16,8 @@ The list view, which reads correctly already. The events themselves and how they
       rather than dropping or duplicating it.
 - [x] #3 WHEN several multi-day events overlap, THE APP SHALL stack the bars without either
       overlapping the other or changing the height of the week's row unpredictably.
+- [ ] #4 WHEN high-clarity display mode is on, THE MONTH GRID SHALL still show each day's date beside
+      the events on that day, rather than a column of empty cells followed by undated bars.
 <!-- AC:END -->
 
 ## Tasks
@@ -106,3 +108,11 @@ VERDICT: defect
 
 
 **2026-08-29** The reviewer returned this card and its finding is the last review entry at the bottom of ## Direction. The loop moved it from todo/ to human-review/ because it has bounced 1 time between todo and ai-review, all 3 criteria ticked. THE BUILDER COULD NOT ACT ON THAT FINDING. A reviewer never unticks a criterion - it is forbidden from editing acceptance at all - so the card came back with 3 of 3 criteria still ticked, every session found nothing open to do, and the loop promoted it again on the boxes. Untick what the reviewer disproved and move it back to todo/, or say here why the finding is wrong.
+
+**2026-09-28** Manager pass: reopened with new criterion #4 because the 2026-08-29 breakage finding
+holds on `main`. `layouts/dashboard.blade.php` forces `.grid:not(.clarity-keep-grid)` to a flex
+column in high-clarity mode, and the week grid in `dashboard/social.blade.php` still does not wear
+`clarity-keep-grid`. So the inline `grid-column` placement is ignored, and that mode, which is an
+accessibility setting, shows empty day cells, then bare numbers, then undated bars. #1 to #3 were
+traced sound by the review and stay ticked. Worth fixing on the way: the multi-day tooltip lost the
+start time.
