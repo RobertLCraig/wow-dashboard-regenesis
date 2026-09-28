@@ -187,3 +187,5 @@ I tried to break it, and I could not.
 
 VERDICT: sound
 
+
+**2026-09-28** The reviewer's acceptance lens returned this card sound: I checked all four criteria in the code. Each one is met. I found no defect. The reviewer's scope lens returned this card defect: **Scope review of card 0006 (multi-day spans on the Social calendar)**. The reviewer's breakage lens returned this card sound: I tried to break it, and I could not. The loop moved it from todo/ to human-review/ because it has bounced 2 times between todo and ai-review, all 4 criteria ticked. THE BUILDER COULD NOT ACT ON THAT FINDING. A reviewer reopens every criterion it reports unmet, and the reviews that sent this card back named no criterion they disproved, so it came back with 4 of 4 criteria still ticked, every session found nothing open to do, and the loop promoted it again on the boxes. Add or reopen the criterion the finding breaks and move it back to todo/, or say here why the finding is wrong.
