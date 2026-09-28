@@ -14,11 +14,14 @@ Reclaiming space. Dedup-on-write is 0003 and the ballast removal is 0004.
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [x] #1 WHEN the weekly digest runs, IT SHALL include the current total database size in MB.
+- [ ] #1 WHEN the weekly digest runs, IT SHALL include the current total database size in MB.
 - [x] #2 WHERE the database exceeds 80 percent of the 3 GB cap, THE DIGEST SHALL carry a visible
       warning naming the largest tables by size.
 - [x] #3 THE THRESHOLD and the cap SHALL be config values, not literals, because the cap is a
       property of the hosting plan and will change before the code does.
+- [ ] #4 WHEN the printed percentage reaches the warning threshold, THE DIGEST SHALL carry the warning
+      too, and WHEN the size probe returns no tables, THE DIGEST SHALL omit the line rather than print
+      `0.0 MB`.
 <!-- AC:END -->
 
 ## Tasks
@@ -110,3 +113,10 @@ VERDICT: defect
 
 
 **2026-08-29** The reviewer returned this card and its finding is the last review entry at the bottom of ## Direction. The loop moved it from todo/ to human-review/ because it has bounced 1 time between todo and ai-review, all 3 criteria ticked. THE BUILDER COULD NOT ACT ON THAT FINDING. A reviewer never unticks a criterion - it is forbidden from editing acceptance at all - so the card came back with 3 of 3 criteria still ticked, every session found nothing open to do, and the loop promoted it again on the boxes. Untick what the reviewer disproved and move it back to todo/, or say here why the finding is wrong.
+
+**2026-09-28** Manager pass: reopened #1 and added #4, because the 2026-08-29 review's findings hold
+on `main`. #1: `DatabaseSize::tableSizes()` is the only code that queries `information_schema`, and it
+has never run. Every test injects a stub, and this repository's `.env` points at a local MySQL a build
+session can run it against. #4: `WeeklyDigestBuilder::database()` still rounds `percent` separately
+from the `over` test, so 2,455 MB of 3,072 prints "(80%)" with no warning, and an empty table list
+prints `0.0 MB`. Also owed: `docs/planning/next-session.md` still lists this alert as a follow-up.
