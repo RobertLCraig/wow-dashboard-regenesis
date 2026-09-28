@@ -7,8 +7,9 @@
 **Stage:** shipped (live at `regenesis.enhanceify.co.uk`, still under active development)
 **Status:** every surface in the README's "What's built" table is live. Open work is the board, and
 most of it is decisions owed rather than code.
-_Last updated: 2026-09-05 (first handover; written by card 0015, which existed because there was none.
-Pint section corrected by card 0016; suite duration re-measured by card 0017)_
+_Last updated: 2026-09-28 (first handover 2026-09-05, written by card 0015, which existed because there
+was none. Pint section corrected by card 0016; suite duration re-measured by card 0017; queue handed
+to `board:order` by card 0015's second pass)_
 
 ## Goal & success criteria
 
@@ -105,10 +106,10 @@ The README's "Repo layout" block is the map and is still correct. Only the non-o
 
 ## Decisions locked
 
-**GAP: there is no `docs/DECISIONS.md`, and `docs/board/done/` is empty.** No card has ever been
-accepted, so there is no decided-card record to read. The decisions below were recovered from the
-README, the ops runbook and `docs/planning/next-session.md`. That is three homes for one concern, and
-a decision log is owed.
+**GAP: there is no `docs/DECISIONS.md`.** Accepted cards sit in
+[`docs/board/done/`](board/done/) and each records its own decision; read them there. The decisions
+below were recovered from the README, the ops runbook and `docs/planning/next-session.md`. That is
+several homes for one concern, and a decision log is owed.
 
 - **Sessions and cache are on the `file` driver, never `database`.** On 2026-07-08 the database hit
   its cap, Hostinger revoked writes, and because `StartSession` writes a row on every request, every
@@ -135,30 +136,31 @@ a decision log is owed.
   webhook receiver, Warcraft Logs ingest and parse widgets, the composition planner, the weekly
   digest, Google Calendar push, and the drag-and-drop dashboard layout editor. The suite is Pest and
   covers the parsers, the importers, the auth gating, the webhook and the ICS output.
-- **In progress:** `0004` (reclaim the space the snapshot tables took) is parked in `in-progress/`
-  carrying `not_for_the_loop:`, because the step left is an `OPTIMIZE TABLE` on the live host that
-  only a person can run. `0015` is this document. `0016` (the Pint false clean) is built and awaiting
-  review; it added `pint.json`, and `0017` was raised off it. `0017` (the stale test count in the
-  README) is built and awaiting review.
+- **In progress:** whatever `board:order` (under What's next) reports. `0004` (reclaim the space the
+  snapshot tables took) carries `not_for_the_loop:`, because the step left is an `OPTIMIZE TABLE` on
+  the live host that only a person can run.
 - **Known bugs / broken:** production may still have no write grants, see Blockers. `pint --test`
   exits 0 on the whole tree since card `0014`'s second pass (2026-09-28).
 
 ## What's next (in order)
 
-The queue is [`docs/board/todo/`](board/), one card per file, and the folder a card sits in is its
-state. Read [`docs/board/README.md`](board/README.md) once before working one.
+The queue is [`docs/board/todo/`](board/todo/), one card per file, and the folder a card sits in is
+its state. Read [`docs/board/README.md`](board/README.md) once before working one.
 
-- `0001` blocks the only other card in a work lane, so it goes first even though it is a person's.
-- `0010` and `0011` are both decisions rather than builds, so an agent session cannot clear either.
+**This file names no queue, on purpose.** Cards change lane faster than this document is saved, and
+a list written here went stale the day it shipped. Ask the board for the order instead:
 
-**Read this before picking a card: the queue is thinner than it looks.** Of the fourteen cards in
-work and person lanes, two are in `todo/` as decisions and one is blocked. An agent session looking
-for something to build will mostly find things waiting on Rob.
+```powershell
+php C:\Dev\ProgressBoard\artisan board:order Regenesis
+```
+
+One line per card in the work lanes, in the order to take them. A card may be a decision or a job
+for a person rather than a build; its own file says which, so read it before starting.
 
 ## Blockers / open questions
 
-The person's queue is [`docs/board/human-review/`](board/), nine cards deep. Each carries its own
-options and recommendation, so they are not restated here. Two things need saying:
+The person's queue is [`docs/board/human-review/`](board/human-review/). Each card there carries its
+own options and recommendation, so they are not restated here. Two things need saying:
 
 - **`0001`'s `waiting_on:` recheck date was 2026-08-20 and has passed.** It is the oldest thing on
   the board and `0004` is blocked behind it. Until somebody logs in to the live site and confirms
@@ -171,7 +173,7 @@ options and recommendation, so they are not restated here. Two things need sayin
 From PowerShell, in the repository root.
 
 ```powershell
-.\vendor\bin\pest.bat          # 748 tests, ~25-30s, sqlite in memory
+.\vendor\bin\pest.bat          # the whole suite, sqlite in memory, about a minute
 .\vendor\bin\pint.bat --test   # style. Any path argument, or none, gives the same answer
 php artisan serve --port=8000  # or use Herd at https://regenesis.test
 ```

@@ -38,7 +38,7 @@ they are.
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [ ] #1 WHEN a session opens `docs/HANDOVER.md`, IT SHALL find the project's goal, its data shape,
+- [x] #1 WHEN a session opens `docs/HANDOVER.md`, IT SHALL find the project's goal, its data shape,
       the decisions already taken, and how to run the suite and pick up work.
       proves: none - a document's content, which no test in this suite can read
 - [x] #2 WHERE the repository does not settle something the handover asks for, IT SHALL say so in
@@ -163,3 +163,22 @@ things waiting on Rob". So the one section a session reads to pick up work is wr
 links also point at `board/` rather than the lane they name. The fix should not be a new count:
 point the section at `php C:\Dev\ProgressBoard\artisan board:order` and name no card that can
 change lane.
+
+**2026-09-28**
+RESULT: done
+TESTS: +0 new, all green (760 passed). #1 is `proves: none`, so there was no test to write.
+TOUCHED: docs/HANDOVER.md, docs/board/in-progress/0015-every-card-session-is-sent-to-a-handover-that-does-not-exist.md
+OUT-OF-SCOPE: none
+
+Acted on the reopen. `## What's next` now names no card and no count: it gives
+`php C:\Dev\ProgressBoard\artisan board:order Regenesis` (checked: it runs and lists the work lanes)
+and says a card may be a decision or a person's job. The `todo/` and `human-review/` links now go to
+those lanes; the "nine cards deep" count went with the link fix.
+
+Three more lane facts in the same file were stale for the same reason, so they went in the same
+pass: `## Decisions locked` said `done/` is empty (it holds four cards now) and now points at it;
+`## Current state` said where `0016` and `0017` sat and now defers to `board:order`; `How to pick
+up` said 748 tests in 25-30s and now names no count (it was 760 in 70s today). The Blockers bullets
+on `0001` and `0013` stay: they state facts about those cards, not their lanes.
+
+No browser check needed or done.
