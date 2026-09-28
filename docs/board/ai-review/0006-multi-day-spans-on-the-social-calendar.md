@@ -197,3 +197,10 @@ VERDICT: sound
 
 
 **2026-09-28** The reviewer's acceptance lens returned this card sound: I checked all four criteria in the code. Each one is met. I found no defect. The reviewer's scope lens returned this card defect: **Scope review of card 0006 (multi-day spans on the Social calendar)**. The reviewer's breakage lens returned this card sound: I tried to break it, and I could not. The loop moved it from todo/ to human-review/ because it has bounced 2 times between todo and ai-review, all 4 criteria ticked. THE BUILDER COULD NOT ACT ON THAT FINDING. A reviewer reopens every criterion it reports unmet, and the reviews that sent this card back named no criterion they disproved, so it came back with 4 of 4 criteria still ticked, every session found nothing open to do, and the loop promoted it again on the boxes. Add or reopen the criterion the finding breaks and move it back to todo/, or say here why the finding is wrong.
+
+**2026-09-29** Attended unblock pass: the only defect in the 2026-09-28 review is the scope lens's
+recolour of `$eventToneClasses`, which disproves no criterion. It now has its own card, `0024`
+(revert to the pre-`23be726` tones unless they fail AA on the bar), the same way the tooltip and
+lane findings went to `0021` and `0022`. Acceptance and breakage were sound and all four criteria
+hold, so the card goes to `ai-review/`. Still owed and not a criterion: one look at the month grid
+in a browser with high-clarity mode on.
