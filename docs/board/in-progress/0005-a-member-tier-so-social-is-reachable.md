@@ -18,9 +18,9 @@ via Gates, and this adds exactly one tier because there is now a concrete reason
       to Social and Roster.
 - [x] #2 WHEN that same user reaches any admin or officer page, THE APP SHALL refuse.
 - [x] #3 WHEN a user with no guild role at all signs in, THE APP SHALL refuse everything, as now.
-- [ ] #4 THE OFFICER experience SHALL be unchanged, proved by walking an officer through the pages
+- [x] #4 THE OFFICER experience SHALL be unchanged, proved by walking an officer through the pages
       that were officer-only before.
-- [ ] #5 WHEN a member views Social or the Roster, EVERY link, button and form on the page, and in the
+- [x] #5 WHEN a member views Social or the Roster, EVERY link, button and form on the page, and in the
       sidebar around it, SHALL lead somewhere a member may open, and nothing a member cannot open
       SHALL be shown to them.
 <!-- AC:END -->
@@ -140,3 +140,41 @@ page before this card, now gets 403 on each of them while the sidebar still list
 own pages: the Theme and View-clarity forms in `layouts/dashboard.blade.php`, the "Farm planner" link
 and every "Details" link to `events.show` on `dashboard/social.blade.php`, and an empty "Admin"
 heading.
+
+**2026-09-28** Fixed #4 and #5.
+RESULT: done
+TESTS: +5 new, all green
+TOUCHED: app/Http/Middleware/RequireTier.php, app/Http/Controllers/Dashboard/SocialController.php, routes/web.php, resources/views/layouts/dashboard.blade.php, resources/views/dashboard/social.blade.php, resources/views/dashboard/roster.blade.php, tests/Feature/MemberTierTest.php, docs/HANDOVER.md, docs/board/in-progress/0005-a-member-tier-so-social-is-reachable.md, docs/board/todo/0020-roster-csv-gives-every-member-discord-ids.md
+OUT-OF-SCOPE: 0020
+
+**#4.** `RequireTier` now defaults to `raid_leader`, not `officer`. That is the set the old
+`OfficerOnly` let in and the set `isOfficerTier()` and the sidebar Gates still use, so a Raid Leader
+reaches every page the sidebar shows them again. Proved by `it walks a raid leader through every page
+that was officer-only`, which was red on `/dashboard` (403) before the change. The officer walk still
+passes. I took the reviewer's first fix rather than dropping `raid_leader` from `isOfficerTier()`,
+because the second would have taken pages away from Raid Leaders, and #4 says unchanged.
+
+**#5.** `it shows a member nothing on Social that they cannot open` and `it shows a member nothing on
+the Roster that they cannot open` render each page as a member (Social in list and grid view, with a
+Raid-Helper event; Roster flat and grouped, with a main and an alt), collect every in-app `<a>` and
+`<form>`, request every GET link for real, and check every POST form against its route's
+`RequireTier`. Both were red first: Social on the Farm planner link, Roster on the character links.
+I also moved the theme route back to the officer group for one run and watched the Social test fail
+on the theme form, because the Farm planner failure had hidden the forms on the first red run.
+`it shows a member no empty Admin heading in the sidebar` was red on the heading.
+
+The fixes:
+- The theme and clarity routes moved into the member group. They only write the user's own row.
+  The dashboard-layout route stayed officer-only, because only officers see that dashboard.
+- Farm planner link and event "Details" links only render for `isOfficerTier()`.
+- Roster character names render as plain text for a member, not as links to officer-only pages.
+  The 2026-08-29 entry left hiding or unlocking to Rob; #5 now says hide, so I hid them.
+- The Admin heading renders only when the user can open at least one Admin link (`@canany`).
+- `it still shows an officer the Admin heading and the officer-only links` guards the other side.
+
+What the test cannot see: links built in JavaScript (Alpine `:href`) and off-site links. There are
+no in-app Alpine links on these two pages today.
+
+Still owed: a browser check as a member and as a Raid Leader. This is a worktree, so Herd did not
+serve these changes. The member role id is still not in `.env`, as the first entry says.
+Suite: 757 passed. Pint clean on the PHP files touched.

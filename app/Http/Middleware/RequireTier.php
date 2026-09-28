@@ -12,8 +12,10 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Gate a dashboard route on a minimum Discord tier.
  *
- * The default is `officer`, so a route added to the protected group
- * without saying otherwise stays officer-only. Only the handful of
+ * The default is `raid_leader`, the lowest of the tiers
+ * User::isOfficerTier() counts and the old OfficerOnly gate let in, so a
+ * route added to the protected group without saying otherwise stays
+ * officer-only in the sense the sidebar Gates use. Only the handful of
  * guild-wide pages name a lower tier (`RequireTier:member`) - see the
  * member group in routes/web.php, which is the whole of that list.
  *
@@ -36,7 +38,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class RequireTier
 {
-    public function handle(Request $request, Closure $next, string $minTier = User::TIER_OFFICER): Response
+    public function handle(Request $request, Closure $next, string $minTier = User::TIER_RAID_LEADER): Response
     {
         $user = $request->user();
         if (! $user) {

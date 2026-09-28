@@ -507,6 +507,7 @@
                 @endforeach
             </div>
 
+            @canany(array_column($navAdmin, 'can'))
             <div>
                 <div class="px-3 mb-2 text-[10px] uppercase tracking-wider text-muted/70">Admin</div>
                 <div class="space-y-1">
@@ -520,6 +521,7 @@
                     @endforeach
                 </div>
             </div>
+            @endcanany
         </nav>
 
         <div class="px-4 py-3 border-t border-line text-xs text-muted space-y-2">

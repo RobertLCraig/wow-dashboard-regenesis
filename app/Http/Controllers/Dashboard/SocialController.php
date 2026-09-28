@@ -48,6 +48,9 @@ class SocialController extends Controller
         $now = CarbonImmutable::now();
         $until = $now->addDays(self::WINDOW_DAYS_AHEAD);
 
+        // The event page is officer-only, so a member gets no Details link.
+        $canOpenEvents = auth()->user()->isOfficerTier();
+
         $guildEvents = RaidEvent::query()
             ->upcoming()
             ->where('starts_at', '<=', $until)
@@ -61,7 +64,7 @@ class SocialController extends Controller
                 'tone' => 'sky',
                 'description' => $e->description ?: null,
                 'discord_url' => $e->discordJumpUrl(),
-                'event_url' => route('events.show', ['event' => $e->id]),
+                'event_url' => $canOpenEvents ? route('events.show', ['event' => $e->id]) : null,
             ])
             ->all();
 

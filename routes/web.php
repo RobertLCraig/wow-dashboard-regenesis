@@ -63,10 +63,16 @@ Route::middleware(['auth', RequireTier::class.':'.User::TIER_MEMBER])->group(fun
     // hides those controls behind the roster.kick gate.
     Route::get('/roster', [RosterController::class, 'index'])->name('roster.index');
     Route::get('/roster.csv', [RosterController::class, 'csv'])->name('roster.csv');
+
+    // Per-user display preferences (clarity dial, theme picker). Every
+    // signed-in page's sidebar carries these forms, members' included.
+    // Single POST endpoint per pref keeps the surface tiny and JS-free.
+    Route::post('/preferences/display', [PreferencesController::class, 'display'])->name('preferences.display');
+    Route::post('/preferences/theme', [PreferencesController::class, 'theme'])->name('preferences.theme');
 });
 
 // Officer-only application surface. Every other dashboard route lives
-// behind auth + RequireTier (officer by default) so a removed Discord
+// behind auth + RequireTier (raid leader and up by default) so a removed Discord
 // role takes effect within the configured cache TTL without requiring a
 // re-login.
 Route::middleware(['auth', RequireTier::class])->group(function () {
@@ -215,11 +221,7 @@ Route::middleware(['auth', RequireTier::class])->group(function () {
     Route::get('/admin/sync', [SyncDashboardController::class, 'index'])->name('admin.sync.index');
     Route::post('/admin/sync/grm', [SyncDashboardController::class, 'uploadGrm'])->name('admin.sync.grm.upload');
 
-    // Per-user display preferences (clarity dial, theme picker).
-    // Single POST endpoint per pref keeps the surface tiny and
-    // JS-free; each toggle in the UI is its own form.
-    Route::post('/preferences/display', [PreferencesController::class, 'display'])->name('preferences.display');
-    Route::post('/preferences/theme', [PreferencesController::class, 'theme'])->name('preferences.theme');
+    // Widget order for the General dashboard, which only officers see.
     Route::post('/preferences/dashboard-layout', [PreferencesController::class, 'dashboardLayout'])->name('preferences.dashboard-layout');
 
     // Officer-managed Discord webhook table. Used by the digest sender

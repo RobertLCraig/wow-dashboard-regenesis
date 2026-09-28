@@ -62,7 +62,9 @@ first because it refreshes within minutes of a character logging out, ahead of R
 
 **Permission tiers, lowest to highest:** `member` (1), `raid_leader` (2), `officer` (3), `big6` (4),
 `gm` (5), in `App\Models\User::TIER_RANK`. Tier is derived from the user's Discord roles at login.
-`RequireTier` middleware with no argument means officer and above.
+`RequireTier` middleware with no argument means `raid_leader` and above, the same set
+`User::isOfficerTier()` and the officer Gates use. Only Social, the Roster, its CSV and the theme and
+clarity forms are open to `member` (card 0005).
 
 **Known divergence, already recorded:** `member_snapshots.raw_json` has four live readers, one of
 them a Blade widget, listed with their exact call sites in

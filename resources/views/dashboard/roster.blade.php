@@ -290,9 +290,14 @@
                                     </button>
                                 @endif
                                 <x-class-icon :class="$m->class" />
-                                <a href="{{ route('character.show', $m->name) }}" class="{{ $cls }} hover:underline">
-                                    <x-character-name :name="$m->name" :siblings="$row['siblings']" />
-                                </a>
+                                {{-- Character pages are officer-only: a member gets the name, not a dead link. --}}
+                                @if (auth()->user()->isOfficerTier())
+                                    <a href="{{ route('character.show', $m->name) }}" class="{{ $cls }} hover:underline">
+                                        <x-character-name :name="$m->name" :siblings="$row['siblings']" />
+                                    </a>
+                                @else
+                                    <span class="{{ $cls }}"><x-character-name :name="$m->name" :siblings="$row['siblings']" /></span>
+                                @endif
                                 @if ($grouped && $row['alts']->isNotEmpty())
                                     <span class="text-muted text-xs ml-1">+ {{ $row['alts']->count() }} {{ \Illuminate\Support\Str::plural('alt', $row['alts']->count()) }}</span>
                                 @endif
@@ -311,9 +316,13 @@
                                         <li class="flex items-center justify-between gap-2">
                                             <span class="inline-flex items-center gap-1.5">
                                                 <x-class-icon :class="$alt->class" :size="14" />
-                                                <a href="{{ route('character.show', $alt->name) }}" class="{{ $altCls }} hover:underline">
-                                                    <x-character-name :name="$alt->name" :siblings="$altSiblings" />
-                                                </a>
+                                                @if (auth()->user()->isOfficerTier())
+                                                    <a href="{{ route('character.show', $alt->name) }}" class="{{ $altCls }} hover:underline">
+                                                        <x-character-name :name="$alt->name" :siblings="$altSiblings" />
+                                                    </a>
+                                                @else
+                                                    <span class="{{ $altCls }}"><x-character-name :name="$alt->name" :siblings="$altSiblings" /></span>
+                                                @endif
                                                 @if ($alt->class_display)
                                                     <span class="{{ $altCls }} opacity-75">{{ $alt->class_display }}</span>
                                                 @endif
