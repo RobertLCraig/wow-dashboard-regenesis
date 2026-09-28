@@ -219,3 +219,14 @@ VERDICT: sound
 
 
 **2026-09-05** The reviewer returned this card and its finding is the last review entry at the bottom of ## Direction. The loop moved it from todo/ to human-review/ because it has bounced 1 time between todo and ai-review, all 2 criteria ticked. THE BUILDER COULD NOT ACT ON THAT FINDING. A reviewer never unticks a criterion - it is forbidden from editing acceptance at all - so the card came back with 2 of 2 criteria still ticked, every session found nothing open to do, and the loop promoted it again on the boxes. Untick what the reviewer disproved and move it back to todo/, or say here why the finding is wrong.
+
+**2026-09-28** Manager pass: sent to `ai-review/`, because the scope finding is wrong. It says the
+README's `vendor/bin/pint --test` will not run in PowerShell. But that line sits in the README's
+`## Useful commands` block, which is fenced as ```` ```sh ````, and every command in the block is in
+shell form. In a shell, `vendor/bin/pint` is the right form. `docs/HANDOVER.md`, `## How to pick up`,
+gives the PowerShell form, `.\vendor\bin\pint.bat --test`. So both documents name a form that scans
+files, which is what #2 asks. #1 was checked by running it today: from the repository root the bare
+`--test` form exits 1 and names `RaiderioSnapshotImporter.php`, the dirty file `0014` still owes, so
+it no longer reports clean on a dirty tree. The acceptance and breakage lenses both found this card
+sound. The `## Current state` line in the handover is lane bookkeeping and stops being true when the
+card moves, but no criterion covers it.
