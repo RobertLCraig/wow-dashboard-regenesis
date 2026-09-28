@@ -30,3 +30,6 @@ The 2026-08-29 review of 0005 noted this as "worth a look, not a blocker", and n
 Option 1. Officers use the Discord link to act on the roster; a member has no use for it.
 
 ## Comments
+
+
+**2026-09-28** The loop moved this card from todo/ to human-review/. 3 takes in a row ended with it still in in-progress/, and the last one said: `staying in in-progress: 2 of 2 named test(s) never ran`. What this card is waiting for is not another session. bin/work-card.ps1 counts those takes out of storage/logs/work-card.log, and will start it again as soon as a person has moved it back to todo/.
