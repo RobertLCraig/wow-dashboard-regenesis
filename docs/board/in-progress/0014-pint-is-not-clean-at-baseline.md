@@ -173,3 +173,8 @@ from the repository root, `.\vendor\bin\pint.bat --test` exits 1 and names one f
 `app/Services/Raiderio/RaiderioSnapshotImporter.php` (`fully_qualified_strict_types`,
 `ordered_imports` and four more). The reformat was committed one Pint pass short. Run Pint again and
 commit that one file on its own.
+
+**2026-09-28** BEFORE-COUNTS for the second pass, recorded before Pint was run.
+
+    .\vendor\bin\pest.bat        760 passed, 2485 assertions, exit 0
+    .\vendor\bin\pint.bat --test 1 file, exit 1 (app/Services/Raiderio/RaiderioSnapshotImporter.php)
