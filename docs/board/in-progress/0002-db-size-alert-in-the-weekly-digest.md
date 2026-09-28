@@ -145,3 +145,22 @@ still needs a Discord look, which a worktree cannot give.
 
 Full suite: 750 passed. `pint --test` fails on `app/Services/Raiderio/RaiderioSnapshotImporter.php`
 only. That is not my file; card 0014 already carries it, so I raised no new card.
+
+**2026-09-28** RESULT: blocked
+TESTS: +0 new, all green
+TOUCHED: docs/board/in-progress/0002-db-size-alert-in-the-weekly-digest.md
+OUT-OF-SCOPE: none
+
+Only #1 is open, and nothing in it can be built from here. Checked again this session: nothing
+listens on `127.0.0.1:3306`, no MySQL or MariaDB Windows service exists, and the WSL `Ubuntu`
+distro has no `mysqld`, `mariadbd` or MySQL package either. There is no Docker. Installing a
+database server on Rob's machine is not a call an unattended card session should make, so I did
+not. No test was written: the suite is sqlite, which has no `information_schema`, so any test of
+`DatabaseSize::tableSizes()` here would stub the one query #1 needs proved.
+
+To close #1, Rob picks one: run `php artisan digest:weekly --dry-run` once on production (it also
+answers the third task, real numbers), or start a local MySQL with the `regenesis` schema and run
+the same command. The digest's Discord look is still owed too. Until then this card will come back
+to the loop with the same one box open; it wants `not_for_the_loop:` or a person, not another run.
+
+Full suite: 750 passed. `pint --test` fails on `RaiderioSnapshotImporter.php` only (card 0014).
