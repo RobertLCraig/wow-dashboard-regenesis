@@ -360,3 +360,55 @@ found it sound. So I edited `## Links` on `0014` and `0015` and nothing else on 
 **#6, recounted.** `board:convention --path=$PWD` prints `Regenesis 0 17` from this worktree after
 the edits. No browser check applies, because this pass changed only markdown.
 
+### 2026-09-28 review (v20260928235139-f48f)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 76s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+**What I checked.** I read the card files, because this card changes no code. I checked each criterion against those files.
+
+- **#3:** I scanned all 16 open cards in `todo/`, `in-progress/`, `ai-review/` and `human-review/`. The scan found every four-digit card number in each file. It then compared those numbers with the card's `## Links` section. It found no gaps. The last review named three cards that failed. They now carry the missing links:
+  - `0013` now links `0016`, `0021` and `0022`.
+  - `0014` now links `0016`.
+  - `0015` now links `0013` and `0017`.
+- **#4:** Only one open card has `needs:`. That card is `in-progress/0004-reclaim-the-space-the-snapshots-took.md`. It has `needs: 0001` and a `**Blocked by**` entry in `## Links`, and they agree.
+- **#1, #2, #5:** Earlier reviews found that these hold. Nothing I read shows otherwise. The decision cards `0010` and `0011` stay in `todo/`, and they still say why a person must decide them.
+- **#6:** I did not run `board:convention`. The last recorded count is `Regenesis 0 18`. My scan above covers the one fault that the tool cannot see.
+
+I tried to break each criterion and I could not.
+
+VERDICT: sound
+
+**scope: sound**
+
+I checked this pass against the card's "Not this card" limits. I found nothing over those limits, and nothing left half done.
+
+- **The last finding is fixed.** `ai-review/0014` now links `0016` in its `## Links`. `ai-review/0015` now links `0013` and `0017`. This card now links `0016`, `0021` and `0022`. Each link has a reason.
+- **No record was edited.** The pass added `## Links` lines only. It did not change any `## Comments`, review, `## Direction` or `## Decided` line.
+- **Only markdown changed.** The code files in the diff (the Pint reformat, `RequireTier`, the digest and social work) belong to other cards on `main`. None of them belongs to this card.
+- **Lane moves are not this card's edits.** The loop moves cards between lanes. The `done/` and `discarded/` files in the diff come from those moves, not from rewritten records.
+- **One edit to another card is in scope.** The `proves:` fix on `0023` is what #6 counts. The old words are still in its criterion.
+
+I did not check `docs/board/README.md`. The card's `## Not this card` says any change to it arrives as a distributed copy, and no touched-file list in this card names it.
+
+My scan found no criterion that fails.
+
+VERDICT: sound
+
+**breakage: sound**
+
+**What I checked.** I scanned all 18 open cards in `todo/`, `in-progress/`, `ai-review/` and `human-review/`. For each card, I took every four-digit card number in the file. Then I compared those numbers with the numbers in the card's `## Links` section. I did not count the card's own number.
+
+- **#3 holds now.** No open card names a card that its `## Links` does not carry. The three cards that failed the last review now pass: `ai-review/0013-rewrite-this-board-s-cards-for-the-reader.md`, `ai-review/0014-pint-is-not-clean-at-baseline.md` and `ai-review/0015-every-card-session-is-sent-to-a-handover-that-does-not-exist.md`.
+- **#4 holds.** `in-progress/0004-reclaim-the-space-the-snapshots-took.md` has `needs: 0001` and a matching **Blocked by** `0001` in `## Links`. No other open card has `needs:` or a **Blocked by** heading. The only other "Blocked by" text is on `0013`, and it is ordinary sentences, not a link heading.
+- **No code broke.** This pass changed only markdown. The suite exited 0.
+
+**What I could not check.** I did not run `board:convention` again, so I have no fresh count for #6. My scan agrees with the last recorded count of zero failing cards.
+
+I found no criterion that fails.
+
+VERDICT: sound
+
