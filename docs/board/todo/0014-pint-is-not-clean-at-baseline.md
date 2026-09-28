@@ -25,6 +25,8 @@ since has been written against its neighbours rather than against the preset.
 - `0004` - its 2026-08-29 comment is where this was first written down, in the words "worth a card
   of its own - either adopt the reformat in one commit or pin the Pint preset - but it is not this
   one". Four other cards recorded the same thing and no card ever carried it.
+- `0015` - raised by this card's session: `docs/HANDOVER.md`, which every session is sent to first,
+  did not exist.
 
 ## Not this card
 **Changing what the code does.** This is a formatting pass and nothing else. A Pint run that alters

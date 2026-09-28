@@ -11,6 +11,10 @@ that is wrong about three events is one people stop trusting for the other twent
 **Relates to**
 - `0006` - draws these same events as bars on the month grid; this card only settles which dates
   they fall on, so a wrong date here shows up as a wrong bar there.
+- `0005` - struck its line in `docs/planning/next-session.md` when it was built, which is the style
+  this card's own strike follows.
+- `0007` - the same: the second worked example of that strike.
+- `0023` - the table this card built has rows to 2030 only and nothing says when it runs out.
 
 ## Not this card
 The events feed itself, the ICS export, or the month grid, which is card 0006.

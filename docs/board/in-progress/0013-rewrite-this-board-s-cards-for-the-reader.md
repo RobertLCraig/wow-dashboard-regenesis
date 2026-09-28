@@ -28,6 +28,21 @@ it was written to.
   ProgressBoard's own 40 cards is the worked example of a pass.
 - `progressboard#0066` - the five checks the count below is measured with, and why each is
   structural rather than a judgement about prose.
+- `0001` - rewritten by this card: gained `## Links` and had `## Why` moved above its narrative.
+- `0002` - rewritten by this card: gained `## Links` for the two cards its `## Not this card` named.
+- `0003` - rewritten by this card: gained `## Links`.
+- `0004` - rewritten by this card: gained `Blocked by 0001` to match its `needs:`.
+- `0005` - named in `0008`'s comments with no link; the review below cites it as a #3 fault.
+- `0006` - rewritten by this card: gained `## Links` for the two cards its comments raised.
+- `0007` - the same fault as `0005`, on the same card.
+- `0008` - rewritten by this card: gained `## Links`, then the three cards its comments named.
+- `0009` - a decision card the four-reason test kept as a person's: local guild knowledge.
+- `0010` - the same four-reason result as `0009`.
+- `0011` - the same four-reason result as `0009`.
+- `0014` - raised by this card's first pass; rewritten on the second to link `0015`.
+- `0015` - rewritten by this card: gained links to the four cards its reviews name.
+- `0017` - rewritten by this card: gained a link to `0014`.
+- `0023` - rewritten by this card: its `proves:` now names a test the loop can read.
 
 ## Not this card
 **Changing the convention.** `docs/board/README.md` here is a COPY of a canonical file outside every
@@ -52,7 +67,7 @@ everything the card knows and changes only how it is ordered and said. `## Direc
       a person's to answer, or SHALL be converted to a feature card whose `## Plan` records the
       practice applied and its source. proves: none - the command that counts it is in another
       repository, named in `## Plan`
-- [ ] #3 WHEN a rewritten card names another card, THE CARD SHALL name it in a `## Links` section
+- [x] #3 WHEN a rewritten card names another card, THE CARD SHALL name it in a `## Links` section
       with the relationship type and one line of why, and SHALL NOT leave a bare card number in a
       sentence as the only mention of it. proves: none - as #2
 - [x] #4 THE `Blocked by` LINES on every rewritten card SHALL match that card's `needs:` frontmatter
@@ -216,3 +231,42 @@ VERDICT: defect
 this card` and has no `## Links` section. `board:convention` prints `Regenesis 0 16` only because
 `Reference::NOTATION` in ProgressBoard does not read a bare number in a sentence as a reference, so
 the count cannot be the evidence for #3. Read each open card for bare card numbers by eye.
+
+**2026-09-28**
+RESULT: done
+TESTS: +0 new, all green - #3 is `proves: none`; suite 760 passed
+TOUCHED: docs/board/in-progress/0013-rewrite-this-board-s-cards-for-the-reader.md
+TOUCHED: docs/board/in-progress/0002-db-size-alert-in-the-weekly-digest.md
+TOUCHED: docs/board/human-review/0006-multi-day-spans-on-the-social-calendar.md
+TOUCHED: docs/board/ai-review/0008-year-aware-holiday-lookup.md
+TOUCHED: docs/board/todo/0014-pint-is-not-clean-at-baseline.md
+TOUCHED: docs/board/todo/0015-every-card-session-is-sent-to-a-handover-that-does-not-exist.md
+TOUCHED: docs/board/todo/0017-readme-says-the-suite-is-45-tests-and-it-is-748.md
+TOUCHED: docs/board/todo/0023-moving-holiday-table-runs-out-silently.md
+OUT-OF-SCOPE: none
+
+**#3, checked by reading, not by the count.** The manager pass was right that `board:convention`
+cannot see a bare number in a sentence. So for every card in `todo/`, `in-progress/`, `ai-review/`
+and `human-review/`, I listed every four-digit card number anywhere in the file, and I compared it
+with the numbers in that card's `## Links`. Seven cards named a card that `## Links` did not carry:
+`0002` (0003, 0004, 0014; no `## Links` at all), `0006` (0021, 0022; no `## Links` at all), `0008`
+(0005, 0007, 0023), `0014` (0015), `0015` (0001, 0010, 0011, 0016), `0017` (0014), and this card.
+Each gained one `Relates to` line per missing card, with a reason. After the edit, the same scan
+finds no card that names a number its `## Links` does not carry.
+
+**What I assumed.** Most of those mentions are in `## Comments` or review entries, and those are a
+record, so I did not edit them. A link in `## Links` means the number is no longer the only mention,
+and that is what #3 asks for. The one prose edit is `0002`'s `## Not this card`: I put the two card
+numbers in backticks and changed no words. The scan also counts file names on `TOUCHED:` lines, so
+some links point to a card that only appears in a file path. I linked those too, because a link that
+explains too much costs less than a number the reader must look up.
+
+**#6, recounted.** Before this pass, `board:convention --path=$PWD` printed `Regenesis 1 18`. The
+failing card was `0023`: its `proves:` was a description, not a test name. It now names
+`it fails when the moving holiday table ends within two years`, and it keeps the old words ("pins the
+clock past the threshold") in the criterion. After the pass the count is `Regenesis 0 18`. Both
+counts are from this worktree.
+
+**Not in this card.** `.\vendor\bin\pint.bat --test` still fails on
+`app/Services/Raiderio/RaiderioSnapshotImporter.php`. Card `0014` carries that, and I did not touch
+the file. No browser check applies, because this pass changed only markdown.

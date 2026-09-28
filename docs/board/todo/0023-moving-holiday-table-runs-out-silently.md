@@ -18,8 +18,9 @@ Deriving the dates in code, or changing what happens to an unlisted year. The om
 ## Acceptance
 <!-- AC:BEGIN -->
 - [ ] WHEN the last year in `MOVING_HOLIDAYS` is less than two years past the current year, A TEST
-      SHALL fail naming the table, so the gap is loud before the feed reaches it. proves: a test that
-      pins the clock past the threshold and fails
+      SHALL fail naming the table, so the gap is loud before the feed reaches it; the test pins the
+      clock past the threshold and fails. proves: `it fails when the moving holiday table ends
+      within two years`
 <!-- AC:END -->
 
 ## Tasks

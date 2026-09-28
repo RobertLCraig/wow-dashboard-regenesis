@@ -5,6 +5,14 @@ A 17-day Brewfest renders as the name repeated in 17 separate cells. The month g
 Social hub added, and long world events are most of what it shows outside raid nights, so the
 commonest content is also the worst rendered.
 
+## Links
+
+**Relates to**
+- `0021` - the bar tooltip this card rewrote lost the event's start time; a review found it and it is
+  not one of this card's criteria.
+- `0022` - the lane comment this card wrote in `SocialController::gridWeeks()` promises lanes hold
+  across weeks, and the code does not.
+
 ## Not this card
 The list view, which reads correctly already. The events themselves and how they are computed.
 

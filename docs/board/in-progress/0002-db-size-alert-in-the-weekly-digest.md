@@ -13,8 +13,17 @@ grows, walks back toward the same cliff with the same amount of warning, which i
 This is the cheapest of the four runbook follow-ups and the only one that changes what happens next
 time rather than how much room there is.
 
+## Links
+
+**Relates to**
+- `0003` - stops the snapshot tables refilling on every sync; that is dedup-on-write, and it is
+  reclaiming space, which this card does not do.
+- `0004` - removes the ballast already in the snapshot tables; also reclaiming space, so also not here.
+- `0014` - the Pint failure on `RaiderioSnapshotImporter.php` that this card's style runs report is
+  that card's, not this one's.
+
 ## Not this card
-Reclaiming space. Dedup-on-write is 0003 and the ballast removal is 0004.
+Reclaiming space. Dedup-on-write is `0003` and the ballast removal is `0004`.
 
 ## Acceptance
 <!-- AC:BEGIN -->

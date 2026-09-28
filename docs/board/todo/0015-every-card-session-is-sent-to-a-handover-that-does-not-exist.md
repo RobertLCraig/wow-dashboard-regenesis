@@ -21,6 +21,12 @@ standard was not. Nobody decided to leave the handover out; the board was the ur
 **Relates to**
 - `0014` - the session that built it hit the missing file on its first read and had nothing to
   orient against, which is how this was found.
+- `0016` - raised by this card's session: `pint --test` could print a clean result it had not
+  earned. The reviews below fault the handover's queue for leaving it out.
+- `0001` - named first in the handover's `## What's next`; the reviews below say that list is
+  incomplete without `0016`.
+- `0010` - named in the same list, as a decision an agent cannot clear.
+- `0011` - named in the same list, for the same reason.
 
 ## Not this card
 **Deciding anything.** The handover records what the repository already shows and what the decided
