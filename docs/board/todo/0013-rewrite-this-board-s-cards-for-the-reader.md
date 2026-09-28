@@ -52,7 +52,7 @@ everything the card knows and changes only how it is ordered and said. `## Direc
       a person's to answer, or SHALL be converted to a feature card whose `## Plan` records the
       practice applied and its source. proves: none - the command that counts it is in another
       repository, named in `## Plan`
-- [x] #3 WHEN a rewritten card names another card, THE CARD SHALL name it in a `## Links` section
+- [ ] #3 WHEN a rewritten card names another card, THE CARD SHALL name it in a `## Links` section
       with the relationship type and one line of why, and SHALL NOT leave a bare card number in a
       sentence as the only mention of it. proves: none - as #2
 - [x] #4 THE `Blocked by` LINES on every rewritten card SHALL match that card's `needs:` frontmatter
@@ -210,3 +210,9 @@ VERDICT: defect
 
 
 **2026-09-05** The reviewer returned this card and its finding is the last review entry at the bottom of ## Direction. The loop moved it from todo/ to human-review/ because it has bounced 1 time between todo and ai-review, all 6 criteria ticked. THE BUILDER COULD NOT ACT ON THAT FINDING. A reviewer never unticks a criterion - it is forbidden from editing acceptance at all - so the card came back with 6 of 6 criteria still ticked, every session found nothing open to do, and the loop promoted it again on the boxes. Untick what the reviewer disproved and move it back to todo/, or say here why the finding is wrong.
+
+**2026-09-28** Manager pass: reopened #3 because the 2026-09-05 review's finding holds on `main`.
+`0002` (now in `todo/`) still says "Dedup-on-write is 0003 and the ballast removal is 0004" in `## Not
+this card` and has no `## Links` section. `board:convention` prints `Regenesis 0 16` only because
+`Reference::NOTATION` in ProgressBoard does not read a bare number in a sentence as a reference, so
+the count cannot be the evidence for #3. Read each open card for bare card numbers by eye.
