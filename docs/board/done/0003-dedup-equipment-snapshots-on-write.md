@@ -145,3 +145,57 @@ in a sweep. The scope review's other points became cards 0018 (runbook) and 0019
 count). Its point 3, the `captured_at` rewrite on a recycled snapshot, is what `## Plan` already
 chose, so no card. Full suite 752 green. `pint --test` fails only on
 `app/Services/Raiderio/RaiderioSnapshotImporter.php`, which is card 0014's known file.
+
+### 2026-09-28 review (v20260928223932-1afd)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 87s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+I tried to break all three criteria. I could not.
+
+**AC #1: met.** `EquipmentSnapshotImporter::pull` compares the new ilvls and `pieces` with the member's newest row from `latestRowsFor`. When they match, it moves that row with `$previous->update(['snapshot_id' => ...])`. It inserts nothing.
+
+**AC #2: met.** That same branch moves `snapshot_id`. `Snapshot::updateOrCreate` in `pull` moves `captured_at`. So `selectMembersToFetch` keeps rotating. The test `keeps rotating through the roster when it skips a write` covers this.
+
+**AC #3: met.** Changed gear goes to `MemberEquipmentSnapshot::updateOrCreate`, keyed on the current snapshot. The 2026-08-29 swap-back defect is fixed now. A snapshot comes back only when the batch hash repeats. The hash covers every member's full payload. So any row already on that snapshot holds the gear the member wears now. `pull` deletes that row when it is not the newest one. Two things follow:
+- A real change can never land on a snapshot that already has a row for that member. It always inserts a new row.
+- The unchanged move can no longer hit `unique(snapshot_id, member_id)`.
+
+Two tests cover the swap-back case: `writes a new row when the gear is swapped back to a state already seen` and `survives a recycled snapshot that already holds a row for an unchanged member`. The suite is green.
+
+VERDICT: sound
+
+**scope: sound**
+
+I checked the scope of this card. I found no scope defect.
+
+**What I looked at:** `a70972e`, which changes `EquipmentSnapshotImporter::pull`, adds two tests and raises cards 0018 and 0019. Almost all of the 227-file diff belongs to other cards or to the Pint reformat (`3e7ac11`), not to 0003.
+
+- **Deletes a row.** `EquipmentSnapshotImporter::pull` now deletes a member's old row when a reused snapshot still holds it. "Not this card" fences off reclaiming space (0004). This delete does not reclaim space. It removes one duplicate row so the sweep does not overwrite the wrong row or crash. No history is lost: the plan already moves that snapshot's `captured_at` to now, so the row's old date was gone anyway. It is in the comment and the commit message, so it is not a quiet change.
+- **Unfinished work from the last scope review is now on cards.** The runbook still lists this dedup as not done (card 0018). The sync dashboard does not show the `unchanged` count (card 0019). Neither is left hidden.
+- **The `captured_at` rewrite.** This is the choice `## Plan` made on purpose. It is not scope growth.
+- **Nothing goes into 0002 or 0004.** No digest change and no pruning change.
+
+I disproved no criterion.
+
+VERDICT: sound
+
+**breakage: sound**
+
+**Breakage review of card 0003: I tried to break it and could not.**
+
+I read `EquipmentSnapshotImporter::pull` and `EquipmentSnapshotImporter::latestRowsFor`. I checked them against the readers the last breakage review named.
+
+- **The unique-index crash is fixed.** `pull` now deletes an older row that the member has on the reused snapshot. It does this before the move. So `$previous->update(['snapshot_id' => ...])` cannot hit `unique(snapshot_id, member_id)`.
+- **The in-place overwrite is fixed.** After that delete, the changed branch's `updateOrCreate` makes a new row. That row gets the highest `id`, so `latestRowsFor` reads the gear the member has on now.
+- **The deleted row is safe to lose.** The batch hash covers every member's payload. The same hash means the old row holds the same gear as the new one.
+- **The two "latest" rules agree again.** `latestRowsFor` and `BisComparisonService::readingFromBlizzardEquipment` pick the highest `id`. `selectMembersToFetch` and `PruneSnapshots::protectedRowIds` pick the newest `captured_at`. After each sweep, a member's highest-`id` row sits on the newest snapshot, so both rules pick the same row. The pruner protects that row.
+- **No comment is now false.** The comment in `pull` and the docblock on `latestRowsFor` still match what the code does.
+
+This finding disproves no criterion. I write no `UNMET:` lines.
+
+VERDICT: sound
+
