@@ -41,7 +41,12 @@ it was written to.
 - `0011` - the same four-reason result as `0009`.
 - `0014` - raised by this card's first pass; rewritten on the second to link `0015`.
 - `0015` - rewritten by this card: gained links to the four cards its reviews name.
-- `0017` - rewritten by this card: gained a link to `0014`.
+- `0016` - rewritten by this card's third pass: `0014` and `0015` gained links to it. Its fix to
+  Pint's cache is why `0014`'s clean result can be trusted.
+- `0017` - rewritten by this card: gained a link to `0014`; on the third pass `0015` gained a link
+  to it.
+- `0021` - `0006` gained a link to it on the second pass.
+- `0022` - `0006` gained a link to it on the second pass.
 - `0023` - rewritten by this card: its `proves:` now names a test the loop can read.
 
 ## Not this card
@@ -67,7 +72,7 @@ everything the card knows and changes only how it is ordered and said. `## Direc
       a person's to answer, or SHALL be converted to a feature card whose `## Plan` records the
       practice applied and its source. proves: none - the command that counts it is in another
       repository, named in `## Plan`
-- [ ] #3 WHEN a rewritten card names another card, THE CARD SHALL name it in a `## Links` section
+- [x] #3 WHEN a rewritten card names another card, THE CARD SHALL name it in a `## Links` section
       with the relationship type and one line of why, and SHALL NOT leave a bare card number in a
       sentence as the only mention of it. proves: none - as #2
 - [x] #4 THE `Blocked by` LINES on every rewritten card SHALL match that card's `needs:` frontmatter
@@ -328,4 +333,30 @@ VERDICT: defect
 
 - **#3 reopened**, by the acceptance lens: open cards 0013, 0014 and 0015 still name card numbers (0021, 0022, 0016, 0013, 0017) that their `## Links` sections do not carry, so a bare number is still the only mention.
 - **#3 was named by the breakage lens and is not a ticked criterion here**, so nothing was changed: cards 0014, 0015 and 0013 each name a card in their comments (0016; 0013 and 0017; 0016, 0021 and 0022) that their `## Links` does not carry.
+
+**2026-09-28**
+RESULT: done
+TESTS: +0 new, all green - #3 is `proves: none`
+TOUCHED: docs/board/in-progress/0013-rewrite-this-board-s-cards-for-the-reader.md
+TOUCHED: docs/board/ai-review/0014-pint-is-not-clean-at-baseline.md
+TOUCHED: docs/board/ai-review/0015-every-card-session-is-sent-to-a-handover-that-does-not-exist.md
+OUT-OF-SCOPE: none
+
+**#3, third pass.** The 2026-09-28 review was right on all three cards. `0014` gained a link to
+`0016`. `0015` gained links to `0013` and `0017`. This card gained links to `0016`, `0021` and
+`0022`. No `## Comments` or review line was edited.
+
+**How I checked.** For every file in `todo/`, `in-progress/`, `ai-review/` and `human-review/`, I
+listed each four-digit number that is a real card number (`0001` to `0023`, from the file names in
+every lane). I compared that list with the numbers in the card's `## Links`, and ignored the card's
+own number. I ran the scan again after this entry was written, so this entry is inside the check.
+It finds no card that names a card its `## Links` does not carry. The last pass missed three cards
+because its own comment and later reviews added numbers after its scan ran.
+
+**What I assumed.** The scheduler rule says not to edit other cards. This card's whole job is to
+rewrite the board's other cards, and the two earlier passes did the same with a scope review that
+found it sound. So I edited `## Links` on `0014` and `0015` and nothing else on them.
+
+**#6, recounted.** `board:convention --path=$PWD` prints `Regenesis 0 17` from this worktree after
+the edits. No browser check applies, because this pass changed only markdown.
 

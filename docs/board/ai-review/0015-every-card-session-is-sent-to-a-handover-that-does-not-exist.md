@@ -27,6 +27,10 @@ standard was not. Nobody decided to leave the handover out; the board was the ur
   incomplete without `0016`.
 - `0010` - named in the same list, as a decision an agent cannot clear.
 - `0011` - named in the same list, for the same reason.
+- `0013` - the handover's Blockers section states a fact about it; a comment below says that
+  bullet stays.
+- `0017` - the handover's `## Current state` once said which lane it sat in; a comment below
+  records that line moving to `board:order`.
 
 ## Not this card
 **Deciding anything.** The handover records what the repository already shows and what the decided

@@ -27,6 +27,8 @@ since has been written against its neighbours rather than against the preset.
   one". Four other cards recorded the same thing and no card ever carried it.
 - `0015` - raised by this card's session: `docs/HANDOVER.md`, which every session is sent to first,
   did not exist.
+- `0016` - found that Pint's result cache could print a false clean; a comment below says this
+  card's clean result is not that one.
 
 ## Not this card
 **Changing what the code does.** This is a formatting pass and nothing else. A Pint run that alters
