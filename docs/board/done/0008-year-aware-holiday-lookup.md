@@ -156,3 +156,64 @@ that the table expires silently in 2031, is not in this card's acceptance, so it
 
 760 tests pass; `pint --test` passes on both touched PHP files. Built in a worktree: no browser
 check was done, and `/dashboard/social` still wants one look after merge.
+
+### 2026-09-28 review (v20260928233526-04e3)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 73s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+I checked all four criteria against the code. I could not break any of them.
+
+**#1, the right dates for each year.** `WorldEventsCalendar::movingHolidaysFor()` in `app/Services/WorldEvents/WorldEventsCalendar.php` builds the three events from the `MOVING_HOLIDAYS` table. `eventsInRange()` calls it once for each year. The rows were already checked by hand in the last review, and nothing in the table has changed since.
+
+**#2, omit a year that is not in the table.** `movingHolidaysFor()` ends with `?? []`. It has no fallback and it does not calculate a date. The test for 2031 checks that the three events are gone and that Brewfest is still there.
+
+**#3, the ICS feed matches the app.** `IcsController::worldFeed()` and `SocialController::index()` both get their dates from the same `eventsInRange()`. So there is only one place the dates come from.
+
+**#4, first half: a row with no description still shows.** `movingHolidaysFor()` now reads the description with `?? null`. The test "still renders a moving holiday whose description is missing" uses a small copy of the calendar class that has only its own table. It checks that the event shows on 2026-05-10 and that its description is empty. The override works because the method reads the table through `static::`.
+
+**#4, second half: the two tables must name the same holidays.** The test "names the same holidays in the date table and the description table" reads both tables. It fails if the names in one table do not match the names in the other.
+
+The full test suite passed.
+
+VERDICT: sound
+
+**scope: sound**
+
+The card was built in two commits: `d957362` and `ed84684`. I checked the files each one changed. The 235-file diff above covers the whole branch. Only those two commits belong to this card.
+
+**Over the fence ("Not this card"): nothing.** The only production file changed is `app/Services/WorldEvents/WorldEventsCalendar.php`. Nothing touched the events feed, the ICS export (`IcsController`, `IcsBuilder`) or the month grid (`social.blade.php`, card 0006). Both test files only add tests.
+
+**Small extras:**
+- The two tables went from `private` to `protected`, so a test subclass can build the "row with no blurb" case. This serves criterion #4, so it is not scope creep.
+- It added rows for 2028 - 2030 and three description blurbs. These are cheap and match the task "populate for the years the window can reach".
+
+**Left half done: nothing I can find.**
+- In `docs/planning/next-session.md`, the "Year-aware holiday lookup" line is now struck in the 0005/0007 style. The earlier review said this was missing, and it is now fixed.
+- The silent 2031 expiry is not in the acceptance criteria. It went correctly to its own card, `docs/board/todo/0023-moving-holiday-table-runs-out-silently.md`. It was not left half done here.
+
+No criterion is disproved.
+
+VERDICT: sound
+
+**breakage: sound**
+
+I tried to break this change. I could not.
+
+**What I checked:**
+
+- **The missing-text case.** `WorldEventsCalendar::movingHolidaysFor()` now reads the text with `?? null`. A holiday with no text now shows up with an empty description. It does not crash. That matches the `description:?string` promise in the docblock.
+- **The test for that case.** It builds a subclass that adds "Undescribed Fest" and gives it no text. The subclass can replace the table because both tables are now `protected` and are read through `static::`. So this test runs the real fix, not a copy of it.
+- **The test that the two tables match.** It compares the names in the date table with the names in the text table, in both directions. A misspelled name fails it. A holiday added to one table only also fails it.
+- **Other callers.** Nothing else reads the two tables. Making them `protected` breaks nobody.
+- **The planning doc.** The line in `docs/planning/next-session.md` is now struck through.
+
+One item is still open: the table runs out after 2030 and nothing warns anyone. Criterion #4 does not ask for that. Card 0023 already tracks it. It is not a defect of this card.
+
+Nothing for you to do. The card can move on.
+
+VERDICT: sound
+
