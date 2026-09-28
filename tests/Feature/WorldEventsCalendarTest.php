@@ -2,6 +2,8 @@
 
 use App\Services\WorldEvents\WorldEventsCalendar;
 use Carbon\CarbonImmutable;
+use PHPUnit\Framework\Assert;
+use PHPUnit\Framework\AssertionFailedError;
 
 it('returns the Darkmoon Faire for a month whose 1st is mid-week', function () {
     // April 2026: 1st is Wednesday. First Sunday is the 5th.
@@ -233,6 +235,42 @@ it('names the same holidays in the date table and the description table', functi
     $described = collect($class->getConstant('MOVING_HOLIDAY_DESCRIPTIONS'))->keys()->sort()->values()->all();
 
     expect($dated)->toBe($described);
+});
+
+// The moving-holiday table is hand-filled and an unlisted year is
+// omitted without a word. This guard makes the gap loud while there is
+// still time to extend the table, before the year-ahead feed reaches it.
+const MOVING_HOLIDAY_TABLE_MIN_YEARS_AHEAD = 2;
+
+function assertMovingHolidayTableRunsAhead(): void
+{
+    $lastYear = max(array_keys((new ReflectionClass(WorldEventsCalendar::class))->getConstant('MOVING_HOLIDAYS')));
+    $thisYear = now()->year;
+
+    if ($lastYear - $thisYear < MOVING_HOLIDAY_TABLE_MIN_YEARS_AHEAD) {
+        Assert::fail(
+            "WorldEventsCalendar::MOVING_HOLIDAYS ends in {$lastYear}, less than "
+            .MOVING_HOLIDAY_TABLE_MIN_YEARS_AHEAD." years past {$thisYear}. Add the next years' rows "
+            ."before the year-ahead feed runs past it and Noblegarden, the Lunar Festival and Pilgrim's Bounty vanish."
+        );
+    }
+}
+
+it('keeps the moving holiday table at least two years ahead of today', function () {
+    assertMovingHolidayTableRunsAhead();
+    expect(true)->toBeTrue(); // the guard itself fails the test; this only marks it as asserting
+});
+
+it('fails when the moving holiday table ends within two years', function () {
+    $lastYear = max(array_keys((new ReflectionClass(WorldEventsCalendar::class))->getConstant('MOVING_HOLIDAYS')));
+
+    // On the threshold itself the table is still far enough ahead.
+    $this->travelTo(CarbonImmutable::create($lastYear - MOVING_HOLIDAY_TABLE_MIN_YEARS_AHEAD, 12, 31));
+    expect(fn () => assertMovingHolidayTableRunsAhead())->not->toThrow(AssertionFailedError::class);
+
+    $this->travelTo(CarbonImmutable::create($lastYear - MOVING_HOLIDAY_TABLE_MIN_YEARS_AHEAD + 1, 1, 1));
+    expect(fn () => assertMovingHolidayTableRunsAhead())
+        ->toThrow(AssertionFailedError::class, 'WorldEventsCalendar::MOVING_HOLIDAYS');
 });
 
 it('does not duplicate a moving holiday across a multi-year window', function () {
