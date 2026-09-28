@@ -209,6 +209,32 @@ it('omits the moving holidays for a year the lookup does not cover', function ()
     expect($names)->toContain('Brewfest');
 });
 
+it('still renders a moving holiday whose description is missing', function () {
+    // A fourth holiday added to the date table alone must not take the
+    // feed down; it lands without a blurb, like a fixed-date holiday can.
+    $calendar = new class extends WorldEventsCalendar
+    {
+        protected const MOVING_HOLIDAYS = [2026 => [['Undescribed Fest', '05-10', '05-12']]];
+    };
+    $events = $calendar->eventsInRange(
+        CarbonImmutable::parse('2026-05-01'),
+        CarbonImmutable::parse('2026-05-31'),
+    );
+    $fest = collect($events)->firstWhere('name', 'Undescribed Fest');
+
+    expect($fest)->not->toBeNull();
+    expect($fest['starts_at']->toDateString())->toBe('2026-05-10');
+    expect($fest['description'])->toBeNull();
+});
+
+it('names the same holidays in the date table and the description table', function () {
+    $class = new ReflectionClass(WorldEventsCalendar::class);
+    $dated = collect($class->getConstant('MOVING_HOLIDAYS'))->flatten(1)->pluck(0)->unique()->sort()->values()->all();
+    $described = collect($class->getConstant('MOVING_HOLIDAY_DESCRIPTIONS'))->keys()->sort()->values()->all();
+
+    expect($dated)->toBe($described);
+});
+
 it('does not duplicate a moving holiday across a multi-year window', function () {
     $events = (new WorldEventsCalendar)->eventsInRange(
         CarbonImmutable::parse('2026-01-01'),

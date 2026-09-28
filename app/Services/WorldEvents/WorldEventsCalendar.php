@@ -42,7 +42,7 @@ class WorldEventsCalendar
      * is honest; a holiday on a made-up date is not. Extend the table
      * when the year-ahead window starts to run past the last row.
      */
-    private const MOVING_HOLIDAYS = [
+    protected const MOVING_HOLIDAYS = [
         2025 => [
             ['Noblegarden', '04-21', '04-27'],
             ['Lunar Festival', '01-29', '02-12'],
@@ -75,8 +75,12 @@ class WorldEventsCalendar
         ],
     ];
 
-    /** Blurbs don't change year to year, so they live outside the date table. */
-    private const MOVING_HOLIDAY_DESCRIPTIONS = [
+    /**
+     * Blurbs don't change year to year, so they live outside the date
+     * table. A name missing here renders without a blurb rather than
+     * failing; a test keeps the two tables naming the same holidays.
+     */
+    protected const MOVING_HOLIDAY_DESCRIPTIONS = [
         'Noblegarden' => 'Egg hunts around the starter villages; the Spring Rabbit pet and the Swift Springstrider mount.',
         'Lunar Festival' => 'Elder turn-ins for Coins of Ancestry across Azeroth, and fireworks over Moonglade.',
         "Pilgrim's Bounty" => 'Bountiful tables in the capitals; cooking-skill dailies and the Turkinator achievement.',
@@ -213,8 +217,8 @@ class WorldEventsCalendar
             'ends_at' => CarbonImmutable::parse($year.'-'.$row[2])->endOfDay(),
             'kind' => 'world',
             'tone' => 'amber',
-            'description' => self::MOVING_HOLIDAY_DESCRIPTIONS[$row[0]],
-        ], self::MOVING_HOLIDAYS[$year] ?? []);
+            'description' => static::MOVING_HOLIDAY_DESCRIPTIONS[$row[0]] ?? null,
+        ], static::MOVING_HOLIDAYS[$year] ?? []);
     }
 
     /**

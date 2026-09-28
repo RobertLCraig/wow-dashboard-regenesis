@@ -22,7 +22,7 @@ The events feed itself, the ICS export, or the month grid, which is card 0006.
 - [x] #2 WHERE a year has no entry in the lookup, THE APP SHALL omit those three events rather than
       placing them on a guessed date.
 - [x] #3 THE PUBLIC year-ahead ICS feed SHALL carry the same dates as the in-app view.
-- [ ] #4 WHERE a row in the moving-holiday table has no matching description, THE APP SHALL still
+- [x] #4 WHERE a row in the moving-holiday table has no matching description, THE APP SHALL still
       render the event, and a test SHALL fail if the two tables in `WorldEventsCalendar` stop naming
       the same holidays.
 <!-- AC:END -->
@@ -124,3 +124,31 @@ holds on `main`. `WorldEventsCalendar::movingHolidaysFor()` still reads
 `MOVING_HOLIDAYS` alone, throws "Undefined array key" and takes down `/dashboard/social`, the social
 ICS feed and the public `/calendar/world.ics` together. #1 to #3 were traced sound and stay ticked.
 Also owed: `docs/planning/next-session.md` still lists the year-aware lookup as open work.
+
+**2026-09-28**
+RESULT: done
+TESTS: +2 new, all green
+TOUCHED: app/Services/WorldEvents/WorldEventsCalendar.php
+TOUCHED: tests/Feature/WorldEventsCalendarTest.php
+TOUCHED: docs/planning/next-session.md
+TOUCHED: docs/board/in-progress/0008-year-aware-holiday-lookup.md
+TOUCHED: docs/board/todo/0023-moving-holiday-table-runs-out-silently.md
+OUT-OF-SCOPE: 0023
+
+#4, first half: `movingHolidaysFor()` now reads the blurb with `?? null`, so an undescribed row
+renders with no description, the same shape an undescribed `yearly()` holiday already has. To let a
+test build that state, the two tables went from `private` to `protected` and are read through
+`static::`; the test is an anonymous subclass carrying a holiday with no blurb. Watched red first on
+"Undefined array key "Undescribed Fest"", then green after the fix.
+
+#4, second half: a test reads both constants by reflection and asserts the set of names in
+`MOVING_HOLIDAYS` equals the keys of `MOVING_HOLIDAY_DESCRIPTIONS`. It is green on the real tables,
+so to watch it catch something I misspelled one 2026 Noblegarden row, ran it red, and restored the
+file before the fix.
+
+Struck the "Year-aware holiday lookup" bullet in `docs/planning/next-session.md` in the style 0005
+and 0007 used, since the manager pass named it as owed here. The review's second breakage finding,
+that the table expires silently in 2031, is not in this card's acceptance, so it is card 0023.
+
+760 tests pass; `pint --test` passes on both touched PHP files. Built in a worktree: no browser
+check was done, and `/dashboard/social` still wants one look after merge.
