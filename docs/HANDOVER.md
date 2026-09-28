@@ -158,7 +158,7 @@ for something to build will mostly find things waiting on Rob.
 ## Blockers / open questions
 
 The person's queue is [`docs/board/human-review/`](board/), nine cards deep. Each carries its own
-options and recommendation, so they are not restated here. Three things need saying:
+options and recommendation, so they are not restated here. Two things need saying:
 
 - **`0001`'s `waiting_on:` recheck date was 2026-08-20 and has passed.** It is the oldest thing on
   the board and `0004` is blocked behind it. Until somebody logs in to the live site and confirms
