@@ -107,7 +107,10 @@
                                 'amber'  => 'bg-amber-900/60 text-amber-100 border-amber-700/70',
                             ];
                         @endphp
-                        <div class="grid grid-cols-7 text-xs uppercase tracking-wider text-muted border-b border-line bg-bg/30">
+                        {{-- Both grids wear clarity-keep-grid: high-clarity mode flattens
+                             any other .grid to a column, which would strand the inline
+                             grid-column bars away from the dates they belong to. --}}
+                        <div class="grid grid-cols-7 text-xs uppercase tracking-wider text-muted border-b border-line bg-bg/30 clarity-keep-grid">
                             @foreach (['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] as $dow)
                                 <div class="px-2 py-2 text-center">{{ $dow }}</div>
                             @endforeach
@@ -124,7 +127,7 @@
                                     $overflowRow = $week['has_overflow'] ? 1 + $laneRows + 1 : null;
                                     $rowCount = $overflowRow ?? 1 + $laneRows;
                                 @endphp
-                                <div class="grid grid-cols-7 gap-px" style="grid-template-rows: repeat({{ $rowCount }}, auto)">
+                                <div class="grid grid-cols-7 gap-px clarity-keep-grid" style="grid-template-rows: repeat({{ $rowCount }}, auto)">
                                     @foreach ($week['days'] as $i => $day)
                                         @php
                                             $cellTone = ! $day['in_window']

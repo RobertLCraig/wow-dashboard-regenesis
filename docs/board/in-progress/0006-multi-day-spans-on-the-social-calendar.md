@@ -16,7 +16,7 @@ The list view, which reads correctly already. The events themselves and how they
       rather than dropping or duplicating it.
 - [x] #3 WHEN several multi-day events overlap, THE APP SHALL stack the bars without either
       overlapping the other or changing the height of the week's row unpredictably.
-- [ ] #4 WHEN high-clarity display mode is on, THE MONTH GRID SHALL still show each day's date beside
+- [x] #4 WHEN high-clarity display mode is on, THE MONTH GRID SHALL still show each day's date beside
       the events on that day, rather than a column of empty cells followed by undated bars.
 <!-- AC:END -->
 
@@ -116,3 +116,25 @@ column in high-clarity mode, and the week grid in `dashboard/social.blade.php` s
 accessibility setting, shows empty day cells, then bare numbers, then undated bars. #1 to #3 were
 traced sound by the review and stay ticked. Worth fixing on the way: the multi-day tooltip lost the
 start time.
+
+**2026-09-28** RESULT: done
+TESTS: +1 new, all green (758 passed)
+TOUCHED: resources/views/dashboard/social.blade.php
+TOUCHED: tests/Feature/SocialPageTest.php
+TOUCHED: docs/board/in-progress/0006-multi-day-spans-on-the-social-calendar.md
+TOUCHED: docs/board/todo/0021-calendar-bar-tooltip-drops-the-start-time.md
+TOUCHED: docs/board/todo/0022-grid-lane-comment-claims-lanes-hold-across-weeks.md
+OUT-OF-SCOPE: 0021, 0022
+
+#4: the Mon..Sun header row and every week grid in the grid branch now wear `clarity-keep-grid`, so
+high-clarity mode leaves them as 7-column grids and each bar stays under its dates. I kept the grid
+rather than building a separate stacked layout for that mode, the same opt-out four widgets already
+use. Proof is `it keeps the week grid a grid in high-clarity mode, so each date stays beside its
+events`, watched red first on the missing class. Its blind spot: CSS is not evaluated in the suite,
+so it proves the opt-out class is on every `grid grid-cols-7`, not what a browser draws. A browser
+check in high-clarity mode is still owed, because Herd serves `C:\Dev\Regenesis`, not this worktree.
+Criterion #4 carries no `proves:` clause; I did not add one, since that would reword it.
+
+The tooltip start time is not an acceptance criterion here, so it went to 0021 rather than into this
+diff. The reviewer's second breakage finding, the lane comment that claims more than the code does,
+is 0022.

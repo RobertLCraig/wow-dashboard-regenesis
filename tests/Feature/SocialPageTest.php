@@ -255,6 +255,26 @@ it('draws the two longest world events as a handful of bars, not one per day', f
     }
 });
 
+it('keeps the week grid a grid in high-clarity mode, so each date stays beside its events', function () {
+    // The layout flattens every .grid to a flex column in high-clarity mode
+    // unless it wears .clarity-keep-grid. The week rows place bars by inline
+    // grid-column, so flattened they read as empty cells, then bare numbers,
+    // then undated bars. CSS is not evaluated here: this proves the opt-out
+    // class is on every 7-column grid, not how a browser draws it.
+    $user = socialOfficer();
+    $user->forceFill(['display_mode' => User::DISPLAY_HIGH_CLARITY])->save();
+
+    $body = $this->actingAs($user)->get('/dashboard/social?view=grid')->assertOk()->getContent();
+
+    preg_match_all('/class="grid grid-cols-7[^"]*"/', $body, $grids);
+
+    expect($body)->toContain('mode-high-clarity')
+        ->and(count($grids[0]))->toBeGreaterThan(1);  // the Mon..Sun header plus at least one week
+    foreach ($grids[0] as $class) {
+        expect($class)->toContain('clarity-keep-grid');
+    }
+});
+
 it('renders two upcoming events in chronological order', function () {
     RaidEvent::query()->create([
         'raidhelper_event_id' => 'rh-later',
