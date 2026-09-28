@@ -230,3 +230,59 @@ files, which is what #2 asks. #1 was checked by running it today: from the repos
 it no longer reports clean on a dirty tree. The acceptance and breakage lenses both found this card
 sound. The `## Current state` line in the handover is lane bookkeeping and stops being true when the
 card moves, but no criterion covers it.
+
+### 2026-09-28 review (v20260928191942-0aa2)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 71s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+**Criterion #1: met.**
+- The fix is in `pint.json`. It sets `cache-file` to `.pint.cache`.
+- Pint reads that key in `ConfigurationJsonRepository::cacheFile`. It is inside the Pint program file in `vendor`.
+- `ConfigurationResolverFactory::fromIO` then uses that file instead of the shared temp cache. The old temp cache used a name made from the path you typed, so each spelling got its own record of the tree. Now every spelling uses one cache in the repo.
+- `.gitignore` excludes `/.pint.cache`.
+- On 2026-09-28 the manager ran the bare `--test` form. It exited 1 and named `RaiderioSnapshotImporter.php`, the dirty file that card `0014` still owes.
+- I only read files, so I did not run it myself.
+
+**Criterion #2: met.**
+- `docs/HANDOVER.md`, "How to pick up", gives the PowerShell form: `.\vendor\bin\pint.bat --test`.
+- `README.md`, "Useful commands", gives `vendor/bin/pint --test`. That block is fenced as `sh`, and every command in it is shell form. So the README is correct for its shell.
+- Neither document tells the reader to pass a dot any more.
+- No other file tells a reader how to run the check. `composer.json` has no lint script and there is no CI.
+
+I could not disprove either criterion.
+
+VERDICT: sound
+
+**scope: sound**
+
+**Scope review: card 0016 (Pint false clean)**
+
+Card 0016 did not go past its fence. It left no task half done.
+
+- **The work fits the card.** It changed `pint.json` (a new file), `.gitignore`, `README.md` ("Useful commands") and `docs/HANDOVER.md` ("How to pick up"). These match the card's TOUCHED list. The diff also shows `WeeklyDigestBuilder::database()`, `config/snapshots.php`, `docs/ops-runbook.md` and moves of other cards. Those changes come from other cards (0002, 0004 and the manager pass), not from 0016. The diff starts at the wrong point, so it shows them together.
+- **The fence holds.** The card did not touch `RaiderioSnapshotImporter.php`. It made no change in ProgressBoard.
+- **The README line is correct.** The earlier review said PowerShell cannot run `vendor/bin/pint --test`. But that line is inside a ```` ```sh ```` block, and every command in that block is in shell form. `docs/HANDOVER.md` "How to pick up" gives the PowerShell form, `.\vendor\bin\pint.bat --test`. So each document names a form that scans the files.
+- **One extra line, small.** Under `## Current state`, `docs/HANDOVER.md` now says "`0016` ... is built and awaiting review". That line is lane status, and the card did not ask for it. Today it is true. It will be false when the card moves. No criterion covers it, so it does not disprove #1 or #2. The person who moves the card can delete it.
+
+No criterion is disproved.
+
+VERDICT: sound
+
+**breakage: sound**
+
+I tried to break this card, and I could not. The verdict is **sound**.
+
+**No caller was left behind.** `pint.json` has one key, `cache-file`. Only two documents tell a reader how to run Pint: `README.md` (`## Useful commands`) and `docs/HANDOVER.md` (`## How to pick up`). The card changed both. `composer.json` has no lint script. There is no CI workflow.
+
+**The fix works on every spelling of the root path.** Pint's `ConfigurationResolverFactory::fromIO` uses `cache-file` from `pint.json` before its default. The default is a temp-folder cache named from the path you typed. So the bare form and `.` now read and write the same cache in the repository root. `.gitignore` ignores `/.pint.cache`, so `deploy.ps1`'s clean-tree gate does not see it.
+
+**The docs are still true.** The README block is shell (`sh`), so `vendor/bin/pint` is the right form there. The handover gives the PowerShell form, `.\vendor\bin\pint.bat`. One small point: the handover says "any path argument, or none, gives the same answer". That is loose, because a narrower path such as `tests` checks fewer files. It is still true for every spelling of the root, and no criterion depends on it.
+
+**One weak spot, which the docs already cover.** Pint reads `pint.json` from the current folder only. The handover says to run the command from the repository root.
+
+VERDICT: sound
+
