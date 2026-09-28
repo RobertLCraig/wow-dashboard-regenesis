@@ -84,3 +84,74 @@ no finding: the 2026-08-29 review job hit a session limit before any lens ran, s
 say only "You've hit your session limit" and VERDICT is missing from each. The suite exited 0 in that
 run. The loop read that as a bounce and parked the card. It has still never been reviewed, and a
 review is what it needs.
+
+### 2026-09-28 review (v20260928190712-1ae0)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 71s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+I checked each of the three acceptance criteria against the code. All three are met.
+
+**#1 Store URLs and metadata.** Met.
+- A migration adds the column: `2026_05_02_120000_add_attachments_to_discord_announcements_table.php`.
+- `DiscordAnnouncement` casts `attachments` to an array, and the column is in `$fillable`.
+- `DiscordAnnouncementsImporter::attachments()` keeps these fields: id, filename, content_type, size, width, height, url and proxy_url.
+- `DiscordAnnouncementsImporter::pull()` writes those fields to the row with `updateOrCreate`.
+
+**#2 Keep a post that has attachments and no text.** Met.
+- `DiscordAnnouncementsImporter::pull()` skips a post only when `trim($content) === ''` and `$attachments === []` are both true.
+- The feed query in `SocialController` filters only on `posted_at`. It does not remove posts that have empty text.
+
+**#3 Show images as thumbnails.** Met.
+- `DiscordAnnouncement::imageAttachments()` keeps only items with an `image/*` type.
+- `resources/views/dashboard/social.blade.php` shows each image as an `<img>` with class `h-24`, inside a link to the full-size image.
+- The view hides the text paragraph when the text is empty.
+
+The card says that stickers stay out of scope, and that the URLs can expire. The acceptance criteria do not include either one, so they do not disprove a criterion.
+
+VERDICT: sound
+
+**scope: sound**
+
+I found no scope defect. The card's own commit is `fd98cc0`. It changes only 8 files, and all of them belong to this card:
+
+- the migration
+- `DiscordAnnouncement::imageAttachments()`
+- `DiscordAnnouncementsImporter::attachments()` and the rule that decides which posts to skip
+- the thumbnails in `social.blade.php`
+- two test files
+- the card and `next-session.md`
+
+The 224-file diff you were given is too big because its start point is wrong. It includes work from other cards: the member tier (`RequireTier`, `User`), Pint reformatting, the digest DB-size check, equipment dedup, and the holiday calendar. None of that is in `fd98cc0`, so this card did not grow past its fence. The review script should compare against the parent of `fd98cc0`.
+
+Two things are not finished, but neither breaks a criterion:
+- **Stickers.** The Why names sticker-only posts, but the acceptance only covers attachments. Discord keeps stickers in `sticker_items`, so those posts are still skipped. The builder said so. They need their own card.
+- **Re-fetch.** The Plan asks to store enough to re-fetch a post by message id. The ids are stored. The re-fetch code is not built, and a `ponytail:` comment on `DiscordAnnouncementsImporter::attachments()` marks that limit.
+
+VERDICT: sound
+
+**breakage: sound**
+
+I tried to break this card and could not. No acceptance criterion fails.
+
+**What I checked**
+
+- **Importer** (`DiscordAnnouncementsImporter::pull`): it skips a message only when it has no text and no attachments. It saves attachments on a new row and on an updated row. When it finds no attachments, it writes `null`. That matches the nullable column and the `imageAttachments()` fallback `?? []`.
+- **Callers**: only one place reads `DiscordAnnouncement`, and that is `SocialController::index`. It passes the rows straight to `social.blade.php`. No other feed or digest reads the empty `content`, so nothing else breaks.
+- **Migration**: it adds a nullable JSON column. Its `down()` drops that column. Both are correct.
+- **Docblocks**: the comments on the importer, the model and the migration still describe the code correctly.
+
+**One small edge case (not a defect)**
+
+A post that has only a file that is not an image (a PDF or a video) is now kept. The feed shows it as the author name and the "open in Discord" link, with no body. The builder's note about removing the empty line is true only for image posts. No criterion covers files that are not images. The link still takes the reader to the post, so nothing is lost.
+
+**Things the builder already told you**
+
+- Discord links expire. The hourly pull refreshes them, and the `ponytail:` comment names that limit.
+- Posts that have only a sticker are still skipped. That needs its own card.
+
+VERDICT: sound
+
