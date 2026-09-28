@@ -36,7 +36,7 @@ and that is a bigger change than this fault justifies.
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [x] #1 WHERE `README.md` states the size and duration of the test suite, IT SHALL match what
+- [ ] #1 WHERE `README.md` states the size and duration of the test suite, IT SHALL match what
       `.\vendor\bin\pest.bat` prints on a clean checkout.
       proves: none - a document's content, which no test in this suite can read
 <!-- AC:END -->
@@ -182,3 +182,72 @@ finding.
 
 **No test.** The criterion's `proves:` is `none`: it is the content of a Markdown file. The check is
 the two runs above against the two lines now in the file. No browser check applies.
+
+### 2026-09-29 review (v20260929001512-8d14)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 62s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+I checked the card against the code. Only one criterion exists, #1.
+
+**#1 is met.** In `README.md`, two lines state the suite size. I searched the whole file and found no third one.
+- `## Stack` says "Pest 4 for tests (760 ...)". `composer.json` asks for `pestphp/pest: ^4.6`, so "Pest 4" is correct.
+- `## Useful commands` says "760 Pest tests, about a minute, sqlite in memory".
+
+Both lines now give the same count, so the last review's finding is fixed. The review script's own run took 62s, which fits "about a minute". The builder did not change `docs/HANDOVER.md` this time. The README copies its "about a minute" wording.
+
+**One small drift.** Cards 0019 and 0021 were merged after this fix. Each one added one test. Their comments say "761" and "762". So `main` probably runs 762 tests now, not 760. That drift comes from later work, not from this build. The card also rules out a count that updates itself. If I fail this card for that, the loop never ends: every card that adds a test makes any fixed number wrong again.
+
+No criterion is disproved.
+
+VERDICT: sound
+
+**scope: sound**
+
+I tried to find scope problems in this pass. I found none.
+
+**What this pass changed.** Commit `6b24600` changes `README.md` only. It changes two lines:
+- The line under `## Stack`.
+- The comment under `## Useful commands`.
+
+These are the two places the reviewer named. The manager pass reopened #1 for these two places. Changing "Pest 3" to "Pest 4" is on the same line, and the manager pass asked for it too.
+
+**The handover file.** In this pass, `docs/HANDOVER.md` did not change. The "about a minute" phrase came from commit `cc2da87`, which is work for card 0015. So the earlier scope finding (the build edited the file it should copy) is fixed. The README now copies that file's phrase. It does not make up a new one.
+
+**Nothing is half done.** `grep` finds no other statement of the suite's size in `README.md`. Other numbers in the file stay as they were, which is what "Not this card" asks for.
+
+**Other changes in the diff.** The rest of the diff (middleware, importer, digest, snapshots config) belongs to cards 0003, 0005, 0019 and 0021, and to other commits. It is not work from this card.
+
+**One note, not a scope finding.** The suite is now 762 tests, because cards 0019 and 0021 added tests after this pass. That is a drift in the count, not work outside the fence.
+
+VERDICT: sound
+
+**breakage: defect**
+
+I checked the two lines in `README.md` against the other work in the same diff.
+
+**Finding: the count is already wrong on this tree.**
+
+- `README.md`, under `## Stack` and under `## Useful commands`, says **760** tests.
+- The builder measured 760 before two later cards were merged.
+- Card 0019 added `it records the unchanged equipment count on the sync run` to `tests/Feature/SyncBlizzardSnapshotJobTest.php`. Its own comment says the suite was then 761.
+- Card 0021 added `it shows the start time in the tooltip of a multi-day bar` to `tests/Feature/SocialPageTest.php`. Its own comment says the suite was then 762.
+- Both tests are in this diff. So `.\vendor\bin\pest.bat` on this checkout prints about 762, not 760.
+
+The criterion says the README "SHALL match what `.\vendor\bin\pest.bat` prints on a clean checkout". It does not match.
+
+This is the same fault the card was opened for: a hand-written count goes stale when the next card adds a test. Here it went stale inside one merge.
+
+The rest is correct. "Pest 4" matches `composer.json`. "About a minute" matches `docs/HANDOVER.md` under `## How to pick up`. `docs/HANDOVER.md` was not changed in this pass. No other size statement is in `README.md`.
+
+UNMET: #1 README says 760 but cards 0019 and 0021 in the same tree each added a test, so pest prints 762 on this checkout.
+
+VERDICT: defect
+
+**acceptance**
+
+- **#1 reopened**, by the breakage lens: README says 760 but cards 0019 and 0021 in the same tree each added a test, so pest prints 762 on this checkout.
+
