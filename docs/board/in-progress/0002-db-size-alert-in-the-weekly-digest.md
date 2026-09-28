@@ -202,3 +202,12 @@ OUT-OF-SCOPE: none
 Sixth run, same result: `127.0.0.1:3306` refuses, no MySQL or MariaDB service, no `mysqld`,
 `mariadbd` or `docker` on the PATH. No code changed. #1 needs a person to run
 `php artisan digest:weekly --dry-run` once on production. Full suite: 750 passed.
+
+**2026-09-28** RESULT: blocked
+TESTS: +0 new, all green
+TOUCHED: docs/board/in-progress/0002-db-size-alert-in-the-weekly-digest.md
+OUT-OF-SCOPE: none
+
+Seventh run, same result: `127.0.0.1:3306` refuses, no MySQL or MariaDB service, no `mysqld`,
+`mariadbd` or `docker` on the PATH. No code changed. #1 needs a person to run
+`php artisan digest:weekly --dry-run` once on production. Full suite: 750 passed.
