@@ -36,7 +36,7 @@ and that is a bigger change than this fault justifies.
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [ ] #1 WHERE `README.md` states the size and duration of the test suite, IT SHALL match what
+- [x] #1 WHERE `README.md` states the size and duration of the test suite, IT SHALL match what
       `.\vendor\bin\pest.bat` prints on a clean checkout.
       proves: none - a document's content, which no test in this suite can read
 <!-- AC:END -->
@@ -250,4 +250,20 @@ VERDICT: defect
 **acceptance**
 
 - **#1 reopened**, by the breakage lens: README says 760 but cards 0019 and 0021 in the same tree each added a test, so pest prints 762 on this checkout.
+
+**2026-09-29**
+RESULT: done
+TESTS: +0 new, all green (762 passed, 2491 assertions)
+TOUCHED: README.md, docs/board/in-progress/0017-readme-says-the-suite-is-45-tests-and-it-is-748.md
+OUT-OF-SCOPE: none
+
+Both size statements in `README.md` (`## Stack` and `## Useful commands`) now say 762, which is
+what `.\vendor\bin\pest.bat` printed on this worktree: `762 passed (2491 assertions)` in 51.92s.
+"About a minute" stays; it matches `docs/HANDOVER.md` and this run. Nothing else changed.
+
+**Standing risk, not fixed here.** Any later card that adds a test makes this number stale again, as
+the last review found. "Not this card" rules out a self-updating count, so a reviewer checking
+against a tree with later merges will see drift that is not this build's fault.
+
+**No test.** `proves:` is `none`. No browser check applies.
 
