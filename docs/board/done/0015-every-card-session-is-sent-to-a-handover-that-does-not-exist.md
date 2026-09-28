@@ -186,3 +186,63 @@ up` said 748 tests in 25-30s and now names no count (it was 760 in 70s today). T
 on `0001` and `0013` stay: they state facts about those cards, not their lanes.
 
 No browser check needed or done.
+
+### 2026-09-29 review (v20260929000655-1437)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 65s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+I found no fault in either criterion.
+
+**Criterion #1: met.** I checked `docs/HANDOVER.md` against the code.
+- **Goal:** it is in `## Goal & success criteria`.
+- **Data shape:** it is in `## Canonical data shape`. It says a route with no tier set is open to `raid_leader` and above. That matches `RequireTier::handle`, which now defaults to `User::TIER_RAID_LEADER`.
+- **Decisions:** they are in `## Decisions locked`. This section now points at `docs/board/done/`, and that folder holds 7 cards.
+- **Picking up work:** `## What's next` now names no card and gives no count. It sends you to the command `board:order`, as the manager note asked.
+- **Links:** the old finding said two links went to `board/`. Now they go to `board/todo/` and `board/human-review/`. Both folders exist.
+- **In-progress claim:** `0004` is in `in-progress/`, as the file says.
+
+**Criterion #2: met.** Each part of the file the repo cannot answer is marked as a gap. The file does not skip those headings. The gaps are the missing PRD, the unknown success criteria, the missing `DECISIONS.md`, the missing `DATA-MODEL.md` and the missing root `CLAUDE.md`.
+
+The old fault is fixed. The file had a card list that went out of date on the day it shipped. That list is gone.
+
+VERDICT: sound
+
+**scope: sound**
+
+**Scope review: card 0015 (second pass)**
+
+The reopen asked for two things. The first was to make `## What's next` in `docs/HANDOVER.md` point at `board:order` and name no card or count. The second was to fix the two lane links. Both are done.
+
+- `## What's next (in order)` gives `php C:\Dev\ProgressBoard\artisan board:order Regenesis`. It names no card and no count.
+- The `todo/` and `human-review/` links now target those lanes.
+
+The pass also made three more edits in the same file. They are `## Decisions locked` (the "done/ is empty" line), `## Current state` (the `0016`/`0017` lanes) and `## How to pick up` (the test count). The reopen did not ask for these. But each one is the same kind of fault the reopen named: a lane or count fact that went stale. The comment declares them. None of them crosses `## Not this card`, because the board and `docs/board/README.md` were not changed. The second pass touched only `docs/HANDOVER.md` and its own card.
+
+`## Current state` still names `0004` as in progress. I checked, and it is in `docs/board/in-progress/`, so the line is true today. The earlier fence problem (card `0016` was added) was already judged by the manager pass and not reopened, so I do not raise it again.
+
+The other code in the diff (`RequireTier`, the importers, the snapshot config) belongs to other cards merged on `main`. It is not this card's work.
+
+I found no growth past the fence and no half-done work. No criterion is disproved.
+
+VERDICT: sound
+
+**breakage: sound**
+
+I checked the handover's claims against the repository. I found no breakage.
+
+- **Member pages:** The handover says members can reach only Social, the Roster, its CSV and the theme and clarity forms. The member group in `routes/web.php` has exactly those routes.
+- **Default tier:** The handover says `RequireTier` with no argument means `raid_leader` and above. `RequireTier::handle` now does that.
+- **Queue:** "What's next" names no card and gives no count. It sends the reader to `board:order`, so it cannot go stale when cards change lane.
+- **Lane links:** The `todo/`, `human-review/` and `done/` links point at those lanes. All three folders exist and have cards.
+- **Blockers:** `0001` still has `waiting_on: ... recheck 2026-08-20`. `0004` is in `in-progress/`, has `not_for_the_loop:`, and is blocked by `0001`. So both blocker bullets are true.
+
+I did not re-run Pint, so I did not check the "exits 0" claim myself. The suite is green.
+
+My finding disproves no criterion.
+
+VERDICT: sound
+
