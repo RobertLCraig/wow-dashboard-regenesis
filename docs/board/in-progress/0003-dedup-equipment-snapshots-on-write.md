@@ -25,7 +25,7 @@ Reclaiming the space already used, which is card 0004, and the alerting, which i
 - [x] #2 WHEN a write is skipped, THE IMPORTER SHALL still record that the member was checked, so
       `EquipmentSnapshotImporter::selectMembersToFetch` keeps rotating rather than fetching the same
       hundred members forever.
-- [ ] #3 WHEN a member's gear changes, THE NEXT SWEEP SHALL write a new row, proved by changing one
+- [x] #3 WHEN a member's gear changes, THE NEXT SWEEP SHALL write a new row, proved by changing one
       item and running the importer.
 <!-- AC:END -->
 
@@ -114,3 +114,34 @@ snapshot row. The changed branch then overwrites the old member row through
 `MemberEquipmentSnapshot::updateOrCreate`, and the unchanged branch's `$previous->update(['snapshot_id'
 => ...])` can hit `unique(['snapshot_id','member_id'])` and abort the whole sweep. The existing test
 only moves gear forwards. A test that swaps an item and swaps it back is what #3 needs.
+
+**2026-09-28** RESULT: done
+TESTS: +2 new, all green
+TOUCHED: app/Services/Blizzard/EquipmentSnapshotImporter.php
+tests/Feature/EquipmentSnapshotImporterTest.php
+docs/board/in-progress/0003-dedup-equipment-snapshots-on-write.md
+docs/board/todo/0018-runbook-still-lists-equipment-dedup-as-not-done.md
+docs/board/todo/0019-sync-dashboard-omits-the-unchanged-equipment-count.md
+OUT-OF-SCOPE: 0018, 0019
+
+Fixed both 2026-08-29 defects at the one place they share. When the batch hash recurs and hands back
+an old snapshot, `pull` now looks up the rows already on that snapshot for this batch's members. A
+member's row there that is not their newest row is an older copy of the gear they have on now (same
+hash, same payload), so it is deleted before the member is handled. The changed branch then inserts
+a fresh row, which becomes the newest by `id`. The unchanged branch can then move the newest row onto
+the snapshot without hitting `unique(snapshot_id, member_id)`.
+
+Two new tests, both watched red first for the reviewers' reasons:
+- `it writes a new row when the gear is swapped back to a state already seen` - failed "295 is
+  identical to 282": the newest row read gear the member had taken off.
+- `it survives a recycled snapshot that already holds a row for an unchanged member` - failed with
+  `UniqueConstraintViolationException` on the move.
+
+Assumed: losing that one older duplicate row is fine. Its content equals the row that replaces it, and
+HANDOVER records that snapshot history is expendable and latest state is not. Side effect, not tested
+separately: every member's newest row by `id` now also hangs off the newest snapshot, so the two
+"latest" rules the breakage review named (`MAX(id)` and `MAX(captured_at)`) agree again for members
+in a sweep. The scope review's other points became cards 0018 (runbook) and 0019 (sync dashboard
+count). Its point 3, the `captured_at` rewrite on a recycled snapshot, is what `## Plan` already
+chose, so no card. Full suite 752 green. `pint --test` fails only on
+`app/Services/Raiderio/RaiderioSnapshotImporter.php`, which is card 0014's known file.

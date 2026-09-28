@@ -179,6 +179,11 @@ class EquipmentSnapshotImporter
             );
 
             $previousRows = $this->latestRowsFor(array_keys($perMemberPayloads));
+            $rowsOnSnapshot = MemberEquipmentSnapshot::query()
+                ->where('snapshot_id', $snapshot->id)
+                ->whereIn('member_id', array_keys($perMemberPayloads))
+                ->get()
+                ->keyBy('member_id');
             $unchanged = 0;
 
             foreach ($perMemberPayloads as $memberId => $body) {
@@ -194,6 +199,19 @@ class EquipmentSnapshotImporter
                     : [];
 
                 $previous = $previousRows->get($member->id);
+
+                // A recurring batch hash hands back an old snapshot, and the
+                // member may still have a row on it from back then - gear swapped
+                // and swapped back. That row is an older copy of the gear they
+                // have on now (same hash, same payload), so drop it: left there,
+                // the unchanged branch's move would hit unique(snapshot_id,
+                // member_id) and abort the sweep, and the changed branch would
+                // rewrite it in place, leaving the newest row reading gear the
+                // member took off.
+                $stale = $rowsOnSnapshot->get($member->id);
+                if ($stale && $stale->id !== $previous?->id) {
+                    $stale->delete();
+                }
 
                 // Gear changes rarely, and each blob is tens of KB. Writing an
                 // identical copy per member per half-hour is what filled the

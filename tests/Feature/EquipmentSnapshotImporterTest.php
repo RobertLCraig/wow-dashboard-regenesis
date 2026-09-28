@@ -259,3 +259,74 @@ it('writes a new row when the gear actually changes', function () {
     expect($rows)->toHaveCount(2);
     expect($rows->last()->equipped_ilvl)->toBe(295);
 });
+
+/*
+ * Swapping an item and swapping it back is ordinary in WoW, and it is the case
+ * that brings a batch payload hash back round. Snapshot rows are recycled per
+ * hash, so the sweep lands on an old snapshot that already holds a row for the
+ * member. These pin that the member's newest row still reads the gear they
+ * have on, and that nothing trips unique(snapshot_id, member_id).
+ */
+
+function eqLatestRow(Member $member): MemberEquipmentSnapshot
+{
+    return MemberEquipmentSnapshot::query()->where('member_id', $member->id)->orderByDesc('id')->first();
+}
+
+it('writes a new row when the gear is swapped back to a state already seen', function () {
+    $member = makeEqMember('Sheday-Silvermoon');
+
+    Http::fake([
+        'oauth.battle.test/token' => Http::response(['access_token' => 'tok', 'expires_in' => 86399], 200),
+        'eu.api.blizzard.test/profile/wow/character/silvermoon/sheday/equipment*' => Http::sequence()
+            ->push(eqPayload(282), 200)
+            ->push(eqPayload(295), 200)
+            ->push(eqPayload(282), 200)
+            ->push(eqPayload(282), 200),
+    ]);
+
+    eqRotatingImporter()->pull();
+    $this->travel(1)->minutes();
+    eqRotatingImporter()->pull();
+    $this->travel(1)->minutes();
+    $third = eqRotatingImporter()->pull();
+
+    expect($third['unchanged'])->toBe(0);
+    expect(eqLatestRow($member)->equipped_ilvl)->toBe(282);
+
+    // And it has settled: the same gear again is recognised as unchanged.
+    $this->travel(1)->minutes();
+    expect(eqRotatingImporter()->pull()['unchanged'])->toBe(1);
+});
+
+it('survives a recycled snapshot that already holds a row for an unchanged member', function () {
+    $sheday = makeEqMember('Sheday-Silvermoon');
+    $tute = makeEqMember('Tute-Silvermoon');
+
+    // Sweep 4's batch (282, 290) repeats sweep 1's, so its snapshot comes back.
+    // Sheday already has a sweep-1 row there and is unchanged since sweep 3.
+    Http::fake([
+        'oauth.battle.test/token' => Http::response(['access_token' => 'tok', 'expires_in' => 86399], 200),
+        'eu.api.blizzard.test/profile/wow/character/silvermoon/sheday/equipment*' => Http::sequence()
+            ->push(eqPayload(282), 200)
+            ->push(eqPayload(295), 200)
+            ->push(eqPayload(282), 200)
+            ->push(eqPayload(282), 200)
+            ->push(eqPayload(282), 200),
+        'eu.api.blizzard.test/profile/wow/character/silvermoon/tute/equipment*' => Http::sequence()
+            ->push(eqPayload(290), 200)
+            ->push(eqPayload(290), 200)
+            ->push(eqPayload(291), 200)
+            ->push(eqPayload(290), 200)
+            ->push(eqPayload(290), 200),
+    ]);
+
+    for ($run = 0; $run < 4; $run++) {
+        makeEqImporter()->pull();
+        $this->travel(1)->minutes();
+    }
+
+    expect(eqLatestRow($sheday)->equipped_ilvl)->toBe(282);
+    expect(eqLatestRow($tute)->equipped_ilvl)->toBe(290);
+    expect(makeEqImporter()->pull()['unchanged'])->toBe(2);
+});
