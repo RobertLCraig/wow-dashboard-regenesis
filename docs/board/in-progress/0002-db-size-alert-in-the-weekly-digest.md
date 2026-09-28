@@ -19,7 +19,7 @@ Reclaiming space. Dedup-on-write is 0003 and the ballast removal is 0004.
       warning naming the largest tables by size.
 - [x] #3 THE THRESHOLD and the cap SHALL be config values, not literals, because the cap is a
       property of the hosting plan and will change before the code does.
-- [ ] #4 WHEN the printed percentage reaches the warning threshold, THE DIGEST SHALL carry the warning
+- [x] #4 WHEN the printed percentage reaches the warning threshold, THE DIGEST SHALL carry the warning
       too, and WHEN the size probe returns no tables, THE DIGEST SHALL omit the line rather than print
       `0.0 MB`.
 <!-- AC:END -->
@@ -120,3 +120,28 @@ has never run. Every test injects a stub, and this repository's `.env` points at
 session can run it against. #4: `WeeklyDigestBuilder::database()` still rounds `percent` separately
 from the `over` test, so 2,455 MB of 3,072 prints "(80%)" with no warning, and an empty table list
 prints `0.0 MB`. Also owed: `docs/planning/next-session.md` still lists this alert as a follow-up.
+
+**2026-09-28** RESULT: partial
+TESTS: +2 new, all green
+TOUCHED: app/Services/Digest/WeeklyDigestBuilder.php, tests/Feature/WeeklyDigestTest.php, docs/planning/next-session.md, docs/board/in-progress/0002-db-size-alert-in-the-weekly-digest.md
+OUT-OF-SCOPE: none
+
+#4 is built. Two tests, both watched red first for the reason the criterion names:
+`digest warns when the printed percentage reaches the threshold` (2,455 MB of 3,072 gave
+`percent = 80`, `over = false`) and `digest omits the database line when the size probe returns no
+tables` (an empty list gave a `0.0 MB` block). `WeeklyDigestBuilder::database()` now returns null on
+an empty table list as well as on null, and `over` is also true when the rounded `percent` reaches
+`db_warn_at * 100`. The `next-session.md` line now says the alert shipped.
+
+#1 stays open, for the same reason as before, now checked rather than assumed. Nothing listens on
+`127.0.0.1:3306` in this session, and no `mysqld` or MySQL service is installed on this machine
+(searched Herd's `bin\services`, the PATH, Windows services and `C:\` to depth 5). The `.env` names
+a local MySQL, but there is no server behind it. The suite runs on sqlite, which has no
+`information_schema`, so the harness cannot express the query either: any test of
+`DatabaseSize::tableSizes()` in this suite would stub the one thing #1 needs proved. To close #1,
+Rob has to do one of two things: start a local MySQL with the `regenesis` schema loaded and run
+`php artisan digest:weekly --dry-run`, or run that command once on production. The digest also
+still needs a Discord look, which a worktree cannot give.
+
+Full suite: 750 passed. `pint --test` fails on `app/Services/Raiderio/RaiderioSnapshotImporter.php`
+only. That is not my file; card 0014 already carries it, so I raised no new card.

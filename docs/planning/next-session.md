@@ -69,7 +69,8 @@ widget, repopulates on the next Blizzard equipment sweep); (3) shipped
 keeping each member's latest row per source. Full write-up, recovery runbook,
 and the remaining optimisation follow-ups (equipment dedup-on-write, drop
 `member_snapshots.raw_json` ballast, one-off `OPTIMIZE TABLE` to reclaim InnoDB
-pages, DB-size alert in the digest) are in [`docs/ops-runbook.md`](../ops-runbook.md).
+pages) are in [`docs/ops-runbook.md`](../ops-runbook.md). The DB-size alert in the
+digest has shipped (card 0002).
 
 > Post-recovery watch item: confirm Hostinger restored `INSERT`/`UPDATE` on
 > `u408983312_regenesis_wow` once it saw the DB back under 3 GB. Until then,

@@ -295,6 +295,28 @@ it('digest reads the cap and the threshold from config, not from literals', func
     expect($built['markdown'])->toContain('500.0 MB of 512 MB (98%)');
 });
 
+it('digest warns when the printed percentage reaches the threshold', function () {
+    // 2,455 / 3,072 = 79.9%, which prints as (80%): the reader sees the warn number.
+    config(['digest.db_cap_mb' => 3072, 'digest.db_warn_at' => 0.8]);
+
+    $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon', null, fakeDbSize([
+        ['name' => 'member_snapshots', 'mb' => 2455.0],
+    ])))->build();
+
+    expect($built['data']['database']['percent'])->toBe(80);
+    expect($built['data']['database']['over'])->toBeTrue();
+    expect($built['markdown'])->toContain('⚠️ **Database at 2,455.0 MB of 3,072 MB (80%)**');
+});
+
+it('digest omits the database line when the size probe returns no tables', function () {
+    config(['digest.db_cap_mb' => 3072, 'digest.db_warn_at' => 0.8]);
+
+    $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon', null, fakeDbSize([])))->build();
+
+    expect($built['data']['database'])->toBeNull();
+    expect($built['markdown'])->not->toContain('0.0 MB');
+});
+
 it('digest omits the database line when the driver has no information_schema', function () {
     // The real probe against the suite's own sqlite connection.
     $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon'))->build();

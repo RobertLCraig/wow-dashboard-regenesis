@@ -315,18 +315,22 @@ class WeeklyDigestBuilder
     private function database(): ?array
     {
         $tables = ($this->dbSize ?? new DatabaseSize)->tableSizes();
-        if ($tables === null) {
+        // No tables is a failed probe, not an empty database: printing 0.0 MB would be false comfort.
+        if (! $tables) {
             return null;
         }
 
         $cap = (int) config('digest.db_cap_mb');
+        $warnAt = (float) config('digest.db_warn_at');
         $total = round(array_sum(array_column($tables, 'mb')), 1);
+        $percent = $cap > 0 ? (int) round($total / $cap * 100) : 0;
 
         return [
             'total_mb' => $total,
             'cap_mb' => $cap,
-            'percent' => $cap > 0 ? (int) round($total / $cap * 100) : 0,
-            'over' => $cap > 0 && $total >= $cap * (float) config('digest.db_warn_at'),
+            'percent' => $percent,
+            // The printed percentage counts too, so "(80%)" never appears without the warning.
+            'over' => $cap > 0 && ($total >= $cap * $warnAt || $percent >= $warnAt * 100),
             'top_tables' => array_slice($tables, 0, 5),
         ];
     }
