@@ -215,6 +215,28 @@ it('carries a week-crossing event onto the next week row', function () {
         ->and($body)->toContain('grid-column: 1 / span 2');  // Mon-Tue, picked up again
 });
 
+it('shows the start time in the tooltip of a multi-day bar', function () {
+    $monday = CarbonImmutable::parse('2027-03-15')->startOfWeek()->setTime(9, 0);
+    $this->travelTo($monday);
+
+    $start = $monday->addDays(4)->setTime(20, 0);  // Friday 20:00
+
+    RaidEvent::query()->create([
+        'raidhelper_event_id' => 'rh-late',
+        'channel_id' => '111', 'server_id' => '222',
+        'title' => 'Past Midnight Raid',
+        'starts_at' => $start,
+        'ends_at' => $start->addHours(5),  // Saturday 01:00
+        'closing_at' => $start->subHour(),
+        'ics_uid' => 'rh-late@regenesis.local',
+        'last_synced_at' => $monday,
+    ]);
+
+    $body = $this->actingAs(socialOfficer())->get('/dashboard/social?view=grid')->assertOk()->getContent();
+
+    expect($body)->toContain('title="Past Midnight Raid - Fri 19 Mar 20:00 to Sat 20 Mar"');
+});
+
 it('stacks overlapping events on separate lanes in the same week', function () {
     $monday = CarbonImmutable::parse('2027-03-15')->startOfWeek()->setTime(9, 0);
     $this->travelTo($monday);

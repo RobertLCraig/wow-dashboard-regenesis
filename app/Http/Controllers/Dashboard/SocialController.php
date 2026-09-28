@@ -177,7 +177,7 @@ class SocialController extends Controller
                     'tone' => $event['tone'],
                     'title' => $event['name'].' - '.($start->equalTo($end)
                         ? $event['starts_at']->format('D j M H:i')
-                        : $start->format('D j M').' to '.$end->format('D j M')),
+                        : $event['starts_at']->format('D j M H:i').' to '.$end->format('D j M')),
                     'col' => $firstCol,
                     'span' => $lastCol - $firstCol + 1,
                     'continues_before' => $continuesBefore,

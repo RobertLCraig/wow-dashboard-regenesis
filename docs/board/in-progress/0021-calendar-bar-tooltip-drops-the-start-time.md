@@ -16,10 +16,27 @@ The bar layout, the lanes, the list view.
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [ ] WHEN a multi-day event is shown as a bar in the month grid, THE APP SHALL include its start time in the bar's tooltip. proves: `it shows the start time in the tooltip of a multi-day bar`
+- [x] WHEN a multi-day event is shown as a bar in the month grid, THE APP SHALL include its start time in the bar's tooltip. proves: `it shows the start time in the tooltip of a multi-day bar`
 <!-- AC:END -->
 
 ## Tasks
-- [ ] Add the start time to the multi-day branch of `title` in `SocialController::gridWeeks()` (`app/Http/Controllers/Dashboard/SocialController.php`)
+- [x] Add the start time to the multi-day branch of `title` in `SocialController::gridWeeks()` (`app/Http/Controllers/Dashboard/SocialController.php`)
 
 ## Comments
+
+**2026-09-29**
+RESULT: done
+TESTS: +1 new, all green
+TOUCHED: app/Http/Controllers/Dashboard/SocialController.php
+TOUCHED: tests/Feature/SocialPageTest.php
+TOUCHED: docs/board/in-progress/0021-calendar-bar-tooltip-drops-the-start-time.md
+OUT-OF-SCOPE: none
+
+The multi-day tooltip now reads "Raid - Fri 19 Mar 20:00 to Sat 20 Mar", the same `D j M H:i` the
+single-day branch already used. The new test was watched red first: the bar rendered with
+`title="Past Midnight Raid - Fri 19 Mar to Sat 20 Mar"`, so it failed on the missing time and not on a
+missing bar. Full suite 762 passed; `pint --test` passed.
+
+Assumed: the end keeps its date only, as the card asks for the start time and nothing more. World
+events that start at midnight now show "00:00" in their bar tooltip, as a single-day one already did.
+A browser check is still owed: Herd serves Rob's tree, not this worktree.
