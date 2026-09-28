@@ -110,6 +110,7 @@ class SyncBlizzardSnapshotJob implements ShouldQueue
                 'profile_errored' => $profileResult['errored'] ?? null,
                 'equipment_snapshot_id' => $equipmentResult['snapshot_id'] ?? null,
                 'equipment_matched' => $equipmentResult['matched'] ?? null,
+                'equipment_unchanged' => $equipmentResult['unchanged'] ?? null,
                 'equipment_missing' => $equipmentResult['missing'] ?? null,
                 'equipment_errored' => $equipmentResult['errored'] ?? null,
                 'mplus_snapshot_id' => $mplusResult['snapshot_id'] ?? null,

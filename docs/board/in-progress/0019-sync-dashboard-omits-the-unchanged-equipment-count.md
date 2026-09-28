@@ -19,11 +19,26 @@ Any change to the importer itself, or to how the dashboard renders its keys.
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [ ] #1 WHEN the Blizzard sync job runs the equipment sweep, THE JOB SHALL record the sweep's
+- [x] #1 WHEN the Blizzard sync job runs the equipment sweep, THE JOB SHALL record the sweep's
       `unchanged` count beside `equipment_matched`. proves: `it records the unchanged equipment count on the sync run`
 <!-- AC:END -->
 
 ## Tasks
-- [ ] Add `equipment_unchanged` next to `equipment_matched` in `app/Jobs/SyncBlizzardSnapshotJob.php`
+- [x] Add `equipment_unchanged` next to `equipment_matched` in `app/Jobs/SyncBlizzardSnapshotJob.php`
 
 ## Comments
+
+**2026-09-29** RESULT: done
+TESTS: +1 new, all green
+TOUCHED: app/Jobs/SyncBlizzardSnapshotJob.php
+tests/Feature/SyncBlizzardSnapshotJobTest.php
+docs/board/in-progress/0019-sync-dashboard-omits-the-unchanged-equipment-count.md
+OUT-OF-SCOPE: none
+
+The job now puts `equipment_unchanged` beside `equipment_matched` in the sync summary. The new test
+runs the whole job twice against faked Blizzard responses with the same gear, then reads the stored
+summary. It was watched failing first on "array has the key 'equipment_unchanged'", with the run
+status DONE, so the fault it caught was the missing key and not a broken fixture. Full suite 761
+green, `pint --test` passed. The dashboard renders summary keys generically, so the new key should
+show with no view change, but that is unchecked: a browser check against the sync dashboard is
+still owed, and it cannot be run from this worktree.
