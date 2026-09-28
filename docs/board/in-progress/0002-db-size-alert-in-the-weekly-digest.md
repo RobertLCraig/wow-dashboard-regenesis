@@ -267,3 +267,13 @@ Thirteenth run, same result: `127.0.0.1:3306` refuses, no MySQL or MariaDB servi
 `mariadbd` or `docker` on the PATH. No code changed. #1 needs a person to run
 `php artisan digest:weekly --dry-run` once on production. Full suite: 750 passed. The scheduler
 should stop picking this card until a person has done that.
+
+**2026-09-28** RESULT: blocked
+TESTS: +0 new, all green
+TOUCHED: docs/board/in-progress/0002-db-size-alert-in-the-weekly-digest.md
+OUT-OF-SCOPE: none
+
+Fourteenth run, same result: `127.0.0.1:3306` refuses, no MySQL or MariaDB service, no `mysqld`,
+`mariadbd` or `docker` on the PATH. No code changed. #1 needs a person to run
+`php artisan digest:weekly --dry-run` once on production. Full suite: 750 passed. `pint --test`
+fails on `RaiderioSnapshotImporter.php` only (card 0014).
