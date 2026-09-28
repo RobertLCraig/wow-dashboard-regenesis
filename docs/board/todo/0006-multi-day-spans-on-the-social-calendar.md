@@ -138,3 +138,52 @@ Criterion #4 carries no `proves:` clause; I did not add one, since that would re
 The tooltip start time is not an acceptance criterion here, so it went to 0021 rather than into this
 diff. The reviewer's second breakage finding, the lane comment that claims more than the code does,
 is 0022.
+
+### 2026-09-28 review (v20260928231151-bb49)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 79s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+I checked all four criteria in the code. Each one is met. I found no defect.
+
+- **#1, one bar with the name once.** The data comes from `SocialController::gridWeeks()`. It gives each bar a start column and a span. The grid branch of `resources/views/dashboard/social.blade.php` then draws one element per bar with `grid-column: col / span N`. The name shows once inside that bar. The day cells are a backdrop, so the bar is not broken by the cell gaps.
+- **#2, the week boundary.** `gridWeeks()` loops over each week and clips each event to that week. So a long event gets one bar per week. The `continues_before` and `continues_after` flags give the arrows and the square edges.
+- **#3, stacking.** `gridWeeks()` puts each bar in the first lane that is free for its days. Each lane is its own grid row (`grid-row: lane + 2`), and the number of occupied lanes sets `grid-template-rows`. So bars do not overlap, and a week's height depends only on how many lanes it uses.
+- **#4, high-clarity mode.** The rule in `layouts/dashboard.blade.php` flattens only `.grid:not(.clarity-keep-grid)`. The Mon..Sun header row and every week grid in `social.blade.php` now have `clarity-keep-grid`. So they stay 7-column grids, and the date in row 1 stays above the bars in the same column. No other element inside those grids has the `.grid` class, so nothing else gets flattened.
+
+One limit: no browser check was done. The tests show that the class is on the grids. They do not show what a browser draws. That limit does not disprove any criterion.
+
+VERDICT: sound
+
+**scope: defect**
+
+**Scope review of card 0006 (multi-day spans on the Social calendar)**
+
+This round stayed inside the card. It changed `resources/views/dashboard/social.blade.php` and added one test. It moved the tooltip problem to card 0021 and the lane-comment problem to card 0022. It added no new work outside the card.
+
+**Over the fence, still open.** In `social.blade.php`, the grid branch has a `$eventToneClasses` map. That map still holds the new colours from the first build (for example, `bg-sky-900/60 text-sky-100 border-sky-700/70`). The card asked for bar shape. It did not ask for new colours. The 2026-08-29 scope review reported this change. The builder did not revert it. The builder did not move it to a card. The builder did not say why the colours must stay. The tooltip and lane findings got cards. This finding got nothing.
+
+**Half done.** No person has looked at the grid in a browser. The builder says this too. The test only finds the `clarity-keep-grid` class on each `grid grid-cols-7`. It does not show what a browser draws in high-clarity mode, and #4 is about what a browser draws. The 1px week edges and narrow windows are also not checked.
+
+The recolour does not disprove a criterion. The next session must do one of these: revert the colours, or give them their own card with a reason.
+
+VERDICT: defect
+
+**breakage: sound**
+
+I tried to break it, and I could not.
+
+**#4 (high-clarity mode):** High-clarity mode turns every `.grid` into a flex column. The only exception is a grid with the class `clarity-keep-grid`. The Mon..Sun header and each week grid in `resources/views/dashboard/social.blade.php` (grid branch) now have that class. So in high-clarity mode, the rule in `resources/views/layouts/dashboard.blade.php` (display-mode `<style>` block, the `.grid:not(.clarity-keep-grid)` rule) skips them. Each bar stays in its `grid-column`, under its date. The view has no other `.grid` that holds bars or day cells. The outer page grid still stacks, and that is correct.
+
+**Other checks:**
+- Row maths: `$rowCount`, lane rows and overflow rows are unchanged. The earlier review traced them as sound.
+- Font size: high-clarity mode makes `text-[10px]` larger. Bars use `truncate`, so a long name cuts off. It does not push into the next day.
+- Two old breakage findings are still true on `main`: the lane comment in `SocialController::gridWeeks()` (card 0022) and the tooltip that lost its start time (card 0021). Each one now has its own todo card, and neither is a criterion on this card. So they do not make this card fail.
+
+**One limit:** The new test checks that the class is on the grid. It does not run the CSS. Nobody has looked at the page in a browser in high-clarity mode yet.
+
+VERDICT: sound
+
