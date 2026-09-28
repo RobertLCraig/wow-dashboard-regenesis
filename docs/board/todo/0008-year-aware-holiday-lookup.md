@@ -22,6 +22,9 @@ The events feed itself, the ICS export, or the month grid, which is card 0006.
 - [x] #2 WHERE a year has no entry in the lookup, THE APP SHALL omit those three events rather than
       placing them on a guessed date.
 - [x] #3 THE PUBLIC year-ahead ICS feed SHALL carry the same dates as the in-app view.
+- [ ] #4 WHERE a row in the moving-holiday table has no matching description, THE APP SHALL still
+      render the event, and a test SHALL fail if the two tables in `WorldEventsCalendar` stop naming
+      the same holidays.
 <!-- AC:END -->
 
 ## Tasks
@@ -114,3 +117,10 @@ VERDICT: defect
 
 
 **2026-09-05** The reviewer returned this card and its finding is the last review entry at the bottom of ## Direction. The loop moved it from todo/ to human-review/ because it has bounced 1 time between todo and ai-review, all 3 criteria ticked. THE BUILDER COULD NOT ACT ON THAT FINDING. A reviewer never unticks a criterion - it is forbidden from editing acceptance at all - so the card came back with 3 of 3 criteria still ticked, every session found nothing open to do, and the loop promoted it again on the boxes. Untick what the reviewer disproved and move it back to todo/, or say here why the finding is wrong.
+
+**2026-09-28** Manager pass: reopened with new criterion #4 because the 2026-08-29 breakage finding
+holds on `main`. `WorldEventsCalendar::movingHolidaysFor()` still reads
+`self::MOVING_HOLIDAY_DESCRIPTIONS[$row[0]]` with no fallback. A typo, or a fourth holiday added to
+`MOVING_HOLIDAYS` alone, throws "Undefined array key" and takes down `/dashboard/social`, the social
+ICS feed and the public `/calendar/world.ics` together. #1 to #3 were traced sound and stay ticked.
+Also owed: `docs/planning/next-session.md` still lists the year-aware lookup as open work.
