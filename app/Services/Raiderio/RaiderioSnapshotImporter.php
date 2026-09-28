@@ -7,6 +7,7 @@ use App\Models\MemberMplusRun;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -277,9 +278,9 @@ class RaiderioSnapshotImporter
      * then oldest captured_at). Without a limit, returns every active
      * member - same shape as before.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, Member>
+     * @return Collection<int, Member>
      */
-    private function selectMembersToFetch(): \Illuminate\Database\Eloquent\Collection
+    private function selectMembersToFetch(): Collection
     {
         $latestPerMember = DB::table('member_snapshots as ms')
             ->select('ms.member_id', DB::raw('MAX(s.captured_at) as last_seen'))
