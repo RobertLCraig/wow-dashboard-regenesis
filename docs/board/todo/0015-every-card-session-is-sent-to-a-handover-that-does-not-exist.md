@@ -32,7 +32,7 @@ they are.
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [x] #1 WHEN a session opens `docs/HANDOVER.md`, IT SHALL find the project's goal, its data shape,
+- [ ] #1 WHEN a session opens `docs/HANDOVER.md`, IT SHALL find the project's goal, its data shape,
       the decisions already taken, and how to run the suite and pick up work.
       proves: none - a document's content, which no test in this suite can read
 - [x] #2 WHERE the repository does not settle something the handover asks for, IT SHALL say so in
@@ -149,3 +149,11 @@ Checked the new file against the repo: board lanes, `TIER_RANK`, `resolveIlvls`,
 
 VERDICT: defect
 
+
+**2026-09-28** Manager pass: reopened #1 because the 2026-09-05 scope and breakage finding holds on
+`main`. `docs/HANDOVER.md`, `## What's next (in order)`, still names only `0001`, `0010` and `0011`,
+still counts "fourteen cards in work and person lanes", and still says an agent "will mostly find
+things waiting on Rob". So the one section a session reads to pick up work is wrong. Its two lane
+links also point at `board/` rather than the lane they name. The fix should not be a new count:
+point the section at `php C:\Dev\ProgressBoard\artisan board:order` and name no card that can
+change lane.
