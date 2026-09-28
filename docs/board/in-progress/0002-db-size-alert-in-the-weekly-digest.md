@@ -164,3 +164,13 @@ the same command. The digest's Discord look is still owed too. Until then this c
 to the loop with the same one box open; it wants `not_for_the_loop:` or a person, not another run.
 
 Full suite: 750 passed. `pint --test` fails on `RaiderioSnapshotImporter.php` only (card 0014).
+
+**2026-09-28** RESULT: blocked
+TESTS: +0 new, all green
+TOUCHED: docs/board/in-progress/0002-db-size-alert-in-the-weekly-digest.md
+OUT-OF-SCOPE: none
+
+Third run, same wall. Nothing listens on `127.0.0.1:3306`, no MySQL or MariaDB service exists, and
+there is no Docker. #1 still needs Rob to run `php artisan digest:weekly --dry-run` once on
+production (or against a local MySQL he starts). No code changed. Full suite: 750 passed. This card
+wants `not_for_the_loop:` or a person; another unattended run will find the same thing.
