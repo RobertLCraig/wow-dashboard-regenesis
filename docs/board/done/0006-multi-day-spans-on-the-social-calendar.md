@@ -204,3 +204,55 @@ recolour of `$eventToneClasses`, which disproves no criterion. It now has its ow
 lane findings went to `0021` and `0022`. Acceptance and breakage were sound and all four criteria
 hold, so the card goes to `ai-review/`. Still owed and not a criterion: one look at the month grid
 in a browser with high-clarity mode on.
+
+### 2026-09-29 review (v20260929005318-1615)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 264s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+I checked all four criteria in the code. I could not disprove any of them.
+
+- **#1 (one bar, name shown once):** `SocialController::gridWeeks()` gives each event a start column and a span. The week loop in `resources/views/dashboard/social.blade.php` draws one element per bar with `grid-column: col / span N`. The name is in that element one time.
+- **#2 (bar goes on to the next row):** `gridWeeks()` cuts each event to fit each week. The `continues_before` and `continues_after` flags control the arrows and the square edges in the view. So a long event gets one bar per week. No week is missed and no bar is doubled.
+- **#3 (bars stack without overlap):** `gridWeeks()` sorts the pieces longest first. It puts each piece in the first free lane, up to `GRID_LANES`. Each bar goes in `grid-row: lane + 2`. The row count comes from `lanes` plus an overflow row, so the row height depends only on how many lanes are in use.
+- **#4 (high-clarity mode keeps the dates):** `layouts/dashboard.blade.php` flattens only `.grid:not(.clarity-keep-grid)`. The Mon..Sun header row and each week grid in `social.blade.php` now have `clarity-keep-grid`. The items inside those grids use `flex`, not `.grid`, so the rule does not flatten them. Each date stays in row 1, above the bars in its column.
+
+One limit: nobody has checked the page in a browser. That does not disprove any criterion.
+
+VERDICT: sound
+
+**scope: sound**
+
+I looked for work that goes outside this card, and for work left half done.
+
+**Work outside the card.** Each earlier out-of-scope finding now has its own card:
+- The recolour of `$eventToneClasses` in `resources/views/dashboard/social.blade.php` is card `0024`.
+- The tooltip in `SocialController::gridWeeks()` that lost the start time is card `0021`. Its fix is in commit `9bc76fd`, which is logged against that card.
+- The lane comment in `SocialController::gridWeeks()` is card `0022`. Its fix is in commit `0342816`.
+
+The last round of this card added only `clarity-keep-grid` and one test. I found no new change outside the card. The long file list in the diff is other cards and the Pint reformat. It is not work from this card.
+
+**Half done.** Nobody has looked at the grid in a browser with high-clarity mode on. The card says so plainly. The test proves only that the class is in the markup. This check is still owed, but it does not disprove any criterion.
+
+No criterion is disproved.
+
+VERDICT: sound
+
+**breakage: sound**
+
+I tried to break this card and could not.
+
+**What I checked**
+
+- **#4, high-clarity mode:** The rule in `resources/views/layouts/dashboard.blade.php` (the "Layer 2: structural overrides" style block) turns every `.grid:not(.clarity-keep-grid)` into a flex column. In `resources/views/dashboard/social.blade.php` (the `@if ($view === 'grid')` branch), the Mon..Sun header and each week grid now have `clarity-keep-grid`. So each week stays a 7-column grid. The dates in row 1 stay above their bars. No other `.grid` sits inside the calendar. The outer page grid still stacks, which is correct.
+- **Bars and "+n more" rows:** These have no `.grid` class, so the rule does not touch them. The `$rowCount` / `$overflowRow` maths is the same as before.
+- **Bigger text in high-clarity mode:** `text-[10px]` gets larger. The bars have `truncate` (text that does not fit is cut off), so they do not spill into the next day.
+- **Old findings:** The lane comment in `SocialController::gridWeeks()` (card 0022), the tooltip start time (0021) and the colours (0024) are still true. Each has its own card, and none of them is a criterion here.
+
+**Limit:** Nobody has opened the page in a browser with high-clarity mode on. The test only checks that the class is present. That does not disprove any criterion.
+
+VERDICT: sound
+
