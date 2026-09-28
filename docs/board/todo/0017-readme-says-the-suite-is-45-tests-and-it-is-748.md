@@ -35,7 +35,7 @@ and that is a bigger change than this fault justifies.
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [x] #1 WHERE `README.md` states the size and duration of the test suite, IT SHALL match what
+- [ ] #1 WHERE `README.md` states the size and duration of the test suite, IT SHALL match what
       `.\vendor\bin\pest.bat` prints on a clean checkout.
       proves: none - a document's content, which no test in this suite can read
 <!-- AC:END -->
@@ -150,3 +150,9 @@ VERDICT: defect
 
 
 **2026-09-05** The reviewer returned this card and its finding is the last review entry at the bottom of ## Direction. The loop moved it from todo/ to human-review/ because it has bounced 1 time between todo and ai-review, all 1 criteria ticked. THE BUILDER COULD NOT ACT ON THAT FINDING. A reviewer never unticks a criterion - it is forbidden from editing acceptance at all - so the card came back with 1 of 1 criteria still ticked, every session found nothing open to do, and the loop promoted it again on the boxes. Untick what the reviewer disproved and move it back to todo/, or say here why the finding is wrong.
+
+**2026-09-28** Manager pass: reopened #1 because the 2026-09-05 finding holds on `main`. `README.md`,
+`## Stack`, still says "Pest 3 for tests (40 covering parser, ingest pipeline, Discord auth, webhook,
+iCal)", which is a second statement of the suite's size and disagrees with the 748 in `## Useful
+commands`. The same line says Pest 3 while `composer.json` requires `pestphp/pest: ^4.6`. Both are
+already measured, so fixing them needs no new audit.
