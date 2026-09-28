@@ -17,10 +17,20 @@ Making lanes actually stable across weeks. That is a behaviour change and would 
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [ ] WHEN a reader opens the lane packing in `gridWeeks()`, THE COMMENT SHALL describe what the code does: lanes are packed per week, longest clipped bar first. proves: none, a comment has no test
+- [x] WHEN a reader opens the lane packing in `gridWeeks()`, THE COMMENT SHALL describe what the code does: lanes are packed per week, longest clipped bar first. proves: none, a comment has no test
 <!-- AC:END -->
 
 ## Tasks
-- [ ] Reword the comment above the `usort` in `gridWeeks()`
+- [x] Reword the comment above the `usort` in `gridWeeks()`
 
 ## Comments
+
+**2026-09-29**
+RESULT: done
+TESTS: +0 new, all green
+TOUCHED: app/Http/Controllers/Dashboard/SocialController.php, docs/board/in-progress/0022-grid-lane-comment-claims-lanes-hold-across-weeks.md
+OUT-OF-SCOPE: none
+
+Comment-only change, so no test (proves: none). The comment now says lanes are packed per week,
+longest clipped bar first, ties by earlier column then name, and that a long event is not promised
+the same lane across week rows. No behaviour changed, so no browser check is owed.

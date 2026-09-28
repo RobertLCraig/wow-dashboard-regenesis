@@ -185,8 +185,10 @@ class SocialController extends Controller
                 ];
             }
 
-            // Longest bars claim the top lanes, so a long world event
-            // keeps the same lane from one week row to the next.
+            // Lanes are packed afresh for each week: the longest bar as
+            // clipped to this week claims the top lane, ties going to the
+            // earlier column, then the name. A long event is not promised
+            // the same lane from one week row to the next.
             usort($segments, fn (array $a, array $b) => [$b['span'], $a['col'], $a['name']] <=> [$a['span'], $b['col'], $b['name']]);
 
             $occupied = [];
