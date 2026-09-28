@@ -201,17 +201,19 @@ baseline for how long a restore takes.
   belong to the hosting plan: `DIGEST_DB_CAP_MB` (3072) and `DIGEST_DB_WARN_AT`
   (0.8) in `config/digest.php`. Nothing is printed on sqlite; there is no
   `information_schema` to read.
+- **Dedup-on-write for `member_equipment_snapshots`** (board card 0003), in
+  `EquipmentSnapshotImporter::pull`. When a member's gear is unchanged since
+  their last row, the importer moves that row onto the new snapshot instead of
+  writing another 43 KB blob. Moving it, not leaving it, is what keeps
+  `selectMembersToFetch` rotating. There is **no per-member hash column**: it
+  compares against the previous row directly, because a migration cannot run
+  while production writes are revoked (card 0003's Plan).
 
 ## Follow-ups (not yet done — further headroom, in priority order)
 
-1. **Dedup-on-write for `member_equipment_snapshots`.** Store a per-member
-   content hash and skip writing a new 43 KB gear blob when a member's gear is
-   unchanged since their last row (gear changes rarely). The current
-   `snapshots.payload_hash` dedup is at the wrong granularity — it hashes the
-   whole batch, and the batches rotate (100 stalest members/run) so it almost
-   never matches. Needs care: `EquipmentSnapshotImporter::selectMembersToFetch`
-   orders by `captured_at`, so a skipped write must still record "checked" or
-   the member is re-selected every run.
+Item 1 was the equipment dedup; it shipped and moved up to Prevention. The
+numbers are kept so references to "follow-up 2" elsewhere stay true.
+
 2. **Thin `member_snapshots.raw_json`** (14 KB/row). **Do not drop the column.**
    A grep on 2026-08-29 (board card 0004) found four live readers, one of them
    a widget, which is more than the earlier note here claimed:
