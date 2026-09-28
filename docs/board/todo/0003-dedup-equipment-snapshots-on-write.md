@@ -25,7 +25,7 @@ Reclaiming the space already used, which is card 0004, and the alerting, which i
 - [x] #2 WHEN a write is skipped, THE IMPORTER SHALL still record that the member was checked, so
       `EquipmentSnapshotImporter::selectMembersToFetch` keeps rotating rather than fetching the same
       hundred members forever.
-- [x] #3 WHEN a member's gear changes, THE NEXT SWEEP SHALL write a new row, proved by changing one
+- [ ] #3 WHEN a member's gear changes, THE NEXT SWEEP SHALL write a new row, proved by changing one
       item and running the importer.
 <!-- AC:END -->
 
@@ -106,3 +106,11 @@ VERDICT: defect
 
 
 **2026-08-29** The reviewer returned this card and its finding is the last review entry at the bottom of ## Direction. The loop moved it from todo/ to human-review/ because it has bounced 1 time between todo and ai-review, all 3 criteria ticked. THE BUILDER COULD NOT ACT ON THAT FINDING. A reviewer never unticks a criterion - it is forbidden from editing acceptance at all - so the card came back with 3 of 3 criteria still ticked, every session found nothing open to do, and the loop promoted it again on the boxes. Untick what the reviewer disproved and move it back to todo/, or say here why the finding is wrong.
+
+**2026-09-28** Manager pass: reopened #3 because the 2026-08-29 acceptance and breakage findings hold
+on `main`; `EquipmentSnapshotImporter.php` has changed only in the Pint reformat since `500d88a`. When
+a member's gear returns to a state already seen, `Snapshot::updateOrCreate` hands back the old
+snapshot row. The changed branch then overwrites the old member row through
+`MemberEquipmentSnapshot::updateOrCreate`, and the unchanged branch's `$previous->update(['snapshot_id'
+=> ...])` can hit `unique(['snapshot_id','member_id'])` and abort the whole sweep. The existing test
+only moves gear forwards. A test that swaps an item and swaps it back is what #3 needs.
