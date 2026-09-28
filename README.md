@@ -31,7 +31,7 @@ Plan file: [`~/.claude/plans/luminous-moseying-bear.md`](C:/Users/r/.claude/plan
 ## Stack
 
 - Laravel 12 / PHP 8.2+ (running PHP 8.4 locally via Herd)
-- Pest 3 for tests (40 covering parser, ingest pipeline, Discord auth, webhook, iCal)
+- Pest 4 for tests (760 covering parser, ingest pipeline, Discord auth, webhook, iCal)
 - Blade + Alpine.js + Chart.js (no SPA), Tailwind via CDN
 - MySQL on Hostinger; SQLite for local dev
 - Vite for asset build. Hostinger has no node, so `public/build/` is git-tracked
@@ -312,7 +312,7 @@ create/edit/delete. Status is on `/admin/sync` and `/admin/google-calendar`.
 ## Useful commands
 
 ```sh
-php artisan test                                # 748 Pest tests, ~25-30s, sqlite in memory
+php artisan test                                # 760 Pest tests, about a minute, sqlite in memory
 vendor/bin/pint --test                          # style check, exits 1 if anything is dirty
 vendor/bin/pint                                 # ...and the same run, fixing in place
 php artisan raidhelper:sync-attendance          # one-shot attendance pull

@@ -36,7 +36,7 @@ and that is a bigger change than this fault justifies.
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [ ] #1 WHERE `README.md` states the size and duration of the test suite, IT SHALL match what
+- [x] #1 WHERE `README.md` states the size and duration of the test suite, IT SHALL match what
       `.\vendor\bin\pest.bat` prints on a clean checkout.
       proves: none - a document's content, which no test in this suite can read
 <!-- AC:END -->
@@ -157,3 +157,28 @@ VERDICT: defect
 iCal)", which is a second statement of the suite's size and disagrees with the 748 in `## Useful
 commands`. The same line says Pest 3 while `composer.json` requires `pestphp/pest: ^4.6`. Both are
 already measured, so fixing them needs no new audit.
+
+**2026-09-28**
+RESULT: done
+TESTS: +0 new, all green (760 passed, 2485 assertions)
+TOUCHED: README.md, docs/board/in-progress/0017-readme-says-the-suite-is-45-tests-and-it-is-748.md
+OUT-OF-SCOPE: none
+
+Both statements of the suite's size in `README.md` now carry the measured count.
+
+- `## Stack` now reads "Pest 4 for tests (760 covering parser, ingest pipeline, Discord auth,
+  webhook, iCal)". The count is 760 and the version is 4, which is what `composer.json` requires
+  (`pestphp/pest: ^4.6`) and what `docs/HANDOVER.md` under `## Architecture / stack` says.
+- `## Useful commands` now reads "760 Pest tests, about a minute, sqlite in memory".
+
+**The count moved from 748 to 760** since 2026-09-05; cards merged since then added tests. Two runs
+of `.\vendor\bin\pest.bat` in this worktree both printed `760 passed (2485 assertions)`.
+
+**The duration is copied, not invented.** The Task says to round the way `docs/HANDOVER.md` does.
+That file, under `## How to pick up`, now says "about a minute", so the README uses that phrase.
+The two runs took 99.54s and 35.71s, so the time drifts a lot on this machine and one exact number
+would go stale again. `docs/HANDOVER.md` is not changed by this pass, answering the review's scope
+finding.
+
+**No test.** The criterion's `proves:` is `none`: it is the content of a Markdown file. The check is
+the two runs above against the two lines now in the file. No browser check applies.
