@@ -267,3 +267,66 @@ against a tree with later merges will see drift that is not this build's fault.
 
 **No test.** `proves:` is `none`. No browser check applies.
 
+### 2026-09-29 review (v20260929002213-4c18)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 61s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+Criterion #1 holds. I could not break it.
+
+- I searched `README.md` for every statement of the suite's size. There are two, and both say 762:
+  - `## Stack`: "Pest 4 for tests (762 covering ...)"
+  - `## Useful commands`: "762 Pest tests, about a minute, sqlite in memory"
+- I did not re-run the suite. The count comes from the builder's run, which printed `762 passed (2491 assertions)`. It also fits the history: 760, plus one test from card 0019 and one from card 0021.
+- I checked the tree directly. It has 723 `it(`/`test(` declarations. Some tests run once per row of test data (Pest "datasets"), in `CompositionPlannerTest`, `DisplayPreferencesTest`, `WorldEventsCalendarTest` and `GrmLogTypeNameTest`. That makes a total above 723, so 762 is consistent.
+- Duration: the script's own green run took 61s. That matches "about a minute". It is also the same phrase `docs/HANDOVER.md` uses under `## How to pick up`, as the Task asks.
+- "Pest 4" matches `composer.json` (`pestphp/pest: ^4.6`).
+
+The last review found that 760 had gone stale at 762. This pass fixes that. I found no new card in the diff that adds a test after 0021.
+
+No criterion disproved.
+
+VERDICT: sound
+
+**scope: sound**
+
+**Scope review of card 0017, last pass**
+
+I tried to find extra work and work left half done. I found none.
+
+**What this pass changed.** It changed two lines in `README.md`, and nothing else:
+- The `## Stack` line. It now says "Pest 4 for tests (762 ...)".
+- The comment under `## Useful commands`. It now says "762 Pest tests, about a minute, sqlite in memory".
+
+The breakage review asked for exactly these two lines. The manager pass asked for "Pest 4" on the same line.
+
+**Nothing is half done.** I searched all of `README.md`. Only these two lines give the suite size, and both say 762.
+
+**The fence ("Not this card").** No other number in `README.md` changed. No self-updating count was added. `docs/HANDOVER.md` did not change in this pass. The README uses its phrase "about a minute" and does not make up a new one.
+
+**The rest of the diff.** The middleware, importer, digest, calendar and config changes are work from cards 0003, 0005, 0019 and 0021. They are not work from this card.
+
+This finding disproves no criterion.
+
+VERDICT: sound
+
+**breakage: sound**
+
+I tried to find what this change breaks. I found nothing.
+
+- `README.md` states the suite size in two places: `## Stack` and `## Useful commands`. I searched the whole file for a third place and found none.
+- Both places say 762. The builder ran the suite on this tree and got `762 passed (2491 assertions)`. The last review expected 762 after cards 0019 and 0021, and this diff includes both of those cards.
+- "About a minute" matches the phrase in `docs/HANDOVER.md` under `## How to pick up`. It also matches the review script's own run, which took 61s.
+- "Pest 4" matches `composer.json`, which asks for `pestphp/pest: ^4.6`.
+- This pass did not change `docs/HANDOVER.md`, so no reference text became false.
+- The only other change is the README comment text, and no code reads it.
+
+One risk stays open, and it is not a defect in this card. The next card that adds a test will make the count stale again. The card says a count that updates itself is out of scope.
+
+No criterion is disproved.
+
+VERDICT: sound
+
