@@ -140,9 +140,8 @@ a decision log is owed.
   only a person can run. `0015` is this document. `0016` (the Pint false clean) is built and awaiting
   review; it added `pint.json`, and `0017` was raised off it. `0017` (the stale test count in the
   README) is built and awaiting review.
-- **Known bugs / broken:** production may still have no write grants, see Blockers. In this
-  repository, `app/Services/Raiderio/RaiderioSnapshotImporter.php` fails Pint; that is card `0014`'s
-  unfinished business and the card is in `human-review/` for it.
+- **Known bugs / broken:** production may still have no write grants, see Blockers. `pint --test`
+  exits 0 on the whole tree since card `0014`'s second pass (2026-09-28).
 
 ## What's next (in order)
 
@@ -164,10 +163,6 @@ options and recommendation, so they are not restated here. Three things need say
 - **`0001`'s `waiting_on:` recheck date was 2026-08-20 and has passed.** It is the oldest thing on
   the board and `0004` is blocked behind it. Until somebody logs in to the live site and confirms
   the database write grants came back, production may still be read-only.
-- **`0014` cannot be cleared by an agent.** All three of its criteria are ticked and a reviewer
-  disproved one, but a reviewer may not untick a box, so every session finds nothing open to do and
-  the loop promotes it again. It needs Rob to untick or to say the finding is wrong. The card's own
-  last comment explains this.
 - **`0013` is a rewrite of the board's own cards** and it is the reason several cards read the way
   they do.
 

@@ -38,7 +38,7 @@ it clean is a separate call about tooling, and it has no value until the tree is
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [ ] #1 WHEN `.\vendor\bin\pint.bat --test` is run from the repository root, IT SHALL exit 0.
+- [x] #1 WHEN `.\vendor\bin\pint.bat --test` is run from the repository root, IT SHALL exit 0.
       proves: none - the check is Pint's own exit code, and no test in this suite runs Pint
 - [x] #2 THE REFORMAT SHALL be one commit of its own, touching no file for any other reason, so a
       later `git blame` can skip it in one step. proves: none - a property of the commit, which the
@@ -178,3 +178,19 @@ commit that one file on its own.
 
     .\vendor\bin\pest.bat        760 passed, 2485 assertions, exit 0
     .\vendor\bin\pint.bat --test 1 file, exit 1 (app/Services/Raiderio/RaiderioSnapshotImporter.php)
+
+**2026-09-28**
+RESULT: done
+TESTS: +0 new, all green - 760 passed / 2485 assertions, identical before and after
+TOUCHED: app/Services/Raiderio/RaiderioSnapshotImporter.php (commit `5e932a4`, alone)
+TOUCHED: docs/board/in-progress/0014-pint-is-not-clean-at-baseline.md
+TOUCHED: docs/HANDOVER.md (the two lines that called 0014 open)
+OUT-OF-SCOPE: none
+
+One more `.\vendor\bin\pint.bat` run fixed the one file. The diff is 5 lines: it imports
+`Illuminate\Database\Eloquent\Collection` and uses the short name in `selectMembersToFetch()`'s
+return type and docblock. The file has no other `Collection` reference, so the short name cannot
+now point at the wrong class. `pint --test` exits 0, and again exits 0 after `.pint.cache` was
+deleted, so this is not the false clean `0016` found. The reformat is commit `5e932a4`, which holds
+that one file and nothing else, so #2 still holds for both passes: `git blame --ignore-rev 3e7ac11
+--ignore-rev 5e932a4`. #1 was unticked by the manager pass and is ticked again on today's run.
