@@ -178,3 +178,67 @@ no in-app Alpine links on these two pages today.
 Still owed: a browser check as a member and as a Raid Leader. This is a worktree, so Herd did not
 serve these changes. The member role id is still not in `.env`, as the first entry says.
 Suite: 757 passed. Pint clean on the PHP files touched.
+
+### 2026-09-28 review (v20260928230140-e52a)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 81s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+**Findings (acceptance lens)**
+
+- **#1 holds.** The member group in `routes/web.php` uses `RequireTier:member`. It holds Social, Roster, the roster CSV and the two preference POSTs. `RequireTier::handle()` compares rank against `User::TIER_RANK`.
+- **#2 holds.** Every other route is in the default group. There, `RequireTier::handle()` needs `raid_leader` (rank 2), and a member is rank 1.
+- **#3 holds.** For a null tier, `User::rankOf()` gives 0, so `RequireTier::handle()` refuses the user. `DiscordController::callback()` also logs out a user with no role.
+- **#4 is fixed.** The default in `RequireTier::handle()` is now `TIER_RAID_LEADER`. This matches the old `OfficerOnly` set and `isOfficerTier()`, so a Raid Leader gets back every page the sidebar shows.
+- **#5 holds.**
+  - On Social, the "Farm planner" link is inside `isOfficerTier()`. `SocialController::index` sets `event_url` only when `$canOpenEvents` is true. The view then hides "Details".
+  - `calendar.world` is a public route.
+  - In `layouts/dashboard.blade.php`, the Admin heading is inside `@canany`. The theme and clarity forms post to member-group routes.
+  - On the Roster, character links are inside `isOfficerTier()` and the officer controls are inside `@can('roster.kick')`.
+
+I tried to break each criterion and could not.
+
+VERDICT: sound
+
+**scope: sound**
+
+**Scope review of card 0005 (the member tier for Social and Roster)**
+
+I tried to find work over the fence. I did not find any.
+
+- **Routes.** The member group in `routes/web.php` holds five routes only. Three are the Social page, the Roster page and the Roster CSV. The other two are the theme and clarity forms. Criterion #5 is the reason for those two: every member page shows them in the sidebar. They change only the user's own settings. The dashboard-layout route stays officer-only. This is not a new role system.
+- **Hidden links.** Some links now show only to officers:
+  - The Farm planner link and the event "Details" links on Social. `SocialController::index` and `dashboard/social.blade.php` do this with `isOfficerTier()`.
+  - The character links on the Roster. They now show as plain text for a member.
+
+  This is what #5 asks for. No new page was opened to members.
+- **Admin heading.** `@canany` in `layouts/dashboard.blade.php` hides an empty Admin heading. That also serves #5.
+- **Half-done work.** `RosterController::csv()` still gives every member the Discord ids, usernames and last-online times. The builder split this into its own card, `docs/board/todo/0020-roster-csv-gives-every-member-discord-ids.md`, and did not leave it hidden. No criterion covers it.
+- **The big diff.** The git diff shows about 180 files reformatted by Pint, and changes from other cards too. I could not tie those files to this card's commits, so they are not a finding here.
+
+Nothing in this lens disproves a criterion.
+
+VERDICT: sound
+
+**breakage: sound**
+
+I tried to break this change and could not. Every earlier finding is now fixed in the code on `main`.
+
+**#4 (Raid Leader access).** `RequireTier::handle()` now defaults to `User::TIER_RAID_LEADER`. That tier matches what `User::isOfficerTier()` counts and what the old `OfficerOnly` let in. So a Raid Leader can again open every page the sidebar shows them.
+
+**#5 (nothing on a member's page leads to a refusal).** I checked each link and form one at a time:
+- **Theme and clarity forms:** `preferences.display` and `preferences.theme` are now in the member route group in `routes/web.php`. `preferences.dashboard-layout` is still officer-only. Only `dashboard/index.blade.php` uses it, and only officers can open that page.
+- **"Farm planner" link:** `dashboard/social.blade.php` now shows it only when `isOfficerTier()` is true.
+- **Event "Details" links:** `SocialController::index` sets `event_url` to null when the user cannot open events, and the view hides the link when it is null.
+- **"World calendar" link:** it goes to `calendar.world`, which is a public route with no sign-in, so a member can open it.
+- **Roster:** character links render only when `isOfficerTier()` is true.
+
+**Unknown tier names:** a misspelt tier name in a route still locks that route. `TIER_RANK[...] ?? PHP_INT_MAX` sets a rank that no user can reach.
+
+**What I did not do:** I did not open the site in a browser. The builder did not either. The member role id is still not in `.env`, so nobody is a member yet.
+
+VERDICT: sound
+
