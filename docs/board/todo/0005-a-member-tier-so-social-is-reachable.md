@@ -18,8 +18,11 @@ via Gates, and this adds exactly one tier because there is now a concrete reason
       to Social and Roster.
 - [x] #2 WHEN that same user reaches any admin or officer page, THE APP SHALL refuse.
 - [x] #3 WHEN a user with no guild role at all signs in, THE APP SHALL refuse everything, as now.
-- [x] #4 THE OFFICER experience SHALL be unchanged, proved by walking an officer through the pages
+- [ ] #4 THE OFFICER experience SHALL be unchanged, proved by walking an officer through the pages
       that were officer-only before.
+- [ ] #5 WHEN a member views Social or the Roster, EVERY link, button and form on the page, and in the
+      sidebar around it, SHALL lead somewhere a member may open, and nothing a member cannot open
+      SHALL be shown to them.
 <!-- AC:END -->
 
 ## Tasks
@@ -128,3 +131,12 @@ VERDICT: defect
 
 
 **2026-08-29** The reviewer returned this card and its finding is the last review entry at the bottom of ## Direction. The loop moved it from todo/ to human-review/ because it has bounced 1 time between todo and ai-review, all 4 criteria ticked. THE BUILDER COULD NOT ACT ON THAT FINDING. A reviewer never unticks a criterion - it is forbidden from editing acceptance at all - so the card came back with 4 of 4 criteria still ticked, every session found nothing open to do, and the loop promoted it again on the boxes. Untick what the reviewer disproved and move it back to todo/, or say here why the finding is wrong.
+
+**2026-09-28** Manager pass: reopened #4 and added #5, because the 2026-08-29 review's findings hold
+on `main`. #4: `RequireTier::handle()` still defaults to `User::TIER_OFFICER` (rank 3), while
+`User::isOfficerTier()` still counts `raid_leader` (rank 2). A Raid Leader, who reached every officer
+page before this card, now gets 403 on each of them while the sidebar still lists them all.
+`MemberTierTest` only walks `TIER_OFFICER`. #5: a member still meets officer-only targets on their
+own pages: the Theme and View-clarity forms in `layouts/dashboard.blade.php`, the "Farm planner" link
+and every "Details" link to `events.show` on `dashboard/social.blade.php`, and an empty "Admin"
+heading.
