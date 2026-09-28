@@ -67,7 +67,7 @@ everything the card knows and changes only how it is ordered and said. `## Direc
       a person's to answer, or SHALL be converted to a feature card whose `## Plan` records the
       practice applied and its source. proves: none - the command that counts it is in another
       repository, named in `## Plan`
-- [x] #3 WHEN a rewritten card names another card, THE CARD SHALL name it in a `## Links` section
+- [ ] #3 WHEN a rewritten card names another card, THE CARD SHALL name it in a `## Links` section
       with the relationship type and one line of why, and SHALL NOT leave a bare card number in a
       sentence as the only mention of it. proves: none - as #2
 - [x] #4 THE `Blocked by` LINES on every rewritten card SHALL match that card's `needs:` frontmatter
@@ -270,3 +270,62 @@ counts are from this worktree.
 **Not in this card.** `.\vendor\bin\pint.bat --test` still fails on
 `app/Services/Raiderio/RaiderioSnapshotImporter.php`. Card `0014` carries that, and I did not touch
 the file. No browser check applies, because this pass changed only markdown.
+
+### 2026-09-28 review (v20260928234322-23e5)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 78s, run by this job rather than reported by the card.
+
+**acceptance: defect**
+
+**What I checked**
+
+I scanned every open card for card numbers. Then I compared each number with the card's `## Links` section.
+
+- **#1, #2, #4, #5:** These hold. `0004` has `needs: 0001` and a matching `Blocked by 0001`. The decision cards `0009`, `0010` and `0011` each still say why they need a person.
+- **#6:** I could not run `board:convention` because `php` is not on this shell's path. The last recorded count is `Regenesis 0 18`. That count cannot see a bare number in a sentence, so it cannot prove #3.
+- **#3 fails.** The builder said the same scan "finds no card that names a number its `## Links` does not carry". My scan finds these open cards that do:
+  - `ai-review/0013-rewrite-this-board-s-cards-for-the-reader.md`: its latest `## Comments` entry names `0021` and `0022`. `## Links` has neither. The builder said this card was fixed.
+  - `ai-review/0014-pint-is-not-clean-at-baseline.md`: its comments name `0016` ("the false clean `0016` found"). `## Links` does not have it.
+  - `ai-review/0015-every-card-session-is-sent-to-a-handover-that-does-not-exist.md`: its comments name `0013` and `0017`. `## Links` has neither.
+
+The builder used this same test ("a link in `## Links` means the number is no longer the only mention") on other cards. These three cards fail it.
+
+UNMET: #3 open cards 0013, 0014 and 0015 still name card numbers (0021, 0022, 0016, 0013, 0017) that their `## Links` sections do not carry, so a bare number is still the only mention.
+
+VERDICT: defect
+
+**scope: sound**
+
+I checked the work against the card's fence ("## Not this card"). I found no defect.
+
+- **Only markdown changed in this pass.** The last pass touched only cards under `docs/board/`. The long list of code files in the diff comes from other cards on `main` (the pint reformat, `RequireTier`, the digest work). No code file is part of this card.
+- **The old scope finding is fixed.** In `docs/board/todo/0002-db-size-alert-in-the-weekly-digest.md`, `## Links` now names `0003`, `0004` and `0014`, and gives a reason for each. In `## Not this card`, the only change is backticks around the two numbers.
+- **The edit to `0023` is inside scope.** In `docs/board/todo/0023-moving-holiday-table-runs-out-silently.md`, the `proves:` now gives a test name. That fixes the `proves:` check that #6 counts. The old words are still in the criterion.
+- **Nothing is over the fence.** No card in `done/` or `discarded/` changed. No `## Direction` or `## Decided` line changed. `docs/board/README.md` did not change in this pass.
+- **`0014` is a new card.** The previous review said this was over the fence. It is now a separate card with its own history, so it is not open scope for this card.
+
+No criterion is disproved.
+
+VERDICT: sound
+
+**breakage: defect**
+
+I tried to break the builder's #3 claim. It says no open card names a card that its `## Links` leaves out. I checked it with the same kind of scan: every four-digit card number in each open card, compared with the numbers in that card's `## Links`. The claim is false for three cards.
+
+- **`docs/board/ai-review/0014-pint-is-not-clean-at-baseline.md`**, `## Comments`: "this is not the false clean `0016` found". Card `0016` is not in its `## Links`.
+- **`docs/board/ai-review/0015-every-card-session-is-sent-to-a-handover-that-does-not-exist.md`**, `## Comments`: it names `0016` and `0017`, then "on `0001` and `0013` stay". Cards `0013` and `0017` are not in its `## Links`.
+- **`docs/board/ai-review/0013-rewrite-this-board-s-cards-for-the-reader.md`** (this card), 2026-09-28 comment: it names `0016`, `0021` and `0022` as missing links on other cards. It never links any of those three itself. The builder said this card was fixed too.
+
+So the count of `Regenesis 0 18` still hides bare card numbers. This is the same fault the manager pass reopened. The scan either missed these lines, or they were added after the scan and nobody scanned again.
+
+UNMET: #3 cards 0014, 0015 and 0013 each name a card in their comments (0016; 0013 and 0017; 0016, 0021 and 0022) that their `## Links` does not carry.
+
+VERDICT: defect
+
+**acceptance**
+
+- **#3 reopened**, by the acceptance lens: open cards 0013, 0014 and 0015 still name card numbers (0021, 0022, 0016, 0013, 0017) that their `## Links` sections do not carry, so a bare number is still the only mention.
+- **#3 was named by the breakage lens and is not a ticked criterion here**, so nothing was changed: cards 0014, 0015 and 0013 each name a card in their comments (0016; 0013 and 0017; 0016, 0021 and 0022) that their `## Links` does not carry.
+
