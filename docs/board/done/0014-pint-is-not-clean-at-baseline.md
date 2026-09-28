@@ -196,3 +196,64 @@ now point at the wrong class. `pint --test` exits 0, and again exits 0 after `.p
 deleted, so this is not the false clean `0016` found. The reformat is commit `5e932a4`, which holds
 that one file and nothing else, so #2 still holds for both passes: `git blame --ignore-rev 3e7ac11
 --ignore-rev 5e932a4`. #1 was unticked by the manager pass and is ticked again on today's run.
+
+### 2026-09-29 review (v20260928235948-4fac)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 62s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+I checked each rule (criterion) on the card. I read the code and the commits. I did not run Pint, because this session may not write files, and Pint writes a cache file.
+
+**#1 (`pint --test` exits 0): met, as far as the code shows.** The last review found one bad file: `app/Services/Raiderio/RaiderioSnapshotImporter.php`. That file now imports `Illuminate\Database\Eloquent\Collection`. The function `selectMembersToFetch()` now uses the short name `Collection`, in its return type and in its docblock. The file has no other `Collection` reference. That was the exact change the reviewers asked for. The new `pint.json` puts the cache in `.pint.cache`, and git ignores that file. The builder says Pint also exits 0 after they deleted the cache.
+
+**#2 (the reformat is its own commit): met.** Commit `3e7ac11` holds 177 PHP files and nothing else. Commit `5e932a4` holds only `RaiderioSnapshotImporter.php`. `git blame` can skip both with two `--ignore-rev` flags.
+
+**#3 (same test count before and after): met.** The first pass has 748 tests before and after. The second pass has 760 before and after. The suite run by the script before I started is green.
+
+I found nothing wrong.
+
+VERDICT: sound
+
+**scope: sound**
+
+**What I checked**
+
+This card made two commits of its own:
+
+- Commit `3e7ac11` changes the first 177 files.
+- Commit `5e932a4` changes one file: `app/Services/Raiderio/RaiderioSnapshotImporter.php`. It adds one import, `Illuminate\Database\Eloquent\Collection`. It shortens the return type and docblock of `selectMembersToFetch()`. It changes nothing else.
+
+**The big diff is not all this card's work.** The range above has 213 files. Other commits made most of them:
+
+- Commit `ce2835a` (card `0016`) added `pint.json`, the `.gitignore` line for `/.pint.cache`, and the `README.md` Pint note.
+- Other cards added `MemberTierTest`, the Blade view changes and the other board cards.
+
+This card did not add a pre-commit hook, a CI check or a `.git-blame-ignore-revs` file. It did not choose a preset. So nothing went over the "Not this card" fence.
+
+**The rest of its changes are small and declared.** It changed two lines in `docs/HANDOVER.md` and it edited this card. The card's own comment lists both.
+
+**Nothing is left half done.** The file that made the last review fail now gets its second Pint pass. The builder then ran `pint --test` with the cache deleted, and it exits 0. The suite is green: 760 tests, the same count as before.
+
+I found no unmet criterion.
+
+VERDICT: sound
+
+**breakage: sound**
+
+I tried to break this change. I could not find a break.
+
+**The second pass is correct.** In `RaiderioSnapshotImporter`, the file now imports `Illuminate\Database\Eloquent\Collection`. `selectMembersToFetch()` uses the short name `Collection` for its return type and in its docblock. There is no other `Collection` in the file, so the short name points to the right class. The first pass took out the old `Illuminate\Support\Collection` import. Nothing in the file still uses that name.
+
+**The cache change does not break anything.** `pint.json` holds only `cache-file: .pint.cache`. It does not change the rules, so the default `laravel` preset still applies. `.pint.cache` is gitignored. It came in its own commit, `ce2835a`, so the two reformat commits (`3e7ac11`, `5e932a4`) stay clean for `git blame`.
+
+**The suite is green.** The script ran it before I started: `vendor\bin\pest.bat` exited 0.
+
+**What I did not do.** I did not run `pint --test` myself. This session was read-only, and that run writes to the cache.
+
+**What I found wrong.** Nothing. No criterion is disproved, so there are no `UNMET:` lines.
+
+VERDICT: sound
+
