@@ -1,3 +1,7 @@
+---
+not_for_the_loop: the work left is one digest dry run against the live Hostinger database
+---
+
 # Warn in the weekly digest before the database fills again
 
 ## Why
@@ -313,3 +317,16 @@ OUT-OF-SCOPE: none
 Eighteenth run, same result: `127.0.0.1:3306` refuses, no MySQL or MariaDB service, no `mysqld`,
 `mariadbd` or `docker` on the PATH. No code changed. #1 needs a person to run
 `php artisan digest:weekly --dry-run` once on production. Full suite: 750 passed.
+
+**2026-09-28** RESULT: blocked
+TESTS: +0 new, all green
+TOUCHED: docs/board/in-progress/0002-db-size-alert-in-the-weekly-digest.md
+OUT-OF-SCOPE: none
+
+Nineteenth run, same wall: `127.0.0.1:3306` refuses, no MySQL or MariaDB service, no `mysqld`,
+`mariadbd` or `docker` on the PATH. No code changed. This time I added `not_for_the_loop:` to the
+frontmatter, as card 0004 did for the same reason. `docs/board/README.md` requires it for work that
+runs against a live host, and the only step left is a dry run of the digest on production. To undo
+it, delete the three frontmatter lines. #1 closes when Rob runs `php artisan digest:weekly --dry-run`
+once on production and the `**Database**` line shows a plausible size; that run also answers the
+open third task. The Discord look is still owed. Full suite: 750 passed.
