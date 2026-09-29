@@ -256,7 +256,7 @@ it('still renders the character page even when the BiS comparison service throws
     $this->app->bind(BisComparisonService::class, function () {
         return new class extends BisComparisonService
         {
-            public function compareForMember(Member $member): ?array
+            public function compareForMember(Member $member, ?string $source = null): ?array
             {
                 throw new RuntimeException('contrived test failure');
             }

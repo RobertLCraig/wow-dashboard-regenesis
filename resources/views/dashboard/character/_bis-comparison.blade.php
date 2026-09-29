@@ -86,11 +86,27 @@
                 {{ ucwords(str_replace('_', ' ', $comparison['spec'])) }}
                 {{ ucwords(str_replace('_', ' ', $comparison['class'])) }}
                 vs
+                {{ App\Models\BisProfile::SOURCES[$comparison['bis_source']] ?? $comparison['bis_source'] }} BiS
                 <span class="font-mono">{{ $comparison['profile_name'] }}</span>
                 @if ($comparison['profile_gear_ilvl'] !== null)
                     (BiS ilvl {{ number_format($comparison['profile_gear_ilvl'], 1) }})
                 @endif
+                @if ($comparison['bis_captured_at'])
+                    , captured {{ $comparison['bis_captured_at']->toDateString() }}
+                @endif
             </p>
+            {{-- One tab per BiS source; a source with no profile for this spec is shown disabled. --}}
+            <nav class="flex gap-1 mt-2 text-xs" aria-label="BiS source">
+                @foreach (App\Models\BisProfile::SOURCES as $sourceKey => $sourceLabel)
+                    @if ($sourceKey === $comparison['bis_source'])
+                        <span aria-current="true" class="px-2 py-0.5 rounded bg-accent text-white">{{ $sourceLabel }}</span>
+                    @elseif (in_array($sourceKey, $availableSources ?? [], true))
+                        <a href="{{ request()->fullUrlWithQuery(['bis_source' => $sourceKey]) }}" class="px-2 py-0.5 rounded border border-line text-ink hover:bg-bg">{{ $sourceLabel }}</a>
+                    @else
+                        <span aria-disabled="true" title="No {{ $sourceLabel }} BiS for this spec" class="px-2 py-0.5 rounded border border-line text-muted opacity-40 cursor-not-allowed">{{ $sourceLabel }}</span>
+                    @endif
+                @endforeach
+            </nav>
         </div>
         <span class="text-[10px] text-muted">
             actual gear via {{ $comparison['source'] }}

@@ -147,11 +147,18 @@ class BisComparisonService
      *   profile_gear_ilvl:?float,
      *   source:string,
      *   source_captured_at:?CarbonInterface,
+     *   bis_source:string,
+     *   bis_captured_at:?CarbonInterface,
      *   slots:array<string, array<string,mixed>>,
      *   consumables:array<string,string>,
      * }|null
+     *
+     * $source restricts the BiS profile to one source (null when it has no
+     * row for this spec). With no $source, the first source in
+     * BisProfile::SOURCES order whose profile carries gear wins, then the
+     * first with any row at all, so a healer's gearless stub still renders.
      */
-    public function compareForMember(Member $member): ?array
+    public function compareForMember(Member $member, ?string $source = null): ?array
     {
         $reading = $this->resolveGearReading($member);
         if ($reading === null) {
@@ -168,7 +175,7 @@ class BisComparisonService
             ->where('class', $class)
             ->where('spec', $spec)
             ->get();
-        $profile = $this->pickBestProfileFromGear($candidates, $reading['gear']);
+        $profile = $this->pickBestProfileFromGear($this->candidatesForSource($candidates, $source), $reading['gear']);
         if ($profile === null) {
             return null;
         }
@@ -181,6 +188,52 @@ class BisComparisonService
             sourceLabel: $reading['source'],
             capturedAt: $reading['captured_at'],
         );
+    }
+
+    /**
+     * Sources holding at least one profile for the member's class+spec, in
+     * BisProfile::SOURCES order. The character page enables these tabs.
+     *
+     * @return list<string>
+     */
+    public function availableSourcesFor(Member $member): array
+    {
+        $class = $this->classKey($member);
+        $spec = $this->resolveGearReading($member)['spec'] ?? $this->resolveSpec($member);
+        if ($class === null || $spec === null) {
+            return [];
+        }
+
+        $have = BisProfile::query()->where('class', $class)->where('spec', $spec)->distinct()->pluck('source')->all();
+
+        return array_values(array_intersect(array_keys(BisProfile::SOURCES), $have));
+    }
+
+    /**
+     * @param  Collection<int,BisProfile>  $candidates  every row for one class+spec
+     * @return Collection<int,BisProfile>
+     */
+    private function candidatesForSource(Collection $candidates, ?string $source): Collection
+    {
+        if ($source !== null) {
+            return $candidates->where('source', $source)->values();
+        }
+
+        $bySource = $candidates->groupBy('source');
+        $order = array_keys(BisProfile::SOURCES);
+        foreach ($order as $s) {
+            $rows = $bySource->get($s);
+            if ($rows !== null && $rows->contains(fn (BisProfile $p) => ! empty($p->parsed_data['gear'] ?? null))) {
+                return $rows->values();
+            }
+        }
+        foreach ($order as $s) {
+            if ($bySource->has($s)) {
+                return $bySource->get($s)->values();
+            }
+        }
+
+        return collect();
     }
 
     /**
@@ -594,7 +647,7 @@ class BisComparisonService
      * Build the per-slot comparison output. Pure: no DB lookups.
      *
      * @param  array<string, array{item_id:int,name:?string,enchant_ids:list<int>,gem_ids:list<int>}>  $actualGear
-     * @return array{class:string, spec:string, profile_name:string, profile_gear_ilvl:?float, source:string, source_captured_at:?CarbonInterface, slots:array<string,array<string,mixed>>, consumables:array<string,string>}
+     * @return array{class:string, spec:string, profile_name:string, profile_gear_ilvl:?float, source:string, source_captured_at:?CarbonInterface, bis_source:string, bis_captured_at:?CarbonInterface, slots:array<string,array<string,mixed>>, consumables:array<string,string>}
      */
     public function buildComparison(string $class, string $spec, array $actualGear, BisProfile $profile, string $sourceLabel, ?CarbonInterface $capturedAt): array
     {
@@ -617,6 +670,8 @@ class BisComparisonService
             'profile_gear_ilvl' => is_numeric($profile->parsed_data['gear_ilvl'] ?? null) ? (float) $profile->parsed_data['gear_ilvl'] : null,
             'source' => $sourceLabel,
             'source_captured_at' => $capturedAt,
+            'bis_source' => (string) $profile->source,
+            'bis_captured_at' => $profile->captured_at,
             'slots' => $slots,
             'consumables' => is_array($profile->parsed_data['consumables'] ?? null) ? $profile->parsed_data['consumables'] : [],
         ];

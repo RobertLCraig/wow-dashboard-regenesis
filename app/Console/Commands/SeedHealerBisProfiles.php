@@ -106,6 +106,7 @@ class SeedHealerBisProfiles extends Command
                     'class' => $class,
                     'spec' => $spec,
                     'hero_talent' => $heroTalent,
+                    'source' => 'manual',
                 ],
                 [
                     'profile_name' => $profileName,

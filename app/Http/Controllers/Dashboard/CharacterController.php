@@ -53,8 +53,14 @@ class CharacterController extends Controller
         // with member context so we can debug from laravel.log without
         // losing the page render. Service is container-resolved so
         // tests can swap in a stub.
+        // ?bis_source= picks a tab. A source with no profile for this spec
+        // (or any unknown value) falls back to the default order rather
+        // than rendering an empty table.
+        $bisSources = [];
         try {
-            $bisComparison = $bis->compareForMember($member);
+            $bisSources = $bis->availableSourcesFor($member);
+            $requested = request()->query('bis_source');
+            $bisComparison = $bis->compareForMember($member, in_array($requested, $bisSources, true) ? $requested : null);
         } catch (\Throwable $e) {
             Log::warning('BiS comparison threw on character page', [
                 'member' => $member->name,
@@ -94,6 +100,7 @@ class CharacterController extends Controller
             'altCohort' => $altCohort,
             'attendance' => $attendance,
             'bisComparison' => $bisComparison,
+            'bisSources' => $bisSources,
             'bisGearSampleMissing' => $bisGearSampleMissing,
             'mplusActivity' => $mplusActivity,
         ]);

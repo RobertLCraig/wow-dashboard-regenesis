@@ -7,7 +7,7 @@
 **Stage:** shipped (live at `regenesis.enhanceify.co.uk`, still under active development)
 **Status:** every surface in the README's "What's built" table is live. Open work is the board, and
 most of it is decisions owed rather than code.
-_Last updated: 2026-09-28 (first handover 2026-09-05, written by card 0015, which existed because there
+_Last updated: 2026-09-29 (BiS source column by card 0025; first handover 2026-09-05, written by card 0015, which existed because there
 was none. Pint section corrected by card 0016; suite duration re-measured by card 0017; queue handed
 to `board:order` by card 0015's second pass)_
 
@@ -103,6 +103,10 @@ The README's "Repo layout" block is the map and is still correct. Only the non-o
   on the server.
 - `database/data/healer-bis-profiles.json` exists because SimulationCraft ships no healer profiles.
   Its rows are deliberate stubs.
+- `bis_profiles` has one row per class, spec, hero talent **and `source`** (`simc`, `wowhead`,
+  `manual`) since card 0025. `BisProfile::SOURCES` is both the tab list and the default order the
+  character page falls through. No source but SimC and the manual stubs has data yet: Wowhead's
+  terms forbid the scrape, and card 0027 asks Rob what to do instead.
 
 ## Decisions locked
 

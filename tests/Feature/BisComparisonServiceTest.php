@@ -5,11 +5,13 @@ use App\Models\Member;
 use App\Models\MemberEquipmentSnapshot;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
+use App\Models\User;
 use App\Models\WclActorParse;
 use App\Models\WclFight;
 use App\Models\WclReport;
 use App\Services\Bis\BisComparisonService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -49,13 +51,14 @@ function rioSnapshotFor(Member $m, array $rawJson): MemberSnapshot
     ]);
 }
 
-function bisProfileFor(string $class, string $spec, array $gear, ?string $heroTalent = null): BisProfile
+function bisProfileFor(string $class, string $spec, array $gear, ?string $heroTalent = null, string $source = 'simc'): BisProfile
 {
     return BisProfile::query()->create([
         'class' => $class,
         'spec' => $spec,
         'hero_talent' => $heroTalent,
-        'profile_name' => "MID1_{$class}_{$spec}".($heroTalent ? "_{$heroTalent}" : ''),
+        'source' => $source,
+        'profile_name' => "MID1_{$class}_{$spec}".($heroTalent ? "_{$heroTalent}" : '').($source !== 'simc' ? "_{$source}" : ''),
         'source_path' => '/fixture/path.simc',
         'parsed_data' => [
             'class' => $class,
@@ -552,4 +555,110 @@ it('skips slots where neither BiS nor actual data exists', function () {
 
     $result = (new BisComparisonService)->compareForMember($m);
     expect(array_keys($result['slots']))->toBe(['head']);
+});
+
+// ---------------------------------------------------------------
+// Per-source BiS table (card 0025)
+// ---------------------------------------------------------------
+
+function bisOfficer(): User
+{
+    return User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
+}
+
+function bisHead(int $itemId): array
+{
+    return ['head' => ['slot' => 'head', 'name' => "item_{$itemId}", 'item_id' => $itemId, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null]];
+}
+
+it('keeps every existing BiS row through the source migration', function () {
+    $migration = require database_path('migrations/2026_09_29_120000_add_source_to_bis_profiles_table.php');
+    $migration->down();
+
+    $row = fn (string $name, ?string $hero, string $path) => [
+        'class' => 'x', 'spec' => $name, 'hero_talent' => $hero, 'profile_name' => $name,
+        'source_path' => $path, 'parsed_data' => '{}', 'captured_at' => now(),
+        'created_at' => now(), 'updated_at' => now(),
+    ];
+    DB::table('bis_profiles')->insert([
+        $row('frost', null, 'profiles/MID1/MID1_Death_Knight_Frost.simc'),
+        $row('frost_rider', 'rider', 'profiles/MID1/MID1_Death_Knight_Frost_Rider.simc'),
+        $row('restoration', null, '/srv/regenesis/database/data/healer-bis-profiles.json'),
+    ]);
+
+    $migration->up();
+
+    expect(DB::table('bis_profiles')->orderBy('id')->pluck('source', 'profile_name')->all())->toBe([
+        'frost' => 'simc',
+        'frost_rider' => 'simc',
+        'restoration' => 'manual',
+    ]);
+});
+
+it('defaults a DPS character to the SimC comparison', function () {
+    $m = bisMember();
+    // The player wears the manual row's head, so a picker that ignored the
+    // source would take the manual row on gear overlap.
+    bisProfileFor('death_knight', 'frost', bisHead(999), source: 'manual');
+    bisProfileFor('death_knight', 'frost', bisHead(100));
+    rioSnapshotFor($m, [
+        'active_spec_name' => 'Frost',
+        'gear' => ['items' => ['head' => ['item_id' => 999, 'name' => 'real', 'enchants' => [], 'gems' => []]]],
+    ]);
+
+    $this->actingAs(bisOfficer())->get('/character/Sheday-Silvermoon')
+        ->assertOk()
+        ->assertDontSee('MID1_death_knight_frost_manual')
+        ->assertSee('SimC BiS');
+});
+
+it('defaults a healer to the first source that has gear', function () {
+    $m = bisMember(['class' => 'SHAMAN']);
+    // The player wears neither list's head, so gear overlap cannot decide.
+    rioSnapshotFor($m, [
+        'active_spec_name' => 'Restoration',
+        'gear' => ['items' => ['head' => ['item_id' => 555, 'name' => 'real', 'enchants' => [], 'gems' => []]]],
+    ]);
+
+    // An earlier source (wowhead) with no gear is passed over for a later one (manual) that has it.
+    $wowhead = bisProfileFor('shaman', 'restoration', [], source: 'wowhead');
+    $wowhead->update(['captured_at' => '2026-09-22 12:00:00']);
+    $manual = bisProfileFor('shaman', 'restoration', bisHead(100), source: 'manual');
+    $manual->update(['captured_at' => '2026-04-30 12:00:00']);
+
+    $this->actingAs(bisOfficer())->get('/character/Sheday-Silvermoon')
+        ->assertOk()
+        ->assertSee('MID1_shaman_restoration_manual')
+        ->assertSee('Manual BiS')
+        ->assertSee('captured 2026-04-30');
+
+    // Once Wowhead has gear, it comes ahead of the manual stub.
+    $wowhead->update(['parsed_data' => array_replace($wowhead->parsed_data, ['gear' => bisHead(100)])]);
+    $manual->update(['parsed_data' => array_replace($manual->parsed_data, ['gear' => []])]);
+
+    $this->actingAs(bisOfficer())->get('/character/Sheday-Silvermoon')
+        ->assertOk()
+        ->assertSee('MID1_shaman_restoration_wowhead')
+        ->assertSee('Wowhead BiS')
+        ->assertSee('captured 2026-09-22');
+});
+
+it('disables the tab of a source with no profile for the spec', function () {
+    $m = bisMember();
+    bisProfileFor('death_knight', 'frost', bisHead(100));
+    rioSnapshotFor($m, [
+        'active_spec_name' => 'Frost',
+        'gear' => ['items' => ['head' => ['item_id' => 100, 'name' => 'Wornhelm', 'enchants' => [], 'gems' => []]]],
+    ]);
+
+    $this->actingAs(bisOfficer())->get('/character/Sheday-Silvermoon')
+        ->assertOk()
+        ->assertSee('aria-disabled="true" title="No Wowhead BiS for this spec"', false)
+        ->assertDontSee('bis_source=wowhead', false);
+
+    // Asking for the missing source by URL still shows a table, not an empty one.
+    $this->actingAs(bisOfficer())->get('/character/Sheday-Silvermoon?bis_source=wowhead')
+        ->assertOk()
+        ->assertSee('SimC BiS')
+        ->assertSee('Wornhelm');
 });

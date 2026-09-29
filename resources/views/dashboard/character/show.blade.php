@@ -175,7 +175,7 @@
          /character/equipment first, then RIO, then the most recent WCL
          parse - whichever has data. --}}
     @if ($bisComparison)
-        @include('dashboard.character._bis-comparison', ['comparison' => $bisComparison])
+        @include('dashboard.character._bis-comparison', ['comparison' => $bisComparison, 'availableSources' => $bisSources])
     @else
         <section class="bg-panel border border-line rounded-lg overflow-hidden mb-6" x-data="{ explain: false }">
             <header class="px-4 py-3 border-b border-line flex items-center gap-2">

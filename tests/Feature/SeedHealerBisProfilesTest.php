@@ -50,6 +50,7 @@ it('upserts a row per healer-spec entry from the JSON file', function () {
     $shaman = BisProfile::query()->where('class', 'shaman')->where('spec', 'restoration')->first();
     expect($shaman)->not->toBeNull();
     expect($shaman->profile_name)->toBe('MID1_Shaman_Restoration_stub');
+    expect($shaman->source)->toBe('manual');
     expect($shaman->parsed_data['consumables']['flask'])->toBe('flask_of_the_magisters_2');
     expect($shaman->parsed_data['gear'])->toBe([]);
 
