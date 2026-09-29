@@ -69,3 +69,57 @@ Lowest old value is 9.05, twice the AA line. Assumptions: the page's colours com
 `node_modules`; grounds are `panel #15151f`, and `accent/10` and `bg/50` composited over the week's
 `bg-line #252533`. The bar's own border is not measured, because it carries no text. A browser check
 is still owed: this worktree is not what Herd serves.
+
+### 2026-09-29 review (v20260929021455-6413)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 77s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+I found no fault. The one criterion holds.
+
+**#1: the old colours are back.** This holds.
+
+- **The code:** the `$eventToneClasses` map is in the `@if ($view === 'grid')` branch of `resources/views/dashboard/social.blade.php`. It now holds exactly the three old values:
+  - `bg-sky-900/40 text-sky-200 border-sky-800/60`
+  - `bg-violet-900/40 text-violet-200 border-violet-800/60`
+  - `bg-amber-900/40 text-amber-200 border-amber-800/60`
+- **The bars use this map.** Each bar looks up its tone in `$eventToneClasses`.
+- **The list view did not change.** The `$kindBadge` tones stay as they were. The card fences those out.
+- **The proof exists.** The card asks for measured contrast ratios. The Comments give a table of them, and the lowest is 9.05:1. The pass line (AA) is 4.5:1.
+- **A test checks it.** The test `draws event bars in the tones they had before the bars rewrite, each clearing AA over every day cell` is in `tests/Feature/SocialPageTest.php`. It reads the colour classes off each drawn bar. It lays each bar over each background and computes the ratio. It uses the Tailwind v3 colour values and the layout's own background colours. It fails if any ratio is below 4.5.
+
+**Limit:** nobody has checked the page in a browser. That does not disprove the criterion.
+
+VERDICT: sound
+
+**scope: sound**
+
+I reviewed card 0024 through the scope lens. I found no scope problem.
+
+- **Only this card's work is in its commit.** Commit `91890ea` changes three files: `resources/views/dashboard/social.blade.php`, `tests/Feature/SocialPageTest.php`, and the card itself. The card's TOUCHED list names the same three files.
+- **The colour change is the three tone lines only.** In the grid branch of `social.blade.php`, `$eventToneClasses` now holds exactly the three values the card asks for. Nothing else in the view changed.
+- **The fence holds.** Bar shape, lanes, `$edges`, the tooltip (0021) and the lane comment (0022) did not change. The list view's `$kindBadge` still has its own tones (`text-sky-300` and `text-violet-300`), so the build did not touch it.
+- **The test stays in scope.** The new test in `SocialPageTest.php` checks the contrast and the old map. It adds no other behaviour.
+- **The large diff is other cards.** The BiS source work (0025), the migration and the board moves did not come from this commit.
+- **Nothing is half done.** The card owes a browser check, and the builder says so. That check is not a criterion.
+
+My findings disprove no criterion.
+
+VERDICT: sound
+
+**breakage: sound**
+
+I tried to break the card 0024 change, and I could not find a break.
+
+- **The colours:** `$eventToneClasses` in the grid branch of `resources/views/dashboard/social.blade.php` now has the three old values again. They match the card word for word.
+- **Other code that uses the map:** The bar loop in the same file uses the map. It has a fallback for a missing tone. The tone keys are still `sky`, `violet` and `amber`, so the fallback does not get used by mistake.
+- **Old tests:** I searched `tests/` for the newer `/60` tone values. No test uses them. So the revert fails no old test.
+- **The list view:** The `$kindBadge` tones in the list view did not change. They still use shade 300, as before. The card puts them out of scope.
+- **Comments:** No comment near the map talks about the colours, so no comment is now wrong.
+- **What is still not checked:** Nobody has looked at the page in a browser. The contrast numbers come from the test and use Tailwind v3 colour values. That matches the CDN script the layout loads. This gap does not disprove the criterion.
+
+VERDICT: sound
+
