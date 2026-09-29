@@ -7,7 +7,7 @@
 **Stage:** shipped (live at `regenesis.enhanceify.co.uk`, still under active development)
 **Status:** every surface in the README's "What's built" table is live. Open work is the board, and
 most of it is decisions owed rather than code.
-_Last updated: 2026-09-29 (BiS source column by card 0025; first handover 2026-09-05, written by card 0015, which existed because there
+_Last updated: 2026-09-29 (member Discord hiding by card 0026; BiS source column by card 0025; first handover 2026-09-05, written by card 0015, which existed because there
 was none. Pint section corrected by card 0016; suite duration re-measured by card 0017; queue handed
 to `board:order` by card 0015's second pass)_
 
@@ -65,7 +65,8 @@ first because it refreshes within minutes of a character logging out, ahead of R
 `gm` (5), in `App\Models\User::TIER_RANK`. Tier is derived from the user's Discord roles at login.
 `RequireTier` middleware with no argument means `raid_leader` and above, the same set
 `User::isOfficerTier()` and the officer Gates use. Only Social, the Roster, its CSV and the theme and
-clarity forms are open to `member` (card 0005).
+clarity forms are open to `member` (card 0005). A member sees the Roster without its Discord column,
+and the CSV without `discord_user_id`, `discord_username` and `last_online_at` (card 0026).
 
 **Known divergence, already recorded:** `member_snapshots.raw_json` has four live readers, one of
 them a Blade widget, listed with their exact call sites in

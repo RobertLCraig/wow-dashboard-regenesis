@@ -81,6 +81,10 @@
             </h2>
         </x-slot:header>
 
+        {{-- Card 0026: which Discord account plays each character is for
+             raid leaders and up. A tier check, not roster.kick: this is
+             about who may see, not who may edit. --}}
+        @php $seesDiscord = auth()->user()?->isAtLeast(\App\Models\User::TIER_RAID_LEADER) ?? false; @endphp
         <table class="w-full text-sm clarity-tabular" x-data="{ openCol: null }">
             <thead>
                 <tr class="text-left text-xs uppercase tracking-wider text-muted">
@@ -120,10 +124,12 @@
                         Last seen <span class="text-muted" x-text="sortIcon('lastseen')"></span>
                         <x-column-explainer-toggle col="lastseen" />
                     </th>
-                    <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('discord')">
-                        Discord <span class="text-muted" x-text="sortIcon('discord')"></span>
-                        <x-column-explainer-toggle col="discord" />
-                    </th>
+                    @if ($seesDiscord)
+                        <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('discord')">
+                            Discord <span class="text-muted" x-text="sortIcon('discord')"></span>
+                            <x-column-explainer-toggle col="discord" />
+                        </th>
+                    @endif
                     <th class="px-2 py-2 font-medium cursor-pointer select-none hover:text-ink" @click="sortBy('altof')">
                         Alt of <span class="text-muted" x-text="sortIcon('altof')"></span>
                         <x-column-explainer-toggle col="altof" />
@@ -145,7 +151,7 @@
                 </tr>
             </thead>
             <tbody>
-                @php $colspan = auth()->user()?->can('roster.kick') ? 14 : 13; @endphp
+                @php $colspan = (auth()->user()?->can('roster.kick') ? 14 : 13) - ($seesDiscord ? 0 : 1); @endphp
                 <tr x-show="openCol !== null" x-cloak class="border-t border-line bg-bg/40">
                     <td colspan="{{ $colspan }}"
                         class="px-4 py-3 text-xs text-muted leading-relaxed normal-case tracking-normal font-normal">
@@ -223,16 +229,18 @@
                                 "never" means GRM has the character but no login on record yet.
                             </div>
                         </template>
-                        <template x-if="openCol === 'discord'">
-                            <div>
-                                <span class="block text-ink font-semibold mb-1">Discord</span>
-                                Discord username this character is linked to. One Discord user owns
-                                a main + all their alts, so the same name can appear on many rows.
-                                Click the cell (or the dash, if empty) to set or clear the link.
-                                Searchable, so typing a Discord name in the box above filters the
-                                table to that player's whole roster.
-                            </div>
-                        </template>
+                        @if ($seesDiscord)
+                            <template x-if="openCol === 'discord'">
+                                <div>
+                                    <span class="block text-ink font-semibold mb-1">Discord</span>
+                                    Discord username this character is linked to. One Discord user owns
+                                    a main + all their alts, so the same name can appear on many rows.
+                                    Click the cell (or the dash, if empty) to set or clear the link.
+                                    Searchable, so typing a Discord name in the box above filters the
+                                    table to that player's whole roster.
+                                </div>
+                            </template>
+                        @endif
                         <template x-if="openCol === 'altof'">
                             <div>
                                 <span class="block text-ink font-semibold mb-1">Alt of</span>
@@ -410,6 +418,7 @@
                             data-sort-value="{{ $m->last_online_at?->timestamp ?? 0 }}">
                             {{ $m->last_online_at?->diffForHumans() ?? 'never' }}
                         </td>
+                        @if ($seesDiscord)
                         @php
                             $discordLinked = $m->discord_user_id !== null || $m->discord_username !== null;
                             $discordLabel = $m->discord_username ?: $m->discord_user_id;
@@ -446,6 +455,7 @@
                                 </span>
                             @endcan
                         </td>
+                        @endif
                         <td class="px-2 py-2 text-muted text-xs"
                             data-label="Alt of"
                             data-sort-key="altof"

@@ -10,6 +10,7 @@ use App\Models\MemberMplusRun;
 use App\Models\MemberSnapshot;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
+use App\Models\User;
 use App\Services\Bis\BisComparisonService;
 use App\Services\Blizzard\EquipmentAnalyzer;
 use Carbon\CarbonInterface;
@@ -79,48 +80,45 @@ class RosterController extends Controller
         $rows = $this->rows($filter, false);
         $filename = 'roster-'.now()->format('Y-m-d').($filter !== 'all' ? "-{$filter}" : '').'.csv';
 
-        return response()->streamDownload(function () use ($rows) {
+        // One list drives both header and rows, so trimming it can never
+        // leave a header one column out from its data.
+        $columns = [
+            'name' => fn ($row) => $row['member']->name,
+            'realm' => fn ($row) => $row['member']->realm,
+            'class' => fn ($row) => $row['member']->class,
+            'level' => fn ($row) => $row['member']->level,
+            'rank' => fn ($row) => $row['member']->rank_name,
+            'team' => fn ($row) => implode('|', $row['member']->teamValues()),
+            'ilvl' => fn ($row) => $row['ilvl'],
+            'ilvl_source' => fn ($row) => $row['ilvl_source'],
+            'mplus_score' => fn ($row) => $row['snap']?->mplus_score,
+            'mplus_keystone' => fn ($row) => $row['snap']?->mplus_keystone,
+            'keys_30d' => fn ($row) => $row['mplus_activity']['count'] ?? 0,
+            'keys_30d_highest' => fn ($row) => $row['mplus_activity']['highest'] ?? null,
+            'keys_30d_last_completed' => fn ($row) => ($row['mplus_activity']['last_completed_at'] ?? null)?->toIso8601String(),
+            'bis_issues_total' => fn ($row) => $row['bis_issues']['total'] ?? null,
+            'bis_missing_enchants' => fn ($row) => $row['bis_issues']['missing_enchants'] ?? null,
+            'bis_missing_gems' => fn ($row) => $row['bis_issues']['missing_gems'] ?? null,
+            'gear_health_total' => fn ($row) => $row['gear_health']['total_issues'] ?? null,
+            'gear_missing_enchants' => fn ($row) => $row['gear_health'] ? count($row['gear_health']['missing_enchants']) : null,
+            'gear_empty_sockets' => fn ($row) => $row['gear_health'] ? count($row['gear_health']['empty_sockets']) : null,
+            'last_online_at' => fn ($row) => $row['member']->last_online_at?->toIso8601String(),
+            'discord_user_id' => fn ($row) => $row['member']->discord_user_id,
+            'discord_username' => fn ($row) => $row['member']->discord_username,
+            'main' => fn ($row) => $row['main']?->name,
+            'flags' => fn ($row) => implode('|', $row['flags']),
+        ];
+        // Card 0026 (decision 0020): a member has no use for which Discord
+        // account plays each character, or when it was last online.
+        if (! auth()->user()->isAtLeast(User::TIER_RAID_LEADER)) {
+            unset($columns['last_online_at'], $columns['discord_user_id'], $columns['discord_username']);
+        }
+
+        return response()->streamDownload(function () use ($rows, $columns) {
             $out = fopen('php://output', 'wb');
-            fputcsv($out, [
-                'name', 'realm', 'class', 'level', 'rank', 'team',
-                'ilvl', 'ilvl_source', 'mplus_score', 'mplus_keystone',
-                'keys_30d', 'keys_30d_highest', 'keys_30d_last_completed',
-                'bis_issues_total', 'bis_missing_enchants', 'bis_missing_gems',
-                'gear_health_total', 'gear_missing_enchants', 'gear_empty_sockets',
-                'last_online_at', 'discord_user_id', 'discord_username', 'main', 'flags',
-            ]);
+            fputcsv($out, array_keys($columns));
             foreach ($rows as $row) {
-                $m = $row['member'];
-                $snap = $row['snap'];
-                $bis = $row['bis_issues'];
-                $gh = $row['gear_health'];
-                $act = $row['mplus_activity'] ?? null;
-                fputcsv($out, [
-                    $m->name,
-                    $m->realm,
-                    $m->class,
-                    $m->level,
-                    $m->rank_name,
-                    implode('|', $m->teamValues()),
-                    $row['ilvl'],
-                    $row['ilvl_source'],
-                    $snap?->mplus_score,
-                    $snap?->mplus_keystone,
-                    $act['count'] ?? 0,
-                    $act['highest'] ?? null,
-                    ($act['last_completed_at'] ?? null)?->toIso8601String(),
-                    $bis['total'] ?? null,
-                    $bis['missing_enchants'] ?? null,
-                    $bis['missing_gems'] ?? null,
-                    $gh['total_issues'] ?? null,
-                    $gh ? count($gh['missing_enchants']) : null,
-                    $gh ? count($gh['empty_sockets']) : null,
-                    $m->last_online_at?->toIso8601String(),
-                    $m->discord_user_id,
-                    $m->discord_username,
-                    $row['main']?->name,
-                    implode('|', $row['flags']),
-                ]);
+                fputcsv($out, array_map(fn ($cell) => $cell($row), array_values($columns)));
             }
             fclose($out);
         }, $filename, [

@@ -31,10 +31,10 @@ Not any other page's Discord display.
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [ ] #1 WHEN a `member` downloads `/roster.csv`, THE APP SHALL leave `discord_user_id`, `discord_username` and `last_online_at` out of the header and every row, and keep the other columns in their current order. proves: `it leaves the Discord and last-online columns out of a member's roster CSV`
-- [ ] #2 WHEN a `raid_leader` or any higher tier downloads `/roster.csv`, THE APP SHALL include all three columns. proves: `it gives a raid leader the full roster CSV`
-- [ ] #3 WHEN a `member` opens the Roster page, THE APP SHALL show no Discord column and no Discord username or id anywhere in the page. proves: `it shows a member no Discord accounts on the Roster`
-- [ ] #4 WHEN a `raid_leader` or any higher tier opens the Roster page, THE APP SHALL still show the Discord column with its edit button. proves: `it still shows a raid leader the Discord column`
+- [x] #1 WHEN a `member` downloads `/roster.csv`, THE APP SHALL leave `discord_user_id`, `discord_username` and `last_online_at` out of the header and every row, and keep the other columns in their current order. proves: `it leaves the Discord and last-online columns out of a member's roster CSV`
+- [x] #2 WHEN a `raid_leader` or any higher tier downloads `/roster.csv`, THE APP SHALL include all three columns. proves: `it gives a raid leader the full roster CSV`
+- [x] #3 WHEN a `member` opens the Roster page, THE APP SHALL show no Discord column and no Discord username or id anywhere in the page. proves: `it shows a member no Discord accounts on the Roster`
+- [x] #4 WHEN a `raid_leader` or any higher tier opens the Roster page, THE APP SHALL still show the Discord column with its edit button. proves: `it still shows a raid leader the Discord column`
 <!-- AC:END -->
 
 ## Tasks
@@ -53,3 +53,22 @@ reuse `roster.kick` for this: that gate is about who may edit, not who may see.
 
 Keep one column list for the CSV header and row and filter both from it. Two lists that must be
 trimmed in step is how a header ends up one column out from its data.
+
+## Comments
+
+**2026-09-29** RESULT: done
+TESTS: +4 new, all green
+TOUCHED: app/Http/Controllers/Dashboard/RosterController.php, resources/views/dashboard/roster.blade.php, tests/Feature/RosterTest.php, docs/HANDOVER.md, docs/board/in-progress/0026-members-stop-seeing-which-discord-account-plays-each-character.md
+OUT-OF-SCOPE: none
+
+`csv()` now builds header and row from one `name => closure` list and unsets the three columns
+below `raid_leader`. The page wraps the Discord header, help text and body cell in `$seesDiscord`
+(an `isAtLeast(TIER_RAID_LEADER)` check, not `roster.kick`), and the explainer/empty-row `colspan`
+drops by one when the column is hidden.
+
+Seen red first: #1 (header still carried the three columns) and #3 (page printed `secretplayer`).
+#2 and #4 were green before the change, because they pin behaviour officers already had; they are
+regression guards against the new gate reaching too far, and could not be watched failing without
+breaking the code on purpose. #4 checks the edit button through the `open-discord-link` dispatch.
+
+Browser check still owed: Herd serves `C:\Dev\Regenesis`, not this worktree.

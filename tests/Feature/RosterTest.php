@@ -327,6 +327,77 @@ it('CSV export streams the filtered set with header row', function () {
         ->not->toContain('Recent-Silvermoon');
 });
 
+// ── card 0026: the Discord mapping is for raid leaders and up ─────────
+
+function discordLinkedMember(): Member
+{
+    return rosterMember('Linked-Silvermoon', [
+        'realm' => 'Silvermoon',
+        'discord_user_id' => '998877665544332211',
+        'discord_username' => 'secretplayer',
+        'last_online_at' => now()->subDays(3),
+    ]);
+}
+
+it('leaves the Discord and last-online columns out of a member\'s roster CSV', function () {
+    discordLinkedMember();
+    $member = User::factory()->create(['tier' => User::TIER_MEMBER, 'last_role_check_at' => now()]);
+
+    $lines = array_map('str_getcsv', array_filter(explode("\n",
+        $this->actingAs($member)->get('/roster.csv')->assertOk()->streamedContent())));
+
+    expect($lines[0])->toBe([
+        'name', 'realm', 'class', 'level', 'rank', 'team',
+        'ilvl', 'ilvl_source', 'mplus_score', 'mplus_keystone',
+        'keys_30d', 'keys_30d_highest', 'keys_30d_last_completed',
+        'bis_issues_total', 'bis_missing_enchants', 'bis_missing_gems',
+        'gear_health_total', 'gear_missing_enchants', 'gear_empty_sockets',
+        'main', 'flags',
+    ]);
+    expect($lines[1])->toHaveCount(count($lines[0]))
+        ->and($lines[1][0])->toBe('Linked-Silvermoon')
+        ->and(implode(',', $lines[1]))->not->toContain('998877665544332211')
+        ->not->toContain('secretplayer');
+});
+
+it('gives a raid leader the full roster CSV', function () {
+    discordLinkedMember();
+    $lead = User::factory()->create(['tier' => User::TIER_RAID_LEADER, 'last_role_check_at' => now()]);
+
+    $lines = array_map('str_getcsv', array_filter(explode("\n",
+        $this->actingAs($lead)->get('/roster.csv')->assertOk()->streamedContent())));
+    $row = array_combine($lines[0], $lines[1]);
+
+    expect($row['discord_user_id'])->toBe('998877665544332211')
+        ->and($row['discord_username'])->toBe('secretplayer')
+        ->and($row['last_online_at'])->not->toBe('');
+});
+
+it('shows a member no Discord accounts on the Roster', function () {
+    discordLinkedMember();
+    $member = User::factory()->create(['tier' => User::TIER_MEMBER, 'last_role_check_at' => now()]);
+
+    $this->actingAs($member)->get('/roster')
+        ->assertOk()
+        ->assertSee('Linked-Silvermoon')
+        ->assertDontSee('secretplayer')
+        ->assertDontSee('998877665544332211')
+        ->assertDontSee("sortBy('discord')", false)
+        ->assertDontSee('data-label="Discord"', false);
+});
+
+it('still shows a raid leader the Discord column', function () {
+    discordLinkedMember();
+    $lead = User::factory()->create(['tier' => User::TIER_RAID_LEADER, 'last_role_check_at' => now()]);
+
+    $this->actingAs($lead)->get('/roster')
+        ->assertOk()
+        ->assertSee("sortBy('discord')", false)
+        ->assertSee('data-label="Discord"', false)
+        ->assertSee('secretplayer')
+        ->assertSee('open-discord-link', false);
+});
+
 it('non-officer is 403d from the roster page and the CSV export', function () {
     $u = User::factory()->create(['tier' => null, 'last_role_check_at' => now()]);
 
