@@ -102,9 +102,9 @@
                     @else
                         @php
                             $eventToneClasses = [
-                                'sky'    => 'bg-sky-900/60 text-sky-100 border-sky-700/70',
-                                'violet' => 'bg-violet-900/60 text-violet-100 border-violet-700/70',
-                                'amber'  => 'bg-amber-900/60 text-amber-100 border-amber-700/70',
+                                'sky'    => 'bg-sky-900/40 text-sky-200 border-sky-800/60',
+                                'violet' => 'bg-violet-900/40 text-violet-200 border-violet-800/60',
+                                'amber'  => 'bg-amber-900/40 text-amber-200 border-amber-800/60',
                             ];
                         @endphp
                         {{-- Both grids wear clarity-keep-grid: high-clarity mode flattens

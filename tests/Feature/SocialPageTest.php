@@ -297,6 +297,68 @@ it('keeps the week grid a grid in high-clarity mode, so each date stays beside i
     }
 });
 
+it('draws event bars in the tones they had before the bars rewrite, each clearing AA over every day cell', function () {
+    // 0006 repainted these unasked. The old tones stay unless their text fails
+    // 4.5:1 on a bar composited over a day cell. Hex is Tailwind v3's palette,
+    // which is what the layout's cdn.tailwindcss.com script serves; the grounds
+    // are the layout's own colours. Each cell sits on the week's bg-line.
+    $palette = [
+        'sky' => [900 => '#0c4a6e', 200 => '#bae6fd', 100 => '#e0f2fe'],
+        'violet' => [900 => '#4c1d95', 200 => '#ddd6fe', 100 => '#ede9fe'],
+        'amber' => [900 => '#78350f', 200 => '#fde68a', 100 => '#fef3c7'],
+    ];
+    $rgb = fn (string $hex) => array_map('hexdec', str_split(ltrim($hex, '#'), 2));
+    $over = fn (array $fg, float $alpha, array $bg) => array_map(fn ($f, $b) => $f * $alpha + $b * (1 - $alpha), $fg, $bg);
+    $luminance = function (array $c) {
+        [$r, $g, $b] = array_map(fn ($v) => ($v /= 255) <= 0.03928 ? $v / 12.92 : (($v + 0.055) / 1.055) ** 2.4, $c);
+
+        return 0.2126 * $r + 0.7152 * $g + 0.0722 * $b;
+    };
+    $ratio = fn (array $a, array $b) => (max($luminance($a), $luminance($b)) + 0.05) / (min($luminance($a), $luminance($b)) + 0.05);
+
+    $line = $rgb('#252533');
+    $grounds = [
+        'panel' => $rgb('#15151f'),
+        'today, discord accent/10' => $over([88, 101, 242], 0.1, $line),
+        'today, phoenix accent/10' => $over([168, 38, 46], 0.1, $line),
+        'outside window, bg/50' => $over($rgb('#0b0b14'), 0.5, $line),
+    ];
+
+    // A raid event is sky; every month holds a Darkmoon Faire (violet) and a
+    // Trading Post reset (amber), so one week of March 2027 draws all three.
+    $monday = CarbonImmutable::parse('2027-03-15')->startOfWeek()->setTime(9, 0);
+    $this->travelTo($monday);
+    RaidEvent::query()->create([
+        'raidhelper_event_id' => 'rh-tone',
+        'channel_id' => '111', 'server_id' => '222',
+        'title' => 'Tone Check',
+        'starts_at' => $monday->addDays(2),
+        'ends_at' => $monday->addDays(2)->addHours(3),
+        'closing_at' => $monday->addDays(2)->subHour(),
+        'ics_uid' => 'rh-tone@regenesis.local',
+        'last_synced_at' => $monday,
+    ]);
+
+    $body = $this->actingAs(socialOfficer())->get('/dashboard/social?view=grid')->assertOk()->getContent();
+    preg_match_all('/border truncate (bg-(sky|violet|amber)-900\/(\d+) text-\2-(\d+) border-\2-\S+)/', $body, $bars, PREG_SET_ORDER);
+
+    $drawn = [];
+    foreach ($bars as [, $classes, $tone, $alpha, $shade]) {
+        $drawn[$tone] = $classes;
+        foreach ($grounds as $name => $ground) {
+            $bar = $over($rgb($palette[$tone][900]), $alpha / 100, $ground);
+            expect($ratio($rgb($palette[$tone][(int) $shade]), $bar))->toBeGreaterThanOrEqual(4.5, "{$tone} over {$name}");
+        }
+    }
+    ksort($drawn);
+
+    expect($drawn)->toBe([
+        'amber' => 'bg-amber-900/40 text-amber-200 border-amber-800/60',
+        'sky' => 'bg-sky-900/40 text-sky-200 border-sky-800/60',
+        'violet' => 'bg-violet-900/40 text-violet-200 border-violet-800/60',
+    ]);
+});
+
 it('renders two upcoming events in chronological order', function () {
     RaidEvent::query()->create([
         'raidhelper_event_id' => 'rh-later',
