@@ -72,3 +72,56 @@ regression guards against the new gate reaching too far, and could not be watche
 breaking the code on purpose. #4 checks the edit button through the `open-discord-link` dispatch.
 
 Browser check still owed: Herd serves `C:\Dev\Regenesis`, not this worktree.
+
+### 2026-09-29 review (v20260929022746-c62a)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 74s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+I tried to break each of the four criteria. I could not break any of them.
+
+- **#1 (a member's CSV):** `RosterController::csv()` builds the header and each row from one `$columns` list. For a user below `raid_leader`, it removes `last_online_at`, `discord_user_id` and `discord_username` from that list. The other columns keep their order. The test checks the exact header, the width of each row, and that the Discord id is not in the row.
+- **#2 (a raid leader's CSV):** The code removes the columns only when `isAtLeast(TIER_RAID_LEADER)` fails. So officers still get all three.
+- **#3 (a member's Roster page):** In `resources/views/dashboard/roster.blade.php`, `$seesDiscord` hides four things: the header cell, its sort key, its help text and the body cell. I searched the whole view for the word "discord". I found no other place that prints a Discord name or id. The link modal (`member-discord-link-modal`) gets its data only from the edit button. That button is inside the hidden cell, so a member never fills the modal. No included widget shows Discord data.
+- **#4 (a raid leader's Roster page):** For a raid leader, the cell still shows. The edit button is still inside `@can('roster.kick')`, as before.
+
+I found nothing that disproves a criterion.
+
+VERDICT: sound
+
+**scope: sound**
+
+I checked the scope of card 0026. I found no scope problem.
+
+- **Commit `45d3b93` changes only this card's work.** It changes five files: `RosterController.php`, `roster.blade.php`, `RosterTest.php`, `docs/HANDOVER.md` and the card. The card's TOUCHED list names the same five files.
+- **The large diff comes from other cards.** The BiS source work (card 0025), the migration and cards 0027 to 0029 are not in this commit.
+- **The fence holds.**
+  - `RosterController::csv()` removes only `last_online_at`, `discord_user_id` and `discord_username`.
+  - The page still shows the "Last seen" cell to everyone, as the card says it must.
+  - The officer view keeps the Discord header, the help text and the body cell with the `open-discord-link` edit button.
+  - No other page's Discord display changed.
+- **Nothing is half done.** Every Discord output in `roster.blade.php` is inside `@if ($seesDiscord)`. The one exception is `<x-member-discord-link-modal />`, and it holds no member data.
+- The `colspan` change keeps the table lined up when the column is hidden.
+- **Owed:** a browser check. That is not an acceptance criterion.
+
+My findings disprove no criterion.
+
+VERDICT: sound
+
+**breakage: sound**
+
+I tried to break card 0026 and I could not. The Discord link and last-online time no longer reach members.
+
+- **The CSV:** `RosterController::csv()` builds the header and every row from one column list. The code removes the three columns from that one list for anyone below raid leader. So the header and the data cannot get out of step.
+- **The page:** In `roster.blade.php`, all the Discord parts are inside `@if ($seesDiscord)`. That covers the header cell, the sort key, the help text, and the body cell with its `open-discord-link` data. I found no other Discord output on the page.
+- **Search:** The search runs in the browser and reads the row text. A member's rows no longer hold the Discord cell. So a member cannot search by a Discord name. The help text that says Discord names are searchable is hidden with the column, so no text on the page is now wrong.
+- **The pop-up:** `member-discord-link-modal` only gets data when someone clicks the edit button. Members do not get that button, so the pop-up holds no member data.
+- **Column count:** The `colspan` (how many columns the help row spans) now subtracts one when the column is hidden. The edit-column count stays as it was.
+
+None of the four checks fails.
+
+VERDICT: sound
+
