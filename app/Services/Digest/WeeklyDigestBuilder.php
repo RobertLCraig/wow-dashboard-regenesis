@@ -354,10 +354,21 @@ class WeeklyDigestBuilder
         $lines[] = '';
 
         $r = $d['roster'];
-        $deltaSign = $r['delta'] >= 0 ? '+' : '';
-        $lines[] = "**Roster**: {$r['active']} active. This week: +{$r['joined']} / -{$r['left']} ({$deltaSign}{$r['delta']}).";
-
         $aq = $d['action_queue'];
+        // A guild this size never reaches zero active members: zero means the GRM sync has no data.
+        if ($r['active'] === 0) {
+            $lines[] = '⚠️ **Roster has no data** - the GRM sync may have stopped. Check the dashboard before reading anything below.';
+        } else {
+            $deltaSign = $r['delta'] >= 0 ? '+' : '';
+            $lines[] = "**Roster**: {$r['active']} active. This week: +{$r['joined']} / -{$r['left']} ({$deltaSign}{$r['delta']}).";
+            // Progression, M+ and the database are standing state, not events, so they do not count.
+            $quiet = ! $r['joined'] && ! $r['left'] && ! array_sum($aq)
+                && $d['best_parses']->isEmpty() && $d['anniversaries']->isEmpty() && $d['newly_inactive']->isEmpty();
+            if ($quiet) {
+                $lines[] = 'Quiet week: no joins, leaves, parses or anniversaries.';
+            }
+        }
+
         if ($aq['promote'] || $aq['demote'] || $aq['kick']) {
             $lines[] = "**Action queue**: {$aq['promote']} promote, {$aq['demote']} demote, {$aq['kick']} kick.";
         }

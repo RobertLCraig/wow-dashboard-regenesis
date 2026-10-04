@@ -181,8 +181,75 @@ it('digest summarises team progression and the top RIO scores', function () {
 it('builder produces markdown even with an empty guild', function () {
     $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon'))->build();
     expect($built['markdown'])
-        ->toContain('0 active');
+        ->toContain('Roster has no data');
 });
+
+it('digest warns instead of reporting zero active members', function () {
+    // A member who left is still in the table, just not active: the count is 0.
+    digestMember('Gone-Silvermoon', ['status' => Member::STATUS_LEFT]);
+
+    $built = (new WeeklyDigestBuilder('Regenesis-Silvermoon', CarbonImmutable::now()))->build();
+
+    expect($built['data']['roster']['active'])->toBe(0);
+    expect($built['markdown'])
+        ->toContain('⚠️ **Roster has no data**')
+        ->not->toContain('0 active')
+        ->not->toContain('**Roster**:');
+});
+
+it('digest says it was a quiet week when nothing happened', function () {
+    $now = CarbonImmutable::now();
+    digestMember('Steady-Silvermoon', ['last_online_at' => $now->subDay()]);
+
+    $markdown = (new WeeklyDigestBuilder('Regenesis-Silvermoon', $now))->build()['markdown'];
+
+    expect($markdown)->toContain('Quiet week');
+    $lines = explode("\n", $markdown);
+    $roster = array_search(true, array_map(fn ($l) => str_starts_with($l, '**Roster**:'), $lines), true);
+    expect($lines[$roster + 1])->toStartWith('Quiet week');
+});
+
+it('digest leaves out the quiet-week line when something happened', function (Closure $happen) {
+    $now = CarbonImmutable::now();
+    $member = digestMember('Steady-Silvermoon', ['last_online_at' => $now->subDay()]);
+    $happen($member, $now);
+
+    $markdown = (new WeeklyDigestBuilder('Regenesis-Silvermoon', $now))->build()['markdown'];
+
+    expect($markdown)->not->toContain('Quiet week');
+})->with([
+    'a join' => [fn (Member $m, $now) => MemberEvent::query()->create([
+        'member_id' => $m->id, 'type' => MemberEvent::TYPE_JOINED,
+        'occurred_at' => $now->subDays(2), 'dedup_hash' => 'qj',
+    ])],
+    'a leave' => [fn (Member $m, $now) => MemberEvent::query()->create([
+        'member_id' => digestMember('Leaver-Silvermoon', ['status' => Member::STATUS_LEFT])->id,
+        'type' => MemberEvent::TYPE_LEFT, 'occurred_at' => $now->subDays(2), 'dedup_hash' => 'ql',
+    ])],
+    'an anniversary' => [fn (Member $m, $now) => MemberEvent::query()->create([
+        'member_id' => $m->id, 'type' => MemberEvent::TYPE_ANNIVERSARY,
+        'occurred_at' => $now->startOfWeek()->addDay(), 'dedup_hash' => 'qa',
+    ])],
+    'a newly inactive member' => [fn (Member $m, $now) => digestMember('Fading-Silvermoon', [
+        'last_online_at' => $now->subDays(33),
+    ])],
+    'an action-queue item' => [fn (Member $m) => $m->update(['recommend_promote' => true])],
+    'a parse' => [function (Member $m, $now) {
+        $report = WclReport::query()->create([
+            'guild_key' => 'Regenesis-Silvermoon', 'code' => 'qqqqqq', 'title' => 'Raid',
+            'start_time' => $now->subDays(2), 'captured_at' => $now,
+        ]);
+        $fight = WclFight::query()->create([
+            'wcl_report_id' => $report->id, 'fight_id' => 1, 'encounter_id' => 100,
+            'name' => 'Plexus Sentinel', 'difficulty' => WclFight::DIFFICULTY_HEROIC,
+            'kill' => true, 'start_time' => $now->subDays(2),
+        ]);
+        WclActorParse::query()->create([
+            'wcl_fight_id' => $fight->id, 'member_id' => $m->id,
+            'actor_name' => 'Steady', 'role' => 'dps', 'parse_percentile' => 70,
+        ]);
+    }],
+]);
 
 it('digest includes the best parses (one row per member, sorted desc) from the last 7 days', function () {
     $now = CarbonImmutable::now();
