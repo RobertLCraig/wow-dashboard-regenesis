@@ -156,7 +156,9 @@ class DiscordWebhookController extends Controller
                 $isUpdate ? 'nullable' : 'required',
                 'string',
                 'max:1024',
-                'regex:/^https:\/\/(canary\.|ptb\.)?discord(app)?\.com\/api\/webhooks\/[0-9]+\/[A-Za-z0-9_\-]+$/',
+                // An optional ?thread_id= posts into that thread of the
+                // webhook's channel. Nothing else may follow the token.
+                'regex:/^https:\/\/(canary\.|ptb\.)?discord(app)?\.com\/api\/webhooks\/[0-9]+\/[A-Za-z0-9_\-]+(\?thread_id=[0-9]+)?$/',
             ],
             'purpose' => ['required', 'string', 'max:32', 'in:'.implode(',', $known)],
             'team_slug' => ['nullable', 'string', 'max:32'],

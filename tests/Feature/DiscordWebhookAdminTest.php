@@ -156,6 +156,39 @@ it('admin store rejects a non-Discord URL', function () {
         ->assertSessionHasErrors('url');
 });
 
+it('accepts a webhook url that names a thread', function () {
+    $this->actingAs(webhookOfficer())
+        ->post('/admin/webhooks', [
+            'label' => 'Digest thread',
+            'url' => 'https://discord.com/api/webhooks/999/secret_token?thread_id=1234567890123',
+            'purpose' => DiscordWebhook::PURPOSE_WEEKLY_DIGEST,
+            'enabled' => 1,
+        ])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect('/admin/webhooks');
+
+    $w = DiscordWebhook::query()->where('label', 'Digest thread')->first();
+    expect($w?->url)->toBe('https://discord.com/api/webhooks/999/secret_token?thread_id=1234567890123');
+});
+
+it('rejects a webhook url with any other query string', function (string $url) {
+    $this->actingAs(webhookOfficer())
+        ->post('/admin/webhooks', [
+            'label' => 'Bad query',
+            'url' => $url,
+            'purpose' => DiscordWebhook::PURPOSE_WEEKLY_DIGEST,
+        ])
+        ->assertSessionHasErrors('url');
+
+    expect(DiscordWebhook::query()->count())->toBe(0);
+})->with([
+    'other parameter' => 'https://discord.com/api/webhooks/999/secret_token?wait=true',
+    'non-numeric thread' => 'https://discord.com/api/webhooks/999/secret_token?thread_id=abc',
+    'empty thread' => 'https://discord.com/api/webhooks/999/secret_token?thread_id=',
+    'thread plus more' => 'https://discord.com/api/webhooks/999/secret_token?thread_id=123&wait=true',
+    'bare question mark' => 'https://discord.com/api/webhooks/999/secret_token?',
+]);
+
 it('admin update with empty url keeps the existing URL', function () {
     $w = makeWebhook(['url' => 'https://discord.com/api/webhooks/1/keepme']);
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\DiscordWebhook;
 use App\Models\Member;
 use App\Models\MemberEvent;
 use App\Models\MemberSnapshot;
@@ -390,6 +391,23 @@ it('digest:weekly falls back to the legacy env var when no webhooks are configur
         ->assertExitCode(0);
 
     Http::assertSent(fn ($req) => str_contains($req->url(), 'discord.test/webhooks'));
+});
+
+it('digest:weekly posts into the thread a webhook names', function () {
+    Http::fake(['discord.com/*' => Http::response('', 204)]);
+    config(['digest.discord_webhook_url' => '']);
+    digestMember('Sheday-Silvermoon');
+    DiscordWebhook::query()->create([
+        'label' => 'Digest thread',
+        'url' => 'https://discord.com/api/webhooks/100/aaa?thread_id=555',
+        'purpose' => DiscordWebhook::PURPOSE_WEEKLY_DIGEST,
+        'enabled' => true,
+    ]);
+
+    $this->artisan('digest:weekly')->assertExitCode(0);
+
+    Http::assertSent(fn ($req) => $req->url() === 'https://discord.com/api/webhooks/100/aaa?thread_id=555');
+    Http::assertNotSent(fn ($req) => ! str_contains($req->url(), 'thread_id=555'));
 });
 
 it('digest:weekly falls back to stdout when neither the table nor the env var is set', function () {

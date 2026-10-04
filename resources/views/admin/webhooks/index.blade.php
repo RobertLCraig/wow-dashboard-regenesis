@@ -134,6 +134,9 @@
                 <input type="url" name="url" required
                        placeholder="https://discord.com/api/webhooks/..."
                        class="w-full bg-bg border border-line rounded px-2 py-1 text-sm font-mono">
+                <p class="text-xs text-muted mt-1">
+                    To post into a thread, add <code>?thread_id=</code> and the thread's id: turn on Developer Mode in Discord, then right-click the thread and Copy Thread ID.
+                </p>
             </div>
             <div>
                 <label class="block text-xs uppercase tracking-wider text-muted mb-1">Purpose</label>
