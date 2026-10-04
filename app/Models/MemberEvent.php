@@ -36,6 +36,10 @@ class MemberEvent extends Model
 
     public const TYPE_ANNIVERSARY = 'anniversary';
 
+    public const TYPE_TEAM_JOINED = 'team_joined';
+
+    public const TYPE_TEAM_LEFT = 'team_left';
+
     protected $fillable = [
         'member_id',
         'snapshot_id',

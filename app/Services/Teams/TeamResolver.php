@@ -3,6 +3,7 @@
 namespace App\Services\Teams;
 
 use App\Models\Member;
+use App\Models\MemberEvent;
 use App\Models\MemberTeam;
 use App\Models\TeamMapping;
 use Illuminate\Support\Facades\Cache;
@@ -24,6 +25,12 @@ use Illuminate\Support\Facades\DB;
  * is_override = true is treated as fully officer-managed for team
  * membership. The recompute leaves those members untouched. Clearing the
  * override deletes the override rows and re-derives from rank.
+ *
+ * Team history: every member_teams write goes through this class, and each
+ * one writes a `team_joined` or `team_left` member_event per team the
+ * member gained or lost, with payload {team, via: rank|override, user_id}.
+ * These are the only record that a member was ever on a team; the
+ * member_teams row itself is deleted when it changes.
  */
 class TeamResolver
 {
@@ -183,12 +190,12 @@ class TeamResolver
         )));
 
         if ($valid === []) {
-            $this->clearOverrides($member);
+            $this->clearOverrides($member, $userId);
 
             return;
         }
 
-        DB::transaction(function () use ($member, $valid, $userId) {
+        $this->recordingChanges($member->id, 'override', $userId, function () use ($member, $valid, $userId) {
             MemberTeam::query()->where('member_id', $member->id)->delete();
             foreach ($valid as $team) {
                 MemberTeam::query()->create([
@@ -205,16 +212,15 @@ class TeamResolver
      * Drop all override rows for the member and re-derive from rank.
      * Inverse of setOverrides().
      */
-    public function clearOverrides(Member $member): void
+    public function clearOverrides(Member $member, ?int $userId = null): void
     {
-        DB::transaction(function () use ($member) {
+        $this->recordingChanges($member->id, 'override', $userId, function () use ($member) {
             MemberTeam::query()
                 ->where('member_id', $member->id)
                 ->where('is_override', true)
                 ->delete();
             $rankTeam = $this->forRank($member->rank_name);
-            $expected = $rankTeam !== null ? [$rankTeam] : [];
-            $this->replaceRankRows($member->id, $expected);
+            $this->writeRankRows($member->id, $rankTeam !== null ? [$rankTeam] : []);
         });
     }
 
@@ -228,16 +234,55 @@ class TeamResolver
      */
     private function replaceRankRows(int $memberId, array $teams): void
     {
-        DB::transaction(function () use ($memberId, $teams) {
-            MemberTeam::query()
-                ->where('member_id', $memberId)
-                ->where('is_override', false)
-                ->delete();
-            foreach (array_values(array_unique($teams)) as $team) {
-                MemberTeam::query()->updateOrCreate(
-                    ['member_id' => $memberId, 'team' => $team],
-                    ['is_override' => false]
-                );
+        $this->recordingChanges($memberId, 'rank', null, fn () => $this->writeRankRows($memberId, $teams));
+    }
+
+    /**
+     * @param  list<string>  $teams
+     */
+    private function writeRankRows(int $memberId, array $teams): void
+    {
+        MemberTeam::query()
+            ->where('member_id', $memberId)
+            ->where('is_override', false)
+            ->delete();
+        foreach (array_values(array_unique($teams)) as $team) {
+            MemberTeam::query()->updateOrCreate(
+                ['member_id' => $memberId, 'team' => $team],
+                ['is_override' => false]
+            );
+        }
+    }
+
+    /**
+     * Run a member_teams write and, in the same transaction, write one
+     * team_joined / team_left member_event per team the member gained or
+     * lost. A write that leaves the same set of teams writes nothing.
+     *
+     * @param  'rank'|'override'  $via
+     */
+    private function recordingChanges(int $memberId, string $via, ?int $userId, callable $write): void
+    {
+        DB::transaction(function () use ($memberId, $via, $userId, $write) {
+            $teamsNow = fn () => MemberTeam::query()->where('member_id', $memberId)->pluck('team')->unique()->all();
+            $before = $teamsNow();
+            $write();
+            $after = $teamsNow();
+
+            $changes = [
+                MemberEvent::TYPE_TEAM_LEFT => array_diff($before, $after),
+                MemberEvent::TYPE_TEAM_JOINED => array_diff($after, $before),
+            ];
+            foreach ($changes as $type => $teams) {
+                foreach ($teams as $team) {
+                    MemberEvent::query()->create([
+                        'member_id' => $memberId,
+                        'snapshot_id' => null,
+                        'type' => $type,
+                        'payload_json' => ['team' => $team, 'via' => $via, 'user_id' => $userId],
+                        'occurred_at' => now(),
+                    ]);
+                }
             }
         });
     }

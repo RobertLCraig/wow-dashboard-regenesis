@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Member;
+use App\Models\MemberEvent;
 use App\Models\MemberTeam;
 use App\Models\Snapshot;
 use App\Models\TeamMapping;
@@ -383,4 +384,166 @@ it('admin UI saves new role + recomputes members.team', function () {
         ->where('key', '987654321098765432')
         ->value('team'))->toBe('heroic');
     expect(teamsFor('Newrank-Silvermoon'))->toBe(['heroic_trial']);
+});
+
+/**
+ * Team events written after the given member_events id, as
+ * "type:team:via:user_id" strings, sorted so the assertions read as a set.
+ *
+ * @return list<string>
+ */
+function teamEventsAfter(int $afterId, ?int $memberId = null): array
+{
+    $rows = MemberEvent::query()
+        ->where('id', '>', $afterId)
+        ->whereIn('type', ['team_joined', 'team_left'])
+        ->when($memberId, fn ($q) => $q->where('member_id', $memberId))
+        ->get()
+        ->map(fn (MemberEvent $e) => implode(':', [
+            $e->type,
+            $e->payload_json['team'] ?? '?',
+            $e->payload_json['via'] ?? '?',
+            $e->payload_json['user_id'] ?? 'null',
+        ]))
+        ->all();
+    sort($rows);
+
+    return $rows;
+}
+
+function lastTeamEventId(): int
+{
+    return (int) MemberEvent::query()->max('id');
+}
+
+function memberOnRank(string $name, string $rank): Member
+{
+    return Member::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'name' => $name,
+        'rank_name' => $rank,
+        'class' => 'PALADIN',
+        'level' => 80,
+        'rank_index' => 4,
+        'status' => Member::STATUS_ACTIVE,
+        'first_seen_at' => now(),
+        'last_seen_at' => now(),
+    ]);
+}
+
+it('records a team change made by a rank change', function () {
+    seedMappings();
+
+    $import = function (string $rank, string $hash) {
+        $snapshot = Snapshot::query()->create([
+            'guild_key' => 'Regenesis-Silvermoon',
+            'captured_at' => now(),
+            'source' => Snapshot::SOURCE_GRM,
+            'payload_hash' => hash('sha256', $hash),
+        ]);
+        (new GrmNormalizer('Regenesis-Silvermoon'))->apply($snapshot, [
+            'GRM_GuildMemberHistory_Save' => ['Regenesis-Silvermoon' => ['Trialist-Silvermoon' => [
+                'GUID' => 'Player-3391-TTT',
+                'class' => 'PRIEST', 'race' => 'Human', 'level' => 80,
+                'rankName' => $rank, 'rankIndex' => 5,
+                'isOnline' => false, 'isMobile' => false,
+            ]]],
+        ]);
+    };
+
+    $import('Heroic Try out', 'first');
+    expect(teamsFor('Trialist-Silvermoon'))->toBe(['heroic_trial']);
+
+    $before = lastTeamEventId();
+    $import('Heroic Raider', 'second');
+
+    expect(teamsFor('Trialist-Silvermoon'))->toBe(['heroic']);
+    expect(teamEventsAfter($before))->toBe([
+        'team_joined:heroic:rank:null',
+        'team_left:heroic_trial:rank:null',
+    ]);
+    $event = MemberEvent::query()->where('id', '>', $before)->where('type', 'team_joined')->first();
+    expect($event->snapshot_id)->toBeNull();
+    expect($event->occurred_at)->not->toBeNull();
+});
+
+it('records a team change made by an officer override', function () {
+    seedMappings();
+    $member = memberOnRank('Overridden-Silvermoon', 'Heroic Raider');
+    app(TeamResolver::class)->syncRankRowsForMember($member);
+    $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
+
+    // Heroic is already there by rank, so only mythic is gained.
+    $before = lastTeamEventId();
+    $this->actingAs($user)
+        ->post('/character/Overridden-Silvermoon/teams', ['teams' => ['heroic', 'mythic'], 'action' => 'save'])
+        ->assertRedirect();
+    expect(teamEventsAfter($before))->toBe(["team_joined:mythic:override:{$user->id}"]);
+
+    // Clearing reverts to heroic by rank, so only mythic is lost.
+    $before = lastTeamEventId();
+    $this->actingAs($user)
+        ->post('/character/Overridden-Silvermoon/teams', ['action' => 'clear'])
+        ->assertRedirect();
+    expect(teamEventsAfter($before))->toBe(["team_left:mythic:override:{$user->id}"]);
+
+    // Saving with nothing ticked is also a clear, and also carries the officer.
+    app(TeamResolver::class)->setOverrides($member, ['mythic'], $user->id);
+    $before = lastTeamEventId();
+    $this->actingAs($user)
+        ->post('/character/Overridden-Silvermoon/teams', ['teams' => [], 'action' => 'save'])
+        ->assertRedirect();
+    expect(teamEventsAfter($before))->toBe([
+        'team_joined:heroic:override:'.$user->id,
+        'team_left:mythic:override:'.$user->id,
+    ]);
+});
+
+it('writes no team event when nothing changed', function () {
+    seedMappings();
+    $resolver = app(TeamResolver::class);
+    $byRank = memberOnRank('Steady-Silvermoon', 'Heroic Raider');
+    $resolver->syncRankRowsForMember($byRank);
+    $byOverride = memberOnRank('Pinned-Silvermoon', 'Officer');
+    $resolver->setOverrides($byOverride, ['heroic', 'mythic']);
+
+    $before = lastTeamEventId();
+    $resolver->recomputeMembers('Regenesis-Silvermoon');
+    $resolver->syncRankRowsForMember($byRank);
+    // These two rewrite every row, but leave the same teams behind.
+    $resolver->clearOverrides($byRank);
+    $resolver->setOverrides($byOverride, ['mythic', 'heroic']);
+
+    expect(teamsFor('Steady-Silvermoon'))->toBe(['heroic']);
+    expect(teamsFor('Pinned-Silvermoon'))->toBe(['heroic', 'mythic']);
+    expect(teamEventsAfter($before))->toBe([]);
+});
+
+it('records team changes from a mapping recompute', function () {
+    seedMappings();
+    $resolver = app(TeamResolver::class);
+    $gains = memberOnRank('Gains-Silvermoon', 'Casual');
+    $moves = memberOnRank('Moves-Silvermoon', 'Heroic Raider');
+    $stays = memberOnRank('Stays-Silvermoon', 'Mythic Raider');
+    $pinned = memberOnRank('Pinned-Silvermoon', 'Heroic Raider');
+    foreach ([$gains, $moves, $stays] as $m) {
+        $resolver->syncRankRowsForMember($m);
+    }
+    $resolver->setOverrides($pinned, ['heroic']);
+    $user = User::factory()->create(['tier' => 'officer', 'last_role_check_at' => now()]);
+
+    $before = lastTeamEventId();
+    $this->actingAs($user)
+        ->post('/admin/teams', ['ranks' => [
+            ['key' => 'Casual', 'team' => 'heroic_trial'],
+            ['key' => 'Heroic Raider', 'team' => 'mythic'],
+        ]])
+        ->assertRedirect('/admin/teams');
+
+    expect(teamEventsAfter($before, $gains->id))->toBe(['team_joined:heroic_trial:rank:null']);
+    expect(teamEventsAfter($before, $moves->id))->toBe([
+        'team_joined:mythic:rank:null',
+        'team_left:heroic:rank:null',
+    ]);
+    expect(teamEventsAfter($before))->toHaveCount(3);
 });

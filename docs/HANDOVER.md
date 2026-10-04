@@ -46,7 +46,10 @@ the authority and are unusually good.
 `member_events.type` is an enum of `joined`, `returned`, `left`, `kicked`, `banned`, `promoted`,
 `demoted`, `level_up`, `note_changed`, `marked_for_promote`, `marked_for_demote`,
 `marked_for_kick`, `became_inactive_30d`, `anniversary`. The detection rule for each one lives in
-`App\Services\Grm\GrmSnapshotDiffer`, and that is the one place they are written down.
+`App\Services\Grm\GrmSnapshotDiffer`, and that is the one place they are written down. Two more,
+`team_joined` and `team_left`, are written by `App\Services\Teams\TeamResolver` on every raid-team
+change (card 0033), with payload `{team, via: rank|override, user_id}`. They are the only team
+history, because a changed `member_teams` row is deleted.
 
 **The four `member_*_snapshots` side tables are append-only fat JSON, and they are the thing that
 filled the production database.** `member_equipment_snapshots` (gear, about 43 KB a row),

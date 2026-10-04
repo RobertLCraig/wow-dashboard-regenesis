@@ -40,7 +40,7 @@ class CharacterTeamOverrideController extends Controller
         ]);
 
         if (($validated['action'] ?? 'save') === 'clear') {
-            $resolver->clearOverrides($member);
+            $resolver->clearOverrides($member, auth()->id());
             $status = "Cleared team override on {$member->name}; reverted to rank-derived.";
         } else {
             $teams = $validated['teams'] ?? [];
