@@ -29,9 +29,9 @@ thread if it has gone quiet. Nobody needed it until now.
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [ ] #1 WHEN an officer saves a webhook URL ending in `?thread_id=` and a numeric id, THE APP SHALL accept and store it. proves: `it accepts a webhook url that names a thread`
-- [ ] #2 WHEN an officer saves a webhook URL with any other query string, THE APP SHALL reject it with a validation error. proves: `it rejects a webhook url with any other query string`
-- [ ] #3 WHEN `digest:weekly` runs against a webhook stored with a thread id, THE APP SHALL make its request to that URL with the `thread_id` query parameter intact. proves: `digest:weekly posts into the thread a webhook names`
+- [x] #1 WHEN an officer saves a webhook URL ending in `?thread_id=` and a numeric id, THE APP SHALL accept and store it. proves: `it accepts a webhook url that names a thread`
+- [x] #2 WHEN an officer saves a webhook URL with any other query string, THE APP SHALL reject it with a validation error. proves: `it rejects a webhook url with any other query string`
+- [x] #3 WHEN `digest:weekly` runs against a webhook stored with a thread id, THE APP SHALL make its request to that URL with the `thread_id` query parameter intact. proves: `digest:weekly posts into the thread a webhook names`
 <!-- AC:END -->
 
 ## Tasks
@@ -67,3 +67,24 @@ on this card before building it.
 
 Discord's reference for the parameter is the `thread_id` query string on "Execute Webhook":
 https://discord.com/developers/docs/resources/webhook#execute-webhook
+
+## Comments
+
+**2026-10-04** RESULT: done
+TESTS: +3 new (one of them a 5-row dataset, so 7 cases), all green; suite 780 passed; pint --test exit 0
+TOUCHED: app/Http/Controllers/Admin/DiscordWebhookController.php
+TOUCHED: resources/views/admin/webhooks/index.blade.php
+TOUCHED: tests/Feature/DiscordWebhookAdminTest.php
+TOUCHED: tests/Feature/WeeklyDigestTest.php
+OUT-OF-SCOPE: none
+
+The `url` regex in `validatePayload()` now ends `(\?thread_id=[0-9]+)?$`. Nothing else may follow the token. One help line under the URL field says how to get the thread id, and that Discord's Developer Mode must be on. No change to `DiscordWebhookPoster`: `Http::post()` keeps the query string, as the Plan said.
+
+How each test was watched failing:
+- #1 `it accepts a webhook url that names a thread` failed first with "The url field format is invalid." (the old rule), then went green with the new rule.
+- #2 `it rejects a webhook url with any other query string` was green first, because the old rule rejected every query. To watch it catch the fault, I loosened the rule on purpose to `(\?.*)?$`. All 5 rows went red (`?wait=true`, `?thread_id=abc`, `?thread_id=`, `?thread_id=123&wait=true`, a bare `?`). Then I set the tight rule.
+- #3 `digest:weekly posts into the thread a webhook names` was green first, because the send path needed no change. To watch it catch the fault, I made the poster strip the query string with `strtok($url, '?')`. It went red. Then I reverted that, and `git diff` shows no change to the poster.
+
+The edit form has no URL field (update keeps the old URL when it is blank), so the help text is only on the add form.
+
+A browser check is still owed. Herd serves C:\Dev\Regenesis, not this worktree, so nobody has looked at the help line on the page.
