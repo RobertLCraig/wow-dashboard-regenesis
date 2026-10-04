@@ -36,9 +36,9 @@ comfort". The roster count has the same problem and no such guard.
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [ ] #1 WHEN nothing happened in the week (no joins, leaves, parses, anniversaries, newly inactive members or action-queue items), THE APP SHALL include one line saying it was a quiet week, under the roster line. proves: `digest says it was a quiet week when nothing happened`
-- [ ] #2 WHEN anything in that list did happen, THE APP SHALL leave the quiet-week line out. proves: `digest leaves out the quiet-week line when something happened`
-- [ ] #3 WHEN the guild has no active members, THE APP SHALL replace the roster line with a warning that the roster sync has no data, and SHALL NOT print "0 active". proves: `digest warns instead of reporting zero active members`
+- [x] #1 WHEN nothing happened in the week (no joins, leaves, parses, anniversaries, newly inactive members or action-queue items), THE APP SHALL include one line saying it was a quiet week, under the roster line. proves: `digest says it was a quiet week when nothing happened`
+- [x] #2 WHEN anything in that list did happen, THE APP SHALL leave the quiet-week line out. proves: `digest leaves out the quiet-week line when something happened`
+- [x] #3 WHEN the guild has no active members, THE APP SHALL replace the roster line with a warning that the roster sync has no data, and SHALL NOT print "0 active". proves: `digest warns instead of reporting zero active members`
 <!-- AC:END -->
 
 ## Tasks
@@ -72,3 +72,21 @@ array, and `renderMarkdown()` turns it into lines. Change only `renderMarkdown()
 "It worked" is the named tests passing, the whole suite green, and
 `.\vendor\bin\pint.bat --test` exiting 0. Run `php artisan digest:weekly --dry-run` against your
 local data and paste the output into the card comment, so a reviewer sees the real text.
+
+## Comments
+
+**2026-10-04** RESULT: done
+TESTS: +8 new (3 tests, one with a 6-case dataset), 1 changed, all green (788 passed); pint --test exit 0
+TOUCHED: app/Services/Digest/WeeklyDigestBuilder.php
+TOUCHED: tests/Feature/WeeklyDigestTest.php
+OUT-OF-SCOPE: none
+
+Only renderMarkdown() changed. When roster.active is 0 the roster line is replaced by: "⚠️ **Roster has no data** - the GRM sync may have stopped. Check the dashboard before reading anything below." Otherwise, when joined, left, every action-queue count, best_parses, anniversaries and newly_inactive are all zero/empty, the line directly under the roster line is: "Quiet week: no joins, leaves, parses or anniversaries."
+
+Watched red first: #1 and #3 failed on the old output ("**Roster**: 0 active." / no quiet line). #2 cannot fail before the line exists, so I printed the line unconditionally and watched all six dataset cases fail, then added the condition. I then removed each of the six terms of the condition in turn: each removal turned exactly one case red, so every term is guarded by its own case.
+
+Changed existing test: `builder produces markdown even with an empty guild` asserted `0 active`; it now asserts `Roster has no data`, as the card's Plan says.
+
+Assumption: on a zero-active week the quiet-week line is not printed. #1 places it under the roster line, which that week does not have, and "quiet" next to a sync with no data would be the false comfort this card exists to stop.
+
+Not done: `php artisan digest:weekly --dry-run` could not run from the worktree. The .env points at local MySQL (127.0.0.1:3306), and it refused the connection, so there is no real-data output to paste. A reviewer should run the dry run with MySQL up. No browser check applies (no view changed).
