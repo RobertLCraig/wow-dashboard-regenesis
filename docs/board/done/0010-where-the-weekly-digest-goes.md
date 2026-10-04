@@ -45,3 +45,8 @@ app can post without that being a precedent for posting performance data.
 
 
 **2026-08-18** Auto-post to an officer channel on a schedule Maybe we can post to a thread on the officer-text channel
+
+**2026-10-04** RESULT: done
+TOUCHED: 0030 - feature: the /admin/webhooks form accepts a webhook URL ending in ?thread_id=<id>, so the digest can post into a thread in officer-text.
+TOUCHED: 0031 - feature: the digest says 'quiet week' when nothing happened, and warns that the roster sync has no data instead of posting '0 active'. This is the empty-week case 0010 required.
+TOUCHED: 0032 - decision (human-review): thread or straight into the channel, plus the thread id; and what the live /admin/webhooks page lists for Weekly digest today. The digest is ALREADY scheduled every Sunday 09:00 UK (routes/console.php), so 0010's premise that it only runs when triggered was wrong. Any existing row means it is already posting somewhere.
