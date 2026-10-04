@@ -30,10 +30,10 @@ ever needed the present.
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [ ] #1 WHEN a GRM import moves a member from a trial team to a raid team by their rank, THE APP SHALL write one `team_left` event for the old team and one `team_joined` event for the new team, each naming the team in its payload. proves: `it records a team change made by a rank change`
-- [ ] #2 WHEN an officer sets or clears a team override on the character page, THE APP SHALL write `team_joined` / `team_left` events for exactly the teams that changed, with the officer's user id in the payload. proves: `it records a team change made by an officer override`
-- [ ] #3 WHEN a recompute leaves a member's teams exactly as they were, THE APP SHALL write no event. proves: `it writes no team event when nothing changed`
-- [ ] #4 WHEN a recompute from `/admin/teams` changes the teams of many members, THE APP SHALL write one event per team gained or lost per member, and no more. proves: `it records team changes from a mapping recompute`
+- [x] #1 WHEN a GRM import moves a member from a trial team to a raid team by their rank, THE APP SHALL write one `team_left` event for the old team and one `team_joined` event for the new team, each naming the team in its payload. proves: `it records a team change made by a rank change`
+- [x] #2 WHEN an officer sets or clears a team override on the character page, THE APP SHALL write `team_joined` / `team_left` events for exactly the teams that changed, with the officer's user id in the payload. proves: `it records a team change made by an officer override`
+- [x] #3 WHEN a recompute leaves a member's teams exactly as they were, THE APP SHALL write no event. proves: `it writes no team event when nothing changed`
+- [x] #4 WHEN a recompute from `/admin/teams` changes the teams of many members, THE APP SHALL write one event per team gained or lost per member, and no more. proves: `it records team changes from a mapping recompute`
 <!-- AC:END -->
 
 ## Tasks
@@ -66,3 +66,26 @@ know the suite is green before you touch it.
    tests. Copy the setup of the nearest test that builds a `TeamMapping` and a `Member`.
 
 "It worked" is the four named tests passing and `.\vendor\bin\pint.bat --test` exiting 0.
+
+## Comments
+
+**2026-10-05** RESULT: done
+TESTS: +4 new, all green (792 passed; pint --test passed)
+TOUCHED: app/Services/Teams/TeamResolver.php
+app/Models/MemberEvent.php
+app/Http/Controllers/Dashboard/CharacterTeamOverrideController.php
+tests/Feature/TeamMappingTest.php
+docs/HANDOVER.md
+OUT-OF-SCOPE: none
+
+Built: a private TeamResolver::recordingChanges() wraps every member_teams write (replaceRankRows, setOverrides, clearOverrides). Inside one DB::transaction it reads the member's teams, runs the write, reads again, and writes one team_joined / team_left member_event per team gained / lost. Payload {team, via: rank|override, user_id}; snapshot_id null; occurred_at now. clearOverrides used to call replaceRankRows from inside its own transaction; it now calls a plain writeRankRows() so one clear records once, not twice. The search for MemberTeam:: under app/ found no writer outside TeamResolver.
+
+One change outside TeamResolver: clearOverrides() had no user id parameter, so criterion 2 (officer's id on a clear) could not be met. It now takes ?int $userId = null, setOverrides passes its id through on an empty selection, and CharacterTeamOverrideController passes auth()->id() on 'clear'. Added TYPE_TEAM_JOINED / TYPE_TEAM_LEFT constants on MemberEvent beside the others.
+
+Assumed: a recompute from /admin/teams records via 'rank' with user_id null. recomputeMembers() takes no user, and the card's payload says 'via rank' for rank-derived rows. If the pipeline page wants to know which officer edited the mapping, that is a new card.
+
+Test-first: #1, #2 and #4 were watched red before the code (no events written, array mismatch). #3 ('writes no team event when nothing changed') was green before the code, because no events existed at all; I then swapped the diff for a naive 'every row before is left, every row after is joined' and watched #3 (and #2) go red, then restored it. #3 drives clearOverrides and setOverrides on members whose teams do not change, which rewrite every row, so it catches that naive version.
+
+Readers: the Recent activity widget (log-timeline.blade.php) reads $timeline type_name values from GRM's own log, not member_events, so the new events do not appear there. The weekly digest and DashboardController filter member_events by explicit type lists, so they ignore the new types. The character page's event list shows every member_event type, so it will now show 'team joined' / 'team left' lines with the payload as compact JSON (no 'note' or 'from/to' key to prettify). That is not the Recent activity widget, so I left it alone; say if it looks wrong.
+
+A browser check is still owed: Herd serves C:\Dev\Regenesis, not this worktree.
