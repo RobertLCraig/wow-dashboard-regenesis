@@ -44,3 +44,9 @@ the only one who can answer it.
 
 
 **2026-08-18** Option 2
+
+**2026-10-04** RESULT: done
+TOUCHED: docs/board/todo/0033-record-each-team-change-as-a-member-event.md, docs/board/todo/0034-trial-pipeline-page.md, docs/board/human-review/0035-what-bench-means-and-who-counts-as-an-applicant.md
+0033 - record every raid-team change as a team_joined / team_left member event from TeamResolver, so trial history starts accumulating now.
+0034 - the officer-only /roster/pipeline page with Applied, Trial, Raider and Alumni columns, days in trial and per-person team history; needs 0033, built without bench.
+0035 - decision: what bench means in this guild (a named rank or role, or no bench stage) and whether Applied shows every recruit form or raid applicants only.
