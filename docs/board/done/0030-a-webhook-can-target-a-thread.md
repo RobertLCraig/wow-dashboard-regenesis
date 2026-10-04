@@ -88,3 +88,76 @@ How each test was watched failing:
 The edit form has no URL field (update keeps the old URL when it is blank), so the help text is only on the add form.
 
 A browser check is still owed. Herd serves C:\Dev\Regenesis, not this worktree, so nobody has looked at the help line on the page.
+
+### 2026-10-04 review (v20261004191413-5aea)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 117s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+I tried to break each criterion. I could not break any of them.
+
+**#1: a thread URL is accepted and stored.**
+- **Code:** `DiscordWebhookController::validatePayload()`. The `url` regex now ends with `(\?thread_id=[0-9]+)?$`, so it allows `?thread_id=` with digits.
+- **Test:** `it accepts a webhook url that names a thread`. It posts the form and checks that the stored `url` matches the input exactly.
+
+**#2: any other query string is rejected.**
+- **Code:** the same regex. The `$` comes straight after the optional `?thread_id=<digits>`, so nothing else can follow the token.
+- **Test:** five bad URLs, each rejected, with no row saved: `?wait=true`, `?thread_id=abc`, `?thread_id=`, `?thread_id=123&wait=true` and a bare `?`.
+
+**#3: the digest posts with `thread_id` intact.**
+- **Code:** `DiscordWebhookPoster::post()` sends `$this->webhookUrl` to `Http::post()` as it is. Nothing adds to the URL or cuts it.
+- **Test:** `digest:weekly posts into the thread a webhook names`. It checks the exact URL that was sent, query string included.
+
+The full test suite passed (exit 0).
+
+VERDICT: sound
+
+**scope: sound**
+
+I checked what this build changed against what the card asked for.
+
+**The build stayed inside the fence.** The card's own commits are `ec7f49f`, `06b4585` and `c322904`. They change only these files:
+- `DiscordWebhookController::validatePayload()`. The regex now allows one optional `?thread_id=<digits>` and nothing else.
+- The add form in `resources/views/admin/webhooks/index.blade.php`. It has one help line, and the line names Developer Mode.
+- The two test files that the Plan named.
+- The card itself.
+
+**The extra files in the diff came from other work.** The moves of `0010` and `0011`, and the new cards `0033`, `0034` and `0035`, are in commits `b8b6263` and `374818d`. Those commits came before this build. They are not scope creep by this card.
+
+**No fence was crossed.**
+- `DiscordWebhookPoster` did not change.
+- No thread is made from the app.
+- No new column or migration was added.
+- The empty-week text was not touched.
+- No other webhook purpose was touched.
+
+**Nothing is half done.**
+- The three named tests exist. Each one tests what its criterion says.
+- The edit form has no URL field, so the help line is only on the add form. That is correct, not a gap.
+- The browser check that is still owed is a manual follow-up. It is not an acceptance criterion.
+- The boxes under `## Tasks` are still unticked. That is only bookkeeping. The work for each task is in the diff.
+
+I did not disprove any criterion.
+
+VERDICT: sound
+
+**breakage: sound**
+
+I tried to break this card. I could not.
+
+**What I checked:**
+- Only one place in `app/` checks a webhook URL: the `url` rule in `DiscordWebhookController::validatePayload()`. Create and update both use it, so the new rule applies to both.
+- No sender adds its own query string to the URL, such as `?wait=`. So no code builds a bad URL like `...?thread_id=1?wait=true`.
+- The `DiscordWebhook` model does not mask or cut the URL. The full URL, with its thread id, is stored and read back unchanged. Test #1 proves this.
+- `DiscordWebhookPoster::post()` did not change. Test #3 checks that the request goes to the exact URL, with `thread_id` still in it.
+- Test #2 rejects five bad query strings, and the builder showed that each one fails under a loose rule.
+- The edit form has no URL field, so the help text only needs to be on the add form.
+- No docblock or comment says "no query string", so the change made no comment false.
+
+**Not a defect:** nobody has looked at the help line in a browser yet. This card does not ask for that check.
+
+VERDICT: sound
+
