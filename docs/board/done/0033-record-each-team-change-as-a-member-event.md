@@ -89,3 +89,72 @@ Test-first: #1, #2 and #4 were watched red before the code (no events written, a
 Readers: the Recent activity widget (log-timeline.blade.php) reads $timeline type_name values from GRM's own log, not member_events, so the new events do not appear there. The weekly digest and DashboardController filter member_events by explicit type lists, so they ignore the new types. The character page's event list shows every member_event type, so it will now show 'team joined' / 'team left' lines with the payload as compact JSON (no 'note' or 'from/to' key to prettify). That is not the Recent activity widget, so I left it alone; say if it looks wrong.
 
 A browser check is still owed: Herd serves C:\Dev\Regenesis, not this worktree.
+
+### 2026-10-05 review (v20261005003655-1759)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 102s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+I could not break any of the four criteria. Every write to the team table goes through one class, `app/Services/Teams/TeamResolver.php`.
+
+**#1: a rank change during a GRM import.** `GrmNormalizer::apply()` calls `TeamResolver::syncRankRowsForMember()`. That calls `replaceRankRows()`, which uses `recordingChanges()`. `recordingChanges()` reads the teams before and after the write. It writes one `team_left` and one `team_joined` event, and each event names its team. The test does a real import twice, with two different ranks.
+
+**#2: an officer override.** `CharacterTeamOverrideController::update()` passes `auth()->id()` (the officer's user id) on a clear. `setOverrides()` and `clearOverrides()` both use `recordingChanges()` with that id. The events cover only the difference between before and after. The test checks a save, a clear, and a save with nothing ticked.
+
+**#3: no change.** `recordingChanges()` compares the two team lists with `array_diff`. If the lists are the same, it writes nothing. `recomputeMembers()` and `syncRankRowsForMember()` also skip any member whose teams did not change. The test rewrites every row and still gets zero events.
+
+**#4: a recompute from `/admin/teams`.** `recomputeMembers()` calls `replaceRankRows()` once for each member that changed. That gives one event for each team gained or lost. Members with an override are skipped. The test checks for exactly 3 events.
+
+I found no other place in `app/` that writes to the team table.
+
+VERDICT: sound
+
+**scope: sound**
+
+I tried to break this card on scope. I could not.
+
+**What the card changed.** The card's commit is `75c3704`. It changed 5 files:
+- `TeamResolver`
+- `MemberEvent`
+- `CharacterTeamOverrideController`
+- `TeamMappingTest`
+- `docs/HANDOVER.md`
+
+**The other files in the diff are not from this card.** The webhook and digest changes belong to cards `0030` and `0031`, which are already done and were committed earlier.
+
+**One change was outside `TeamResolver`.** The card asked for officer events to carry the officer's user id. To do that on a clear, `clearOverrides()` needed a `$userId` input, so `CharacterTeamOverrideController::update()` now passes the officer's id on a clear. Criterion #2 needs this. It is not scope creep.
+
+**No writer was missed.** `MemberTeam` is only written inside `TeamResolver`. In `GrmNormalizer`, team syncing is done through the resolver.
+
+**No fence was crossed:**
+- No backfill was added.
+- How teams are worked out did not change.
+- No migration was added.
+- The new events do not show on the Recent activity widget. They do show on the character page's event list. The builder said so on the card, as the card asked.
+
+**Nothing is half done.** The four named tests exist. Both docs (the `TeamResolver` docblock and `HANDOVER.md`) name the two new event types. The boxes under `## Tasks` are still unticked. That is only bookkeeping.
+
+VERDICT: sound
+
+**breakage: sound**
+
+I tried to break this card and could not. The verdict is **sound**.
+
+**What I checked:**
+- **Every team write goes through one place.** The only code that writes `member_teams` is in `TeamResolver`. There is one rank write (`replaceRankRows()`) and two officer writes (`setOverrides()`, `clearOverrides()`), and all three now go through `recordingChanges()`. I searched `app/` for writes outside this class and found none.
+- **The callers are up to date.**
+  - `recomputeMembers()` and `syncRankRowsForMember()` both still reach `replaceRankRows()`.
+  - `CharacterTeamOverrideController::update()` now passes the officer id on both save and clear.
+  - The new `?int $userId = null` parameter is optional, so older calls still work.
+- **One clear makes one set of events.** `clearOverrides()` now calls `writeRankRows()` directly. Before, it called `replaceRankRows()`, which would also have recorded the change.
+- **Other readers do not show the new events.** `DashboardController`, `WeeklyDigestBuilder` and `GrmSnapshotDiffer` each pick events by a fixed list of types, so they skip `team_joined` and `team_left`.
+- **One small side effect, not a fault.** The character page list in `CharacterController` (the query at the line `return MemberEvent::query()`) shows every type, with a row limit. Team events now use some of those rows, so older roster events can drop off that list. The builder said this on the card. It is not the Recent activity widget, so no criterion fails.
+- **The comments are still true.** The `TeamResolver` class docblock and the `replaceRankRows()` docblock match the code.
+
+All four criteria still hold. You do not need to do anything for this card.
+
+VERDICT: sound
+
