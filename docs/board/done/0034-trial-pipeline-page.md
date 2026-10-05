@@ -190,3 +190,67 @@ Test-first: `it lists a recruit form with no team under applied` now also builds
 All earlier assumptions from the first take still hold (name matching before '-Realm', 60-day window in APPLIED_WINDOW_DAYS, trial days from the latest team_joined for that team, alumni leave date from the latest left/kicked/banned event).
 
 Browser check still owed after merge: Herd serves C:\Dev\Regenesis, not this worktree.
+
+### 2026-10-05 review (v20261005050536-e553)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 86s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+I checked all 7 rules against the code. I could not break any of them.
+
+- **#1, four columns with counts:** `TrialPipelineController::__invoke()` builds the four lists. `dashboard/pipeline.blade.php` shows Applied, Trial, Raider and Alumni. Each column heading shows its count.
+- **#2, trial days:** `__invoke()` finds the latest `team_joined` event for the member's trial team. It counts the days from that event. When there is no event, `days` is null. The view then prints "since before records".
+- **#3, raider:** `__invoke()` checks trial teams first. A member on `mythic` or `heroic` with no trial team goes under Raider.
+- **#4, alumni:** `__invoke()` takes members with status `left` or `banned`, including deleted rows (`withTrashed()`). Each must have a `team_joined` event. The page shows their last team and the date of their latest left, kicked or banned event.
+- **#5, applied:** `TrialPipelineController::applied()` now matches only against active members who are on a team. So a past recruit who left and applies again now shows under Applied. The view shows the date of the form.
+- **#6, history:** `__invoke()` sorts the events by `occurred_at`, then by `id`, so the oldest is first. The view lists them inside a `<details>` box (a box that opens on click).
+- **#7, gate:** `routes/web.php` puts the page in the officer-only `RequireTier` group.
+
+The full test suite passed.
+
+VERDICT: sound
+
+**scope: sound**
+
+I checked what this card changed against what the card asked for.
+
+**The card stayed inside its fence.**
+- The card has two commits, `6184423` and `07ce8ce`. They change only the five files that the Tasks name: `TrialPipelineController`, `dashboard/pipeline.blade.php`, the one sidebar line in `layouts/dashboard.blade.php`, `routes/web.php` and `TrialPipelineTest.php`.
+- The fix commit `07ce8ce` adds `active()` in `TrialPipelineController::applied()` and extends one test. Nothing else changed.
+- The other files in the diff come from cards `0030`, `0031` and `0033`. Those commits came earlier, and each one was reviewed on its own card.
+
+**No fence was crossed.**
+- There is no bench stage.
+- The page only reads data. `__invoke()` has no write path, and the page has no buttons that move people.
+- The roster page and its Trial chip did not change.
+- The route is in the officer-only `RequireTier` group.
+
+**Nothing is half done.**
+- The Alumni note, the `APPLIED_WINDOW_DAYS` constant and the form-matching note on the card are all there.
+- One step is still open: nobody has checked the page in a browser. The card says so, and no criterion needs that check.
+- The boxes under `## Tasks` are still unticked. That is only bookkeeping.
+
+My review found nothing that shows a criterion is not met.
+
+VERDICT: sound
+
+**breakage: sound**
+
+I tried to break the card again after the fix. I could not.
+
+**What I checked:**
+- `TrialPipelineController::applied()` now uses `active()`. This matches Trial and Raider, so the earlier defect is fixed. The extended test builds a member who left and still has a team row.
+- `Member` uses `SoftDeletes`. Alumni uses `withTrashed()`, so deleted rows also show. Applied and Trial/Raider leave deleted rows out. That is correct, because a deleted member is not on a team.
+- `pipeline.blade.php` covers each null case. A trial with no `team_joined` event shows "since before records". An alum with no leave event shows "on an unknown date". A person with no team events shows "No team changes recorded."
+- Trial days use `$joined->occurred_at->diffInDays(now())`. The event is in the past, so the number is never negative.
+- A member who left, came back and left again gets the latest leave date, because the code uses `max('occurred_at')`.
+- `TeamResolver` docblock and `docs/HANDOVER.md` still describe the events correctly. Only `TeamResolver` writes them.
+- Nothing else calls the new controller. The route and the sidebar link are new.
+
+**Known limit, not a defect:** a form is matched by character name only, without the realm. The Plan tells the builder to do it this way.
+
+VERDICT: sound
+
