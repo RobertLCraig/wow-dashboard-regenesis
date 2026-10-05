@@ -448,6 +448,7 @@
     $navPrimary = [
         ['route' => 'dashboard',              'label' => 'General',          'matches' => ['dashboard'],              'can' => 'dashboard.general.view'],
         ['route' => 'roster.index',           'label' => 'Roster',           'matches' => ['roster.*'],               'can' => 'roster.view'],
+        ['route' => 'pipeline.index',         'label' => 'Trial pipeline',   'matches' => ['pipeline.index'],         'can' => 'dashboard.view'],
         ['route' => 'reports.index',          'label' => 'Logs',             'matches' => ['reports.*'],              'can' => 'reports.view'],
         ['route' => 'dashboard.team.heroic',  'label' => 'Heroic Team',      'matches' => ['dashboard.team.heroic'],  'can' => 'dashboard.team.heroic.view'],
         ['route' => 'dashboard.team.mythic',  'label' => 'Mythic Team',      'matches' => ['dashboard.team.mythic'],  'can' => 'dashboard.team.mythic.view'],

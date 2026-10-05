@@ -31,6 +31,7 @@ use App\Http\Controllers\Dashboard\RosterSetMainMacroController;
 use App\Http\Controllers\Dashboard\RosterUnlinkAltMacroController;
 use App\Http\Controllers\Dashboard\SocialController;
 use App\Http\Controllers\Dashboard\TeamDashboardController;
+use App\Http\Controllers\Dashboard\TrialPipelineController;
 use App\Http\Controllers\Events\EventController;
 use App\Http\Controllers\PreferencesController;
 use App\Http\Middleware\RequireTier;
@@ -77,6 +78,10 @@ Route::middleware(['auth', RequireTier::class.':'.User::TIER_MEMBER])->group(fun
 // re-login.
 Route::middleware(['auth', RequireTier::class])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Recruitment pipeline: Applied / Trial / Raider / Alumni, read off
+    // recruit forms, member_teams and team_joined/team_left events.
+    Route::get('/roster/pipeline', TrialPipelineController::class)->name('pipeline.index');
     Route::post('/dashboard/members/{member}/actions', [MemberActionController::class, 'store'])->name('dashboard.member.actions.store');
 
     // Team-scoped dashboards. Same widgets as /dashboard but filtered to
