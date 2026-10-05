@@ -97,7 +97,8 @@ class TrialPipelineController extends Controller
     {
         $base = fn (string $name) => mb_strtolower(trim(explode('-', $name)[0]));
 
-        $onATeam = Member::query()->forGuild($guildKey)->hasAnyTeam()
+        // active() like Trial and Raider: a member who left keeps their team row.
+        $onATeam = Member::query()->forGuild($guildKey)->active()->hasAnyTeam()
             ->pluck('name')->map($base)->flip();
 
         return DiscordRecruitForm::query()

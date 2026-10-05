@@ -149,10 +149,14 @@ it('lists a recruit form with no team under applied', function () {
     pipelineForm('Signedup', now()->subDays(5));
     pipelineMember('Signedup-Silvermoon', [TeamMapping::TEAM_HEROIC_TRIAL]);
     pipelineForm('Ancient', now()->subDays(61));
+    // A past trial who left keeps their member_teams row; applying again still counts.
+    pipelineMember('Returner-Silvermoon', [TeamMapping::TEAM_MYTHIC_TRIAL], ['status' => Member::STATUS_LEFT]);
+    pipelineForm('Returner', now()->subDays(2));
 
     $applied = pipelineColumn(pipelinePage(), 'applied');
 
     expect($applied)->toMatch('/Hopeful.*?2026-10-01/s')
+        ->toContain('Returner')
         ->not->toContain('Signedup')
         ->not->toContain('Ancient');
 });
