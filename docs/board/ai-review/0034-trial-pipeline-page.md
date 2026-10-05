@@ -36,13 +36,13 @@ teams, and the left / kicked status on each member.
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [ ] #1 WHEN an officer opens `/roster/pipeline`, THE APP SHALL show four columns, Applied, Trial, Raider and Alumni, each with its count. proves: `it shows the four pipeline stages with counts`
-- [ ] #2 WHEN a member is on `mythic_trial` or `heroic_trial`, THE APP SHALL show them under Trial with the number of days since their latest `team_joined` event for that team, or "since before records" when there is none. proves: `it shows how long a trial has been running`
-- [ ] #3 WHEN a member is on `mythic` or `heroic` and on no trial team, THE APP SHALL show them under Raider. proves: `it puts raid team members under raider`
-- [ ] #4 WHEN a member has left or been kicked and has any `team_joined` event, THE APP SHALL show them under Alumni with their last team and the date they left. proves: `it lists a departed trial or raider under alumni`
-- [ ] #5 WHEN a new-recruits form names a character who is not on any team, THE APP SHALL show them under Applied with the date of the form. proves: `it lists a recruit form with no team under applied`
-- [ ] #6 WHEN an officer opens a person on the page, THE APP SHALL list their `team_joined` and `team_left` events oldest first. proves: `it shows a person's team history`
-- [ ] #7 WHEN a user below officer tier requests `/roster/pipeline`, THE APP SHALL refuse it the same way it refuses other officer pages. proves: `it refuses the pipeline page to a member`
+- [x] #1 WHEN an officer opens `/roster/pipeline`, THE APP SHALL show four columns, Applied, Trial, Raider and Alumni, each with its count. proves: `it shows the four pipeline stages with counts`
+- [x] #2 WHEN a member is on `mythic_trial` or `heroic_trial`, THE APP SHALL show them under Trial with the number of days since their latest `team_joined` event for that team, or "since before records" when there is none. proves: `it shows how long a trial has been running`
+- [x] #3 WHEN a member is on `mythic` or `heroic` and on no trial team, THE APP SHALL show them under Raider. proves: `it puts raid team members under raider`
+- [x] #4 WHEN a member has left or been kicked and has any `team_joined` event, THE APP SHALL show them under Alumni with their last team and the date they left. proves: `it lists a departed trial or raider under alumni`
+- [x] #5 WHEN a new-recruits form names a character who is not on any team, THE APP SHALL show them under Applied with the date of the form. proves: `it lists a recruit form with no team under applied`
+- [x] #6 WHEN an officer opens a person on the page, THE APP SHALL list their `team_joined` and `team_left` events oldest first. proves: `it shows a person's team history`
+- [x] #7 WHEN a user below officer tier requests `/roster/pipeline`, THE APP SHALL refuse it the same way it refuses other officer pages. proves: `it refuses the pipeline page to a member`
 <!-- AC:END -->
 
 ## Tasks
@@ -82,3 +82,28 @@ events in one page.
 "It worked" is the seven named tests passing and `.\vendor\bin\pint.bat --test` exiting 0. A
 browser check is still owed after merge, because Herd serves `C:\Dev\Regenesis` and not this
 worktree. Say so in your card comment.
+
+## Comments
+
+**2026-10-05** RESULT: done
+TESTS: +7 new, all green (suite 799 passed; pint --test exit 0)
+TOUCHED: app/Http/Controllers/Dashboard/TrialPipelineController.php
+TOUCHED: resources/views/dashboard/pipeline.blade.php
+TOUCHED: resources/views/layouts/dashboard.blade.php
+TOUCHED: routes/web.php
+TOUCHED: tests/Feature/TrialPipelineTest.php
+OUT-OF-SCOPE: none
+
+Built /roster/pipeline (route name pipeline.index, not roster.*, so the Roster sidebar item does not also light up on it) in the officer-only group, plus a 'Trial pipeline' sidebar link under Roster gated on dashboard.view. Four columns, each an x-clarity-table with its count. Each person's team history sits in a native <details>, so no new JavaScript.
+
+Test-first: all seven were watched red against a stub page first. #1-#6 failed because the stage columns were missing. #7 failed with 200 instead of 403 while the stub route sat in the member group. It went green when the route moved to the officer group.
+
+Applied matching: no code links a recruit form to a member. Member::DISCORD_LINK_RECRUIT_FORM exists but nothing writes it. So, as the Plan says, a form's character_name is matched against members.name before the '-Realm' part, case-insensitively. A form whose character matches any member with a member_teams row is left out, and so is a form older than TrialPipelineController::APPLIED_WINDOW_DAYS (60). Repeat forms for one character show once, the newest. 0035 can narrow this to raid applicants by adding one where() line in applied().
+
+Assumptions:
+- Trial days count from the latest team_joined whose payload team is the member's trial team. Mythic Trial is used first if they are on both trial teams.
+- Alumni 'date they left' is the latest left/kicked/banned member_event. Without one the page says 'left on an unknown date'. Nothing on members records a leave date.
+- 'Last team' is the team of the member's latest team_joined event.
+- The gate is RequireTier with no argument, like every other officer page, so raid_leader and above get in.
+
+Browser check still owed after merge: Herd serves C:\Dev\Regenesis, not this worktree.
