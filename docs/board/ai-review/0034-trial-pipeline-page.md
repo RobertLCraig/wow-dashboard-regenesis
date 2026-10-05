@@ -40,7 +40,7 @@ teams, and the left / kicked status on each member.
 - [x] #2 WHEN a member is on `mythic_trial` or `heroic_trial`, THE APP SHALL show them under Trial with the number of days since their latest `team_joined` event for that team, or "since before records" when there is none. proves: `it shows how long a trial has been running`
 - [x] #3 WHEN a member is on `mythic` or `heroic` and on no trial team, THE APP SHALL show them under Raider. proves: `it puts raid team members under raider`
 - [x] #4 WHEN a member has left or been kicked and has any `team_joined` event, THE APP SHALL show them under Alumni with their last team and the date they left. proves: `it lists a departed trial or raider under alumni`
-- [ ] #5 WHEN a new-recruits form names a character who is not on any team, THE APP SHALL show them under Applied with the date of the form. proves: `it lists a recruit form with no team under applied`
+- [x] #5 WHEN a new-recruits form names a character who is not on any team, THE APP SHALL show them under Applied with the date of the form. proves: `it lists a recruit form with no team under applied`
 - [x] #6 WHEN an officer opens a person on the page, THE APP SHALL list their `team_joined` and `team_left` events oldest first. proves: `it shows a person's team history`
 - [x] #7 WHEN a user below officer tier requests `/roster/pipeline`, THE APP SHALL refuse it the same way it refuses other officer pages. proves: `it refuses the pipeline page to a member`
 <!-- AC:END -->
@@ -177,3 +177,16 @@ VERDICT: defect
 
 - **#5 reopened**, by the breakage lens: `applied()` drops forms whose name matches a member who left or was banned and still has a `member_teams` row, so a past recruit who applies again never shows under Applied.
 
+**2026-10-05** RESULT: done
+TESTS: +0 new, 1 extended, all green (suite 799 passed; pint --test exit 0)
+TOUCHED: app/Http/Controllers/Dashboard/TrialPipelineController.php
+TOUCHED: tests/Feature/TrialPipelineTest.php
+OUT-OF-SCOPE: none
+
+Fixes the review's #5 defect. TrialPipelineController::applied() built its 'on a team' name list without active(), so a member who left or was banned but still had a member_teams row hid their new recruit form. It now uses active(), the same as Trial and Raider.
+
+Test-first: `it lists a recruit form with no team under applied` now also builds Returner-Silvermoon (status left, still on mythic_trial in member_teams) with a form 2 days old. It was watched red ('To contain: Returner') before the one-line fix, then green.
+
+All earlier assumptions from the first take still hold (name matching before '-Realm', 60-day window in APPLIED_WINDOW_DAYS, trial days from the latest team_joined for that team, alumni leave date from the latest left/kicked/banned event).
+
+Browser check still owed after merge: Herd serves C:\Dev\Regenesis, not this worktree.
