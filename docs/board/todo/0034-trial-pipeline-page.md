@@ -40,7 +40,7 @@ teams, and the left / kicked status on each member.
 - [x] #2 WHEN a member is on `mythic_trial` or `heroic_trial`, THE APP SHALL show them under Trial with the number of days since their latest `team_joined` event for that team, or "since before records" when there is none. proves: `it shows how long a trial has been running`
 - [x] #3 WHEN a member is on `mythic` or `heroic` and on no trial team, THE APP SHALL show them under Raider. proves: `it puts raid team members under raider`
 - [x] #4 WHEN a member has left or been kicked and has any `team_joined` event, THE APP SHALL show them under Alumni with their last team and the date they left. proves: `it lists a departed trial or raider under alumni`
-- [x] #5 WHEN a new-recruits form names a character who is not on any team, THE APP SHALL show them under Applied with the date of the form. proves: `it lists a recruit form with no team under applied`
+- [ ] #5 WHEN a new-recruits form names a character who is not on any team, THE APP SHALL show them under Applied with the date of the form. proves: `it lists a recruit form with no team under applied`
 - [x] #6 WHEN an officer opens a person on the page, THE APP SHALL list their `team_joined` and `team_left` events oldest first. proves: `it shows a person's team history`
 - [x] #7 WHEN a user below officer tier requests `/roster/pipeline`, THE APP SHALL refuse it the same way it refuses other officer pages. proves: `it refuses the pipeline page to a member`
 <!-- AC:END -->
@@ -107,3 +107,73 @@ Assumptions:
 - The gate is RequireTier with no argument, like every other officer page, so raid_leader and above get in.
 
 Browser check still owed after merge: Herd serves C:\Dev\Regenesis, not this worktree.
+
+### 2026-10-05 review (v20261005031845-5de4)
+
+**suite**
+
+`vendor\bin\pest.bat` exited 0 after 91s, run by this job rather than reported by the card.
+
+**acceptance: sound**
+
+I checked all 7 criteria against the code. I could not break any of them.
+
+- **#1, four columns with counts:** `TrialPipelineController::__invoke()` builds the four lists. `dashboard/pipeline.blade.php` shows each list as a column with its count. The four columns are Applied, Trial, Raider and Alumni.
+- **#2, trial days:** `__invoke()` finds the latest `team_joined` event whose payload team is the member's trial team. It counts the days from that event. When there is no event, `days` is null, and the view prints "since before records".
+- **#3, raider:** `__invoke()` checks trial teams first. A member on `mythic` or `heroic` with no trial team goes into the Raider list.
+- **#4, alumni:** `__invoke()` loads members with status `left` or `banned`. It uses `withTrashed()` (it also finds deleted rows) and needs at least one `team_joined` event. The model has no `kicked` status, so a kicked member has status `left`. The last team comes from the latest `team_joined` event. The leave date comes from the latest `left`, `kicked` or `banned` event.
+- **#5, applied:** `TrialPipelineController::applied()` takes forms from the last 60 days. It drops a form when its character's name, before the `-Realm` part, matches a member who is on a team. The view shows the date of the form.
+- **#6, history:** `__invoke()` sorts the `team_joined` and `team_left` events by `occurred_at`, then by `id`, so the oldest comes first. The view lists them inside a `<details>` block (a box that opens on click).
+- **#7, gate:** `routes/web.php` puts `/roster/pipeline` in the `RequireTier` group with no argument. That is the same group as the other officer pages.
+
+The suite was green before this review.
+
+VERDICT: sound
+
+**scope: sound**
+
+I checked what this card changed against what it asked for. I found no scope problem.
+
+**The card stayed inside its fence.**
+- The card's own commit is `6184423`. It changes only 5 files: `TrialPipelineController`, `pipeline.blade.php`, the sidebar line in `layouts/dashboard.blade.php`, `routes/web.php` and `TrialPipelineTest.php`. These are the files the Tasks name.
+- The other files in the diff come from cards `0030`, `0031` and `0033`. Those cards were committed earlier and already reviewed. They are not growth from this card.
+
+**No fence was crossed.**
+- There is no bench stage.
+- The page has no buttons that move people. `TrialPipelineController::__invoke()` only reads data.
+- The roster page and its Trial chip did not change.
+- The route is in the officer-only group, so a member cannot open it.
+
+**Nothing is half done.**
+- The Alumni column shows the one-line note the Plan asks for: it "starts empty and fills over time."
+- The Applied window is one named constant, `TrialPipelineController::APPLIED_WINDOW_DAYS`. Card `0035` can narrow it with one line in `applied()`.
+- The card comment says how forms match to members, as the Plan asks.
+- The browser check is still owed, and the card says so. No criterion needs it.
+- The boxes under `## Tasks` are still unticked. That is only bookkeeping.
+
+My finding disproves no criterion.
+
+VERDICT: sound
+
+**breakage: defect**
+
+I tried to break this card, and one part broke.
+
+**Finding: a recruit who left and then applied again is hidden from Applied.**
+
+- `TrialPipelineController::applied()` builds its "on a team" list with `Member::query()->forGuild()->hasAnyTeam()`. It has no `active()` filter, so members who left or were banned are in the list too.
+- Members who left keep their team rows. `TeamResolver::syncRankRowsForMember()` and `recomputeMembers()` work out teams from rank only, and they never look at `status`. A member who left with a trial or raid rank still has that `member_teams` row.
+- So a past trial who left and then posts a new recruit form is matched by name and removed. The officer never sees that person under Applied. That is the case this page exists to catch.
+- The controller is not consistent with itself. Trial and Raider use `active()`, so they treat that person as on no team. Applied treats them as on a team.
+- No test builds a member who left, still has a team row, and has a new form.
+
+**No other breakage found.** Nothing else calls the new controller. The sidebar link and the route are new and do not touch other pages.
+
+UNMET: #5 `applied()` drops forms whose name matches a member who left or was banned and still has a `member_teams` row, so a past recruit who applies again never shows under Applied.
+
+VERDICT: defect
+
+**acceptance**
+
+- **#5 reopened**, by the breakage lens: `applied()` drops forms whose name matches a member who left or was banned and still has a `member_teams` row, so a past recruit who applies again never shows under Applied.
+
