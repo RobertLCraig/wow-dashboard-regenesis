@@ -24,3 +24,7 @@ On a bench name: raise a build card to map it at `/admin/teams` and add a Bench 
 Related: 0011 decided the pipeline page with a bench stage; 0034 built the page without bench (done).
 
 ## Comments
+
+**2026-10-11** **Decided:** Bench: no bench. Applied: raiders only. Bench is dropped for good: someone sitting out shows as a raider until they leave the raid team.
+**2026-10-11** Checked before acting. No bench rank exists: the GRM SavedVariables (account-wide `Guild_Roster_Manager.lua`, 2026-10-02) hold 18 rank names and none is bench. "Bench" appears only as a Raid-Helper sign-up status and once in one officer note ("Allies friend BENCH"). `TeamMapping::TEAMS` has no bench team. Discord roles are snowflakes mapped at `/admin/teams` and were not listable offline; the officer note is the only sign of bench anywhere.
+**2026-10-11** Built in commit `000454b`. `TrialPipelineController::applied()` now drops a form whose `reason_for_joining` matches `guild|social` (case-insensitive), after keeping each character's latest form. A form with no reason stays in, so an oddly worded raid form is not lost. No list of "raiding" answers was given, so nothing else is filtered. Test: `it lists raid applicants under applied and leaves out guild and social joiners`. Suite 800 passed, Pint clean. A browser check on `/roster/pipeline` is still owed: the worktree build cannot prove it in Herd. Moved to ai-review because it produced code.
