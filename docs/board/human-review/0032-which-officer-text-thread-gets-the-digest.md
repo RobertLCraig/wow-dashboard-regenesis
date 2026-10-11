@@ -26,3 +26,6 @@ Steps after the answer, all live changes and so Rob's: (1) officer-text, Channel
 Related: 0010 (decided the digest goes to the officer channel and suggested a thread; this settles that); 0030 (webhook form accepts a thread, done); 0031 (quiet-week and broken-sync guard, done).
 
 ## Comments
+
+
+**2026-10-11** **Decided:** **2026-10-11** **Decided:** Option 1: a thread. Needs a deploy of the thread support first.
