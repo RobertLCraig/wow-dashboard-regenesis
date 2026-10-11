@@ -45,7 +45,7 @@ function pipelineEvent(Member $member, string $type, ?string $team, $at): Member
     ]);
 }
 
-function pipelineForm(string $character, $postedAt): DiscordRecruitForm
+function pipelineForm(string $character, $postedAt, ?string $reason = null): DiscordRecruitForm
 {
     static $thread = 1000;
 
@@ -55,6 +55,7 @@ function pipelineForm(string $character, $postedAt): DiscordRecruitForm
         'thread_title' => "Character: {$character} | Discord: someone",
         'discord_username' => 'someone',
         'character_name' => $character,
+        'form_fields' => $reason !== null ? ['reason_for_joining' => $reason] : null,
         'posted_at' => $postedAt,
         'fetched_at' => now(),
     ]);
@@ -159,6 +160,18 @@ it('lists a recruit form with no team under applied', function () {
         ->toContain('Returner')
         ->not->toContain('Signedup')
         ->not->toContain('Ancient');
+});
+
+it('lists raid applicants under applied and leaves out guild and social joiners', function () {
+    pipelineForm('Raidready', now()->subDays(3), 'Raiding');
+    pipelineForm('Chillguy', now()->subDays(3), 'Guild/Social');
+    pipelineForm('Justsocial', now()->subDays(3), 'social');
+
+    $applied = pipelineColumn(pipelinePage(), 'applied');
+
+    expect($applied)->toContain('Raidready')
+        ->not->toContain('Chillguy')
+        ->not->toContain('Justsocial');
 });
 
 it('shows a person\'s team history', function () {

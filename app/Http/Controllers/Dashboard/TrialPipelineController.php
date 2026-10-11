@@ -12,7 +12,7 @@ use Illuminate\View\View;
 
 /**
  * Where each recruit stands: Applied (a recent new-recruits form whose
- * character is on no team), Trial, Raider (member_teams on active
+ * character is on no team, social joiners left out), Trial, Raider (member_teams on active
  * members) and Alumni (left or banned, with team history). Read-only;
  * stages move the way they always have, by rank or team override.
  */
@@ -107,6 +107,9 @@ class TrialPipelineController extends Controller
             ->get()
             ->reject(fn (DiscordRecruitForm $f) => $onATeam->has($base($f->character_name)))
             ->unique(fn (DiscordRecruitForm $f) => $base($f->character_name))
+            // Raiders only (card 0035): the form's "Guild/Social" answer is not a raid
+            // applicant. A form with no reason stays, so an odd raid form is not lost.
+            ->reject(fn (DiscordRecruitForm $f) => preg_match('/guild|social/i', (string) ($f->form_fields['reason_for_joining'] ?? '')) === 1)
             ->values();
     }
 }
