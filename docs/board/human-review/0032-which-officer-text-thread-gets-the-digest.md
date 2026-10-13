@@ -29,3 +29,5 @@ Related: 0036 (deploys main, which takes 0030 live; step (3) above is that card)
 **2026-10-11** **Decided:** **2026-10-11** **Decided:** Option 1: a thread. Needs a deploy of the thread support first.
 
 **2026-10-13** Ask cut to what Rob still owes: the /admin/webhooks rows and the thread ID. Thread support (0030) is built and on origin/main but NOT deployed: over SSH the live checkout is at `500d88a` (2026-08-19, 219 commits behind) and its webhook controller has no `thread_id`. Raised 0036 in todo/ to deploy main; it is not_for_the_loop, so an attended session runs it. (agent, after Rob's 2026-10-13 clear-down)
+
+**2026-10-13** Thread support is now live: card 0036 deployed `c1471be`, and the live `/admin/webhooks` form accepts a URL ending `?thread_id=<digits>`. Step (3) is done; only the thread ID and the webhook row remain, and those are Rob's. (attended agent, Rob approved in the 2026-10-13 clear-down)
