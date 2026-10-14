@@ -213,7 +213,7 @@ class BisComparisonService
      * @param  Collection<int,BisProfile>  $candidates  every row for one class+spec
      * @return Collection<int,BisProfile>
      */
-    private function candidatesForSource(Collection $candidates, ?string $source): Collection
+    public function candidatesForSource(Collection $candidates, ?string $source): Collection
     {
         if ($source !== null) {
             return $candidates->where('source', $source)->values();

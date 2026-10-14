@@ -532,6 +532,56 @@ it('BiS column shows OK / issue count / dash based on comparison result', functi
     expect($body)->toContain('data-sort-value="-1"');
 });
 
+it('counts roster BiS issues against the default source', function () {
+    $m = rosterMember('Twosource-Silvermoon');
+
+    // SimC wants an enchant on the head. The manual row overlaps the
+    // player's gear more (head + neck), so a gear-overlap pick across
+    // sources would choose it and report zero issues.
+    $profile = fn (string $source, array $gear) => BisProfile::query()->create([
+        'class' => 'priest',
+        'spec' => 'frost',
+        'hero_talent' => null,
+        'source' => $source,
+        'profile_name' => "{$source}_priest_frost",
+        'source_path' => "/{$source}",
+        'parsed_data' => ['class' => 'priest', 'spec' => 'frost', 'hero_talent' => null, 'gear' => $gear, 'consumables' => []],
+        'captured_at' => now(),
+    ]);
+    $profile('simc', [
+        'head' => ['slot' => 'head', 'name' => 'h', 'item_id' => 1, 'enchant_id' => 100, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+    ]);
+    $profile('manual', [
+        'head' => ['slot' => 'head', 'name' => 'h', 'item_id' => 1, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+        'neck' => ['slot' => 'neck', 'name' => 'n', 'item_id' => 2, 'enchant_id' => null, 'gem_ids' => [], 'bonus_ids' => [], 'ilevel' => null],
+    ]);
+
+    $snap = Snapshot::query()->create([
+        'guild_key' => 'Regenesis-Silvermoon',
+        'captured_at' => now(),
+        'source' => Snapshot::SOURCE_RAIDERIO,
+        'payload_hash' => 'h-roster-two-sources',
+    ]);
+    MemberSnapshot::query()->create([
+        'snapshot_id' => $snap->id,
+        'member_id' => $m->id,
+        'raw_json' => [
+            'active_spec_name' => 'Frost',
+            'gear' => ['items' => [
+                'head' => ['item_id' => 1, 'name' => 'h', 'enchants' => [], 'gems' => []],
+                'neck' => ['item_id' => 2, 'name' => 'n', 'enchants' => [], 'gems' => []],
+            ]],
+        ],
+        'ilvl' => 282,
+    ]);
+
+    $body = $this->actingAs(rosterOfficer())->get('/roster')->assertOk()->getContent();
+
+    // SimC is the default source, so its missing head enchant is the one issue.
+    expect($body)->toContain('data-sort-value="1"')
+        ->not->toContain('text-emerald-400">OK</span>');
+});
+
 it('BiS column shows dash when no BisProfile exists for the member class/spec', function () {
     // Member has a RIO snapshot (so comparison is attempted) but no BisProfile for their class/spec.
     $m = rosterMember('Mage-Silvermoon', ['class' => 'MAGE']);

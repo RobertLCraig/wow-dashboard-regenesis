@@ -246,7 +246,8 @@ class RosterController extends Controller
             if ($class === null || $spec === null) {
                 continue;
             }
-            $candidates = $profilesByClassSpec->get($class.'|'.$spec, collect());
+            // Same default source the character page uses, so the counts agree.
+            $candidates = $service->candidatesForSource($profilesByClassSpec->get($class.'|'.$spec, collect()), null);
             $gear = $service->extractFromRio($raw);
             $profile = $service->pickBestProfileFromGear($candidates, $gear);
             if ($profile === null) {
