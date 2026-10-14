@@ -20,7 +20,7 @@ Nobody sees it yet. Today SimC ships no healers and the other sources hold only 
 
 ## Acceptance
 <!-- AC:BEGIN -->
-- [ ] #1 WHEN `simc:pull` imports a spec that already has a row from another source, THE APP SHALL keep that row unchanged and write the SimC list to its own `simc` row. proves: `it leaves another source's row alone when importing SimC`
+- [x] #1 WHEN `simc:pull` imports a spec that already has a row from another source, THE APP SHALL keep that row unchanged and write the SimC list to its own `simc` row. proves: `it leaves another source's row alone when importing SimC`
 <!-- AC:END -->
 
 ## Plan
@@ -31,3 +31,11 @@ Add `'source' => 'simc'` to the match keys of the `updateOrCreate()` call in
 
 **2026-09-29** Raised by the unattended build of 0025. Found while reading the callers of the BiS
 profiles table.
+
+**2026-10-14** RESULT: done
+TESTS: +1 new, all green (802 passed)
+TOUCHED: app/Services/Simc/SimcProfileLoader.php
+TOUCHED: tests/Feature/SimcProfileLoaderTest.php
+OUT-OF-SCOPE: none
+
+Added 'source' => 'simc' to the updateOrCreate() match keys, as the Plan says. The new test seeds a wowhead row for death_knight/frost/rider (a spec the SimC fixtures ship), runs the loader, and checks the wowhead row is unchanged and a separate simc row holds the SimC list. Watched it fail first: the wowhead row's profile_name was overwritten with 'MID1_Death_Knight_Frost_Rider'. Pint clean. No browser check needed: no page changed.
