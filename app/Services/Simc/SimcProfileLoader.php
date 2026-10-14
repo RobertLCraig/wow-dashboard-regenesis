@@ -70,6 +70,7 @@ class SimcProfileLoader
                     'class' => $parsed['class'],
                     'spec' => $parsed['spec'],
                     'hero_talent' => $parsed['hero_talent'],
+                    'source' => 'simc',
                 ],
                 [
                     'profile_name' => $parsed['profile_name'] ?? basename($absPath, '.simc'),

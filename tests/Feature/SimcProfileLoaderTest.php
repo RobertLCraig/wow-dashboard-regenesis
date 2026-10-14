@@ -46,6 +46,33 @@ it('updates an existing row in place on a re-pull (idempotent)', function () {
     expect($second->captured_at->gte($first->captured_at))->toBeTrue();
 });
 
+it('leaves another source\'s row alone when importing SimC', function () {
+    $wowhead = BisProfile::query()->create([
+        'class' => 'death_knight',
+        'spec' => 'frost',
+        'hero_talent' => 'rider',
+        'source' => 'wowhead',
+        'profile_name' => 'Wowhead Frost',
+        'source_path' => 'wowhead/death_knight/frost.json',
+        'parsed_data' => ['gear' => []],
+        'captured_at' => now()->subDay(),
+    ]);
+
+    (new SimcProfileLoader(new SimcProfileParser))->loadFromDirectory(__DIR__.'/../fixtures/simc');
+
+    $after = $wowhead->fresh();
+    expect($after->source)->toBe('wowhead');
+    expect($after->profile_name)->toBe('Wowhead Frost');
+    expect($after->source_path)->toBe('wowhead/death_knight/frost.json');
+    expect($after->parsed_data)->toBe(['gear' => []]);
+
+    $simc = BisProfile::query()
+        ->where(['class' => 'death_knight', 'spec' => 'frost', 'hero_talent' => 'rider', 'source' => 'simc'])
+        ->first();
+    expect($simc)->not->toBeNull();
+    expect($simc->parsed_data['gear']['head']['item_id'])->toBe(249970);
+});
+
 it('throws when the directory does not exist', function () {
     $loader = new SimcProfileLoader(new SimcProfileParser);
     expect(fn () => $loader->loadFromDirectory('/no/such/path'))
