@@ -5,6 +5,7 @@
 > widgets. Picked up by an agent session working one board card.
 
 **Stage:** shipped (live at `regenesis.enhanceify.co.uk`, still under active development)
+**Category:** app (guess)
 **Status:** every surface in the README's "What's built" table is live. Open work is the board, and
 most of it is decisions owed rather than code.
 _Last updated: 2026-09-29 (member Discord hiding by card 0026; BiS source column by card 0025; first handover 2026-09-05, written by card 0015, which existed because there
